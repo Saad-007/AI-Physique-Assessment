@@ -27,7 +27,7 @@ const AnimatedCounter = ({ end, suffix = "", duration = 1500 }) => {
   return <>{count}{suffix}</>;
 };
 
-// --- Animation Variants ---
+// --- Highly Performant Animation Variants ---
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -53,14 +53,16 @@ const SocialProofStep = ({ onNext }) => {
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0, y: -20, filter: "blur(10px)", scale: 0.95 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col items-center w-full px-4 max-w-md mx-auto"
+      // PERFORMANCE FIX: Root hardware acceleration wrapper
+      className="flex flex-col items-center w-full px-4 max-w-md mx-auto transform-gpu will-change-[opacity,transform,filter]"
     >
       {/* Refined Header with Lucide Icon */}
       <motion.h2 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-xl md:text-2xl font-bold mb-8 text-white flex items-center justify-center gap-3 tracking-tight"
+        // PERFORMANCE FIX
+        className="text-xl md:text-2xl font-bold mb-8 text-white flex items-center justify-center gap-3 tracking-tight transform-gpu will-change-[opacity,transform]"
       >
         <Users className="w-6 h-6 text-[#ff5a1f]" />
         You're in good company
@@ -70,13 +72,14 @@ const SocialProofStep = ({ onNext }) => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex flex-col gap-5 w-full mb-10"
+        className="flex flex-col gap-5 w-full mb-10 perspective-1000"
       >
         {/* --- Card 1: 200K Users --- */}
         <motion.div 
           variants={cardVariants}
           whileHover={{ y: -3, borderColor: "rgba(255,90,31,0.3)" }}
-          className="bg-[#0a0a0a] border border-gray-800/80 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-xl transition-all duration-300 relative overflow-hidden group"
+          // PERFORMANCE FIX: Added transform-gpu to isolate the card animation from the counter updates
+          className="bg-[#0a0a0a] border border-gray-800/80 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-xl transition-all duration-300 relative overflow-hidden group transform-gpu will-change-[opacity,transform]"
         >
           {/* Subtle hover glow */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#ff5a1f]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -93,7 +96,8 @@ const SocialProofStep = ({ onNext }) => {
         <motion.div 
           variants={cardVariants}
           whileHover={{ y: -3, borderColor: "rgba(255,90,31,0.3)" }}
-          className="bg-[#0a0a0a] border border-gray-800/80 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-xl transition-all duration-300 relative overflow-hidden group"
+          // PERFORMANCE FIX: Added transform-gpu
+          className="bg-[#0a0a0a] border border-gray-800/80 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-xl transition-all duration-300 relative overflow-hidden group transform-gpu will-change-[opacity,transform]"
         >
           <div className="absolute inset-0 bg-gradient-to-b from-[#ff5a1f]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           
@@ -118,7 +122,8 @@ const SocialProofStep = ({ onNext }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.6, type: "spring", stiffness: 200, damping: 20 }}
-        className="w-full flex justify-center"
+        // PERFORMANCE FIX
+        className="w-full flex justify-center transform-gpu will-change-[opacity,transform]"
       >
         <MagneticButton text="Start My Assessment →" onClick={onNext} />
       </motion.div>
