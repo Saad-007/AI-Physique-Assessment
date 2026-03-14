@@ -3,24 +3,19 @@ import { motion } from 'framer-motion';
 
 const GlowingButton = ({ text, onClick }) => {
   return (
-    <motion.div 
-      className="relative group mt-8 w-full md:w-auto"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.6, duration: 0.5 }}
-    >
-      {/* Glow Effect */}
-      <div className="absolute -inset-1 bg-orange-500 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
+    <div className="relative mt-8 w-full sm:w-auto flex justify-center">
+      {/* Exact ambient glow from the image */}
+      <div className="absolute inset-0 bg-[#ff5a1f] rounded-xl blur-xl opacity-20"></div>
       
       <motion.button
         whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.97 }}
+        whileTap={{ scale: 0.98 }}
         onClick={onClick}
-        className="relative w-full md:w-auto px-12 py-4 bg-[#ff5a1f] hover:bg-[#e04a15] text-white font-bold text-lg rounded-xl transition-colors duration-300 shadow-[0_0_40px_rgba(255,90,31,0.3)]"
+        className="relative w-full sm:w-auto px-16 py-4 bg-[#ff5a1f] text-white font-bold text-lg rounded-xl transition-colors hover:bg-[#e04a15] shadow-lg"
       >
         {text}
       </motion.button>
-    </motion.div>
+    </div>
   );
 };
 
