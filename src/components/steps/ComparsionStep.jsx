@@ -80,13 +80,15 @@ const ComparisonStep = ({ onNext }) => {
         >
           {/* Crisper, smaller header */}
           <h3 className="font-bold mb-6 flex items-center justify-center gap-2.5 text-gray-500 text-lg md:text-xl border-b border-gray-800/50 pb-5">
-            <Frown className="w-5 h-5 text-orange-500/60 grayscale" strokeWidth={2.5} /> 
+            {/* COLOR FIX: Updated from text-orange-500/60 to text-[#E71B25]/60 to match the new red theme */}
+            <Frown className="w-5 h-5 text-[#E71B25]/60 grayscale" strokeWidth={2.5} /> 
             Without BodyMax
           </h3>
           <motion.ul variants={listContainerVariants} className="space-y-5 text-sm md:text-[15px] text-gray-400 font-medium flex-1">
             {["Guessing what to train", "Don't know weak points", "Random workouts", "Slow progress", "Feel stuck for years"].map((text, i) => (
               <motion.li key={i} variants={listItemVariants} className="flex gap-3.5 items-center transform-gpu will-change-[opacity,transform]">
-                <X className="w-4 h-4 text-red-500/70 shrink-0" strokeWidth={3} /> 
+                {/* Kept red here as it perfectly matches the bad/negative context and your new theme */}
+                <X className="w-4 h-4 text-[#E71B25]/80 shrink-0" strokeWidth={3} /> 
                 <span className="leading-tight">{text}</span>
               </motion.li>
             ))}

@@ -33,14 +33,29 @@ const LandingStep = ({ onNext }) => {
       // PERFORMANCE FIX: Added transform-gpu and will-change
       className="flex flex-col items-center text-center w-full px-4 md:px-8 max-w-4xl mx-auto transform-gpu will-change-[opacity,transform,filter]"
     >
+      
+      {/* 0. Hardcoded Brand Logo (Top Center, Now Larger) */}
+      <motion.div 
+        variants={itemVariants}
+        className="mb-6 md:mb-8 flex justify-center transform-gpu will-change-[opacity,transform,filter]"
+      >
+        <img 
+          src="/logo.png" 
+          alt="Brand Logo" 
+          className="h-14 md:h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.15)]" 
+        />
+      </motion.div>
+
       {/* 1. Floating Premium Badge */}
       <motion.div 
         variants={itemVariants}
         whileHover={{ scale: 1.05 }}
         // PERFORMANCE FIX: Added transform-gpu
-        className="border border-gray-800/80 bg-[#0a0a0a]/80 backdrop-blur-md rounded-full px-4 py-1.5 text-[11px] text-gray-400 font-bold tracking-[0.2em] uppercase mb-8 flex items-center gap-2 shadow-xl cursor-default transform-gpu"
+        // COLOR FIX: Changed border hover color
+        className="border border-gray-800/80 bg-[#0a0a0a]/80 backdrop-blur-md rounded-full px-4 py-1.5 text-[11px] text-gray-400 font-bold tracking-[0.2em] uppercase mb-8 flex items-center gap-2 shadow-xl cursor-default transform-gpu transition-colors hover:border-[#E71B25]/40"
       >
-        <Zap className="w-3.5 h-3.5 text-[#ff5a1f]" fill="currentColor" /> 
+        {/* COLOR FIX: text-[#ff5a1f] -> text-[#E71B25] */}
+        <Zap className="w-3.5 h-3.5 text-[#E71B25]" fill="currentColor" /> 
         AI Physique Assessment
       </motion.div>
       
@@ -51,10 +66,12 @@ const LandingStep = ({ onNext }) => {
         className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.95] mb-6 text-balance text-white transform-gpu will-change-[opacity,transform,filter]"
       >
         What's your real <br className="hidden md:block"/>
-        <span className="relative inline-block text-transparent bg-clip-text bg-gradient-to-b from-[#ff5a1f] to-[#e04a15] drop-shadow-[0_0_20px_rgba(255,90,31,0.2)]">
+        {/* COLOR FIX: Gradient from-[#E71B25] to-[#C6161F] and updated drop-shadow color */}
+        <span className="relative inline-block text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] drop-shadow-[0_0_20px_rgba(231,27,37,0.2)]">
           BodyMax
           {/* Subtle underline accent */}
-          <span className="absolute -bottom-2 left-0 w-full h-1.5 bg-[#ff5a1f]/20 rounded-full blur-[2px]"></span>
+          {/* COLOR FIX: bg-[#E71B25]/20 */}
+          <span className="absolute -bottom-2 left-0 w-full h-1.5 bg-[#E71B25]/20 rounded-full blur-[2px]"></span>
         </span> Score?
       </motion.h1>
       
@@ -78,7 +95,8 @@ const LandingStep = ({ onNext }) => {
         ].map((stat, i) => (
           <div key={i} className="flex flex-col items-center group cursor-default">
             {/* Tiny crisp icon above stats */}
-            <stat.icon className="w-4 h-4 text-gray-600 mb-2 group-hover:text-[#ff5a1f] transition-colors duration-300" />
+            {/* COLOR FIX: group-hover:text-[#E71B25] */}
+            <stat.icon className="w-4 h-4 text-gray-600 mb-2 group-hover:text-[#E71B25] transition-colors duration-300" />
             <div className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 tracking-tighter mb-1">
               <AnimatedCounter end={stat.end} suffix={stat.suffix} />
             </div>

@@ -45,7 +45,8 @@ const MissionStep = ({ onNext }) => {
         // PERFORMANCE FIX: Added transform-gpu to stop the floating animation from lagging
         className="border border-gray-800/80 bg-[#0a0a0a]/80 backdrop-blur-md rounded-full px-4 py-1.5 text-[11px] text-gray-400 font-bold tracking-[0.2em] uppercase mb-10 flex items-center gap-2 shadow-xl cursor-default transform-gpu"
       >
-        <Target className="w-3.5 h-3.5 text-[#ff5a1f]" strokeWidth={2.5} />
+        {/* COLOR FIX: text-[#E71B25] */}
+        <Target className="w-3.5 h-3.5 text-[#E71B25]" strokeWidth={2.5} />
         Our Mission
       </motion.div>
       
@@ -68,9 +69,10 @@ const MissionStep = ({ onNext }) => {
         ))}
         
         {/* "YOU" with SVG Draw Animation */}
+        {/* COLOR FIX: text-[#E71B25] and corresponding RGB shadow */}
         <motion.span 
           variants={wordVariants} 
-          className="inline-block relative mr-2.5 md:mr-4 text-[#ff5a1f] drop-shadow-[0_0_15px_rgba(255,90,31,0.2)] transform-gpu will-change-[opacity,transform,filter]"
+          className="inline-block relative mr-2.5 md:mr-4 text-[#E71B25] drop-shadow-[0_0_15px_rgba(231,27,37,0.2)] transform-gpu will-change-[opacity,transform,filter]"
         >
           you
           <motion.svg 
@@ -81,7 +83,7 @@ const MissionStep = ({ onNext }) => {
             <motion.path 
               d="M0,10 Q50,20 100,5" 
               fill="transparent" 
-              stroke="#ff5a1f" 
+              stroke="#E71B25" // COLOR FIX: stroke changed to red
               strokeWidth="4" 
               strokeLinecap="round"
               initial={{ pathLength: 0, opacity: 0 }}
@@ -102,7 +104,8 @@ const MissionStep = ({ onNext }) => {
         <motion.span variants={wordVariants} className="inline-block mr-2.5 md:mr-4 transform-gpu will-change-[opacity,transform,filter]">always</motion.span>
         
         {/* Updated Gradient Text for "WANTED" */}
-        <motion.span variants={wordVariants} className="inline-block text-transparent bg-clip-text bg-gradient-to-b from-[#ff5a1f] to-[#e04a15] transform-gpu will-change-[opacity,transform,filter]">
+        {/* COLOR FIX: gradient from-[#E71B25] to-[#C6161F] */}
+        <motion.span variants={wordVariants} className="inline-block text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] transform-gpu will-change-[opacity,transform,filter]">
           wanted
         </motion.span>
         

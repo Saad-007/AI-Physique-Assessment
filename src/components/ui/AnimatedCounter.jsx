@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export const AnimatedCounter = ({ end, suffix = "", label }) => {
   const [count, setCount] = useState(0);
@@ -27,13 +27,18 @@ export const AnimatedCounter = ({ end, suffix = "", label }) => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-4xl md:text-5xl lg:text-6xl font-black text-[#ff5a1f] tracking-tighter"
+        // COLOR FIX & PERFORMANCE: Changed to #E71B25 and added GPU acceleration
+        className="text-4xl md:text-5xl lg:text-6xl font-black text-[#E71B25] tracking-tighter transform-gpu will-change-[opacity,transform]"
       >
         {count}{suffix}
       </motion.div>
+      
       <motion.span 
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-        className="text-[11px] md:text-xs text-gray-500 font-bold tracking-[0.2em] uppercase mt-2"
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        transition={{ delay: 0.5 }}
+        // PERFORMANCE FIX: GPU acceleration for smooth fade-in
+        className="text-[11px] md:text-xs text-gray-500 font-bold tracking-[0.2em] uppercase mt-2 transform-gpu will-change-opacity"
       >
         {label}
       </motion.span>

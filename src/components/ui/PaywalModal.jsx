@@ -12,7 +12,6 @@ const PaywallModal = ({ isOpen, onClose, onCheckout }) => {
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          // BUG FIX: z-[999] and 98% opacity completely hides the progress bar & back arrow!
           className="fixed inset-0 z-[999] flex items-center justify-center bg-[#050505]/98 backdrop-blur-3xl px-4"
         >
           <motion.div 
@@ -20,36 +19,40 @@ const PaywallModal = ({ isOpen, onClose, onCheckout }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            // AESTHETIC FIX: Scaled down to max-w-[380px] for that dense, native-app feel
-            className="bg-[#0a0a0a] border border-white/[0.05] rounded-[2rem] p-6 md:p-7 w-full max-w-[380px] shadow-[0_30px_60px_rgba(0,0,0,0.8),0_0_40px_rgba(255,90,31,0.15)] relative overflow-hidden flex flex-col items-center text-center"
+            // COLOR FIX: Updated RGBA shadow to match the red theme (rgba(231,27,37,0.15))
+            className="bg-[#0a0a0a] border border-white/[0.05] rounded-[2rem] p-6 md:p-7 w-full max-w-[380px] shadow-[0_30px_60px_rgba(0,0,0,0.8),0_0_40px_rgba(231,27,37,0.15)] relative overflow-hidden flex flex-col items-center text-center"
           >
             {/* Ambient Top Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-[#ff5a1f]/80 to-transparent blur-[0.5px]"></div>
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-10 bg-[#ff5a1f] blur-[40px] opacity-30 rounded-full pointer-events-none"></div>
+            {/* COLOR FIX: via-[#E71B25]/80 */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-[#E71B25]/80 to-transparent blur-[0.5px]"></div>
+            {/* COLOR FIX: bg-[#E71B25] */}
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-10 bg-[#E71B25] blur-[40px] opacity-30 rounded-full pointer-events-none"></div>
 
             {/* Premium Micro-Badge */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ff5a1f]/10 border border-[#ff5a1f]/20 text-[#ff5a1f] text-[9px] font-bold tracking-[0.2em] uppercase mb-4">
-              <Zap className="w-3 h-3 fill-[#ff5a1f]" /> Final Step
+            {/* COLOR FIX: bg-[#E71B25]/10 border-[#E71B25]/20 text-[#E71B25] */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 text-[#E71B25] text-[9px] font-bold tracking-[0.2em] uppercase mb-4">
+              <Zap className="w-3 h-3 fill-[#E71B25]" /> Final Step
             </div>
 
             {/* Floating Lock Icon */}
             <motion.div 
               animate={{ y: [0, -4, 0] }}
               transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-              className="w-12 h-12 bg-gradient-to-b from-[#ff5a1f]/20 to-[#ff5a1f]/5 border border-[#ff5a1f]/30 rounded-full flex items-center justify-center mb-4 shadow-[inset_0_2px_10px_rgba(255,255,255,0.1)]"
+              className="w-12 h-12 bg-gradient-to-b from-[#E71B25]/20 to-[#E71B25]/5 border border-[#E71B25]/30 rounded-full flex items-center justify-center mb-4 shadow-[inset_0_2px_10px_rgba(255,255,255,0.1)]"
             >
-              <Lock className="w-5 h-5 text-[#ff5a1f]" strokeWidth={2.5} />
+              <Lock className="w-5 h-5 text-[#E71B25]" strokeWidth={2.5} />
             </motion.div>
 
             {/* High-Density Headline */}
             <h2 className="text-[22px] md:text-2xl font-black uppercase tracking-tighter mb-2 text-white leading-tight">
-              Your AI Report is <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ff5a1f] to-[#e04a15]">Ready</span>
+              {/* COLOR FIX: from-[#E71B25] to-[#C6161F] */}
+              Your AI Report is <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F]">Ready</span>
             </h2>
             <p className="text-gray-400 text-[13px] mb-5 text-balance leading-relaxed">
               Unlock your exact BodyMax score, weak points analysis, and 12-week transformation plan.
             </p>
 
-            {/* Dense Inset Checklist Box */}
+            {/* Dense Inset Checklist Box (Success items left green) */}
             <div className="w-full bg-[#030303] shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] border border-gray-800/60 rounded-2xl p-4 mb-5 text-left flex flex-col gap-2.5 relative">
               {[
                 "Complete physique gap analysis",
@@ -92,7 +95,7 @@ const PaywallModal = ({ isOpen, onClose, onCheckout }) => {
             {/* Crisp, Minimal Close Button */}
             <button 
               onClick={onClose}
-              className="absolute top-4 right-4 p-1.5 text-gray-500 hover:text-white hover:bg-white/10 transition-colors rounded-full"
+              className="absolute top-4 right-4 p-1.5 text-gray-600 hover:text-white hover:bg-white/10 transition-colors rounded-full"
             >
               <X className="w-4 h-4" strokeWidth={2.5} />
             </button>

@@ -22,16 +22,18 @@ export const MagneticButton = ({ text, onClick }) => {
       onMouseLeave={reset}
       animate={{ x: position.x, y: position.y }}
       transition={{ type: "spring", stiffness: 150, damping: 15, mass: 0.1 }}
-      className="relative mt-8 z-50 flex justify-center w-full md:w-auto cursor-pointer"
+      className="relative mt-8 z-50 flex justify-center w-full md:w-auto cursor-pointer group"
     >
       {/* Intense Under-Glow */}
-      <div className="absolute inset-0 bg-[#ff5a1f] rounded-xl blur-xl opacity-30 group-hover:opacity-60 transition-opacity duration-500"></div>
+      {/* COLOR FIX: bg-[#E71B25] */}
+      <div className="absolute inset-0 bg-[#E71B25] rounded-xl blur-xl opacity-30 group-hover:opacity-60 transition-opacity duration-500"></div>
       
       <motion.button
         onClick={onClick}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.95 }}
-        className="relative w-full md:w-auto px-16 py-4 md:py-5 bg-[#ff5a1f] hover:bg-[#e04a15] text-white font-black text-lg md:text-xl tracking-wide uppercase rounded-xl shadow-2xl transition-colors duration-300 border border-white/10"
+        // COLOR FIX: bg-[#E71B25] hover:bg-[#C6161F]
+        className="relative w-full md:w-auto px-16 py-4 md:py-5 bg-[#E71B25] hover:bg-[#C6161F] text-white font-black text-lg md:text-xl tracking-wide uppercase rounded-xl shadow-2xl transition-colors duration-300 border border-white/10 z-10"
       >
         {text}
       </motion.button>
