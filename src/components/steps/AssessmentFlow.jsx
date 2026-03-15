@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Users, Flame, Dumbbell, Zap, Trophy, 
   Activity, Target, Clock, Image as ImageIcon, Scale, Check, 
-  Frown, Meh, Smile, Heart, Lightbulb, CameraOff, XCircle, 
+  Frown, Meh, Smile, Heart, Lightbulb, CameraOff, XCircle, X, 
   Search, Brain, ShieldAlert, AlertCircle, Camera, Upload, 
-  Home, CheckCircle, HelpCircle, CheckSquare, Square, Sparkles, Scan, TrendingUp, ShieldCheck
+  Home, CheckCircle, HelpCircle, CheckSquare, Square, Sparkles, Scan, TrendingUp, ShieldCheck, Star
 } from 'lucide-react';
 import { IoIosArrowRoundBack } from "react-icons/io";
 import { MagneticButton } from '../ui/MagneticButton';
@@ -68,46 +68,181 @@ const CustomSlider = ({ label, min, max, value, onChange, unit }) => {
 };
 
 // ==========================================
+// SEPARATE COMPONENT: REVIEW STEP
+// ==========================================
+const ReviewStep = ({ review, onNext }) => {
+  return (
+    <div className="flex flex-col w-full h-full max-w-md mx-auto relative z-10 text-left">
+      <div className="fixed bottom-0 left-0 right-0 h-[45vh] bg-gradient-to-t from-[#E71B25]/20 via-[#E71B25]/5 to-transparent pointer-events-none z-[-1]" />
+
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="flex gap-1 mb-4 pt-2">
+        {[...Array(5)].map((_, i) => (
+          <Star key={i} className="w-5 h-5 text-[#F5B02B] fill-[#F5B02B] drop-shadow-sm" />
+        ))}
+      </motion.div>
+      
+      <motion.h2 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-[26px] md:text-3xl font-bold text-white mb-5 leading-[1.25] tracking-tight">
+        {review.title}
+      </motion.h2>
+      
+      <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-gray-300 text-[15px] md:text-base font-medium leading-relaxed mb-4">
+        {review.text}
+      </motion.p>
+      
+      <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-white font-semibold text-sm mb-8">
+        {review.author}
+      </motion.p>
+      
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4, type: "spring", stiffness: 200 }} className="relative w-full aspect-[4/5] md:aspect-square rounded-3xl overflow-hidden shadow-2xl mb-10 border border-white/10">
+        <img src={review.image} alt="Transformation progress" className="w-full h-full object-cover" />
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.5)] border border-white/10 whitespace-nowrap">
+          <span className="text-white font-bold text-sm tracking-wide">{review.progress}</span>
+        </div>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="w-full flex justify-center mt-auto">
+        <motion.button 
+          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+          onClick={onNext}
+          className="w-full bg-white hover:bg-gray-100 text-black py-4 rounded-2xl font-bold text-[17px] shadow-[0_10px_30px_rgba(231,27,37,0.2)] transition-colors"
+        >
+          Sounds good
+        </motion.button>
+      </motion.div>
+    </div>
+  );
+};
+
+// ==========================================
 // THE DATA ENGINE
 // ==========================================
 const assessmentData = [
+  { 
+    type: "transformation-preview",
+    phase: "YOUR TRANSFORMATION",
+    title: "YOUR PERSONALIZED BODYMAX TRANSFORMATION PLAN",
+    subtitle: "Answer a few quick questions so we can analyze your body, identify what's holding you back, and generate a custom plan designed to help you achieve your dream physique faster."
+  },
+
   { phase: "PHASE 1 — GETTING STARTED", title: "HOW OLD ARE YOU?", subtitle: "Select your age range for a more accurate analysis", type: "single", id: "age", options: [{ label: "Under 18", icon: User }, { label: "18 – 22", icon: Flame }, { label: "23 – 27", icon: Dumbbell }, { label: "28 – 35", icon: Zap }, { label: "36+", icon: Trophy }] },
   { phase: "PHASE 1 — GETTING STARTED", title: "WHAT'S YOUR HEIGHT & WEIGHT?", subtitle: "Used to calculate your ideal physique targets", type: "sliders", id: "metrics" },
   { phase: "PHASE 1 — GETTING STARTED", title: "HOW LONG HAVE YOU BEEN TRAINING?", subtitle: "Be honest — the AI needs this for accurate baselines.", type: "single", id: "experience", options: [{ label: "Just starting out", icon: Target }, { label: "Less than 1 year", icon: Clock }, { label: "1–3 years", icon: Activity }, { label: "3–5 years", icon: Flame }, { label: "5+ years (serious lifter)", icon: Trophy }] },
-  { phase: "PHASE 2 — IDENTITY", title: "WHICH BEST DESCRIBES YOUR BODY RIGHT NOW?", subtitle: "Be honest — the AI needs this to give you accurate results", type: "single", layout: "grid-mixed", id: "currentBody", options: [{ label: "Muscular & built", icon: Dumbbell }, { label: "Skinny — need size", icon: Activity }, { label: "Average — not great", icon: User }, { label: "Overweight — need to cut", icon: Scale }, { label: "Skinny-fat — low muscle, some fat", icon: Zap, fullWidth: true }] },
+  
+  { 
+    phase: "PHASE 2 — IDENTITY", 
+    title: "WHICH BEST DESCRIBES YOUR BODY RIGHT NOW?", 
+    subtitle: "Be honest — the AI needs this to give you accurate results", 
+    type: "single", 
+    layout: "grid-image", 
+    id: "currentBody", 
+    options: [
+      { label: "Muscular & built", img: "/Muscular.png" }, 
+      { label: "Skinny — need size", img: "/skinny.png" }, 
+      { label: "Average — not great", img: "/Average.png" }, 
+      { label: "Overweight — need to cut", img: "/Overweight.png" }, 
+    ] 
+  },
+  
+  { type: "review", review: { title: `"I didn't realize how much better my body could actually look..."`, text: "I had been going to the gym for a while but my physique still looked the same & pretty average. When I scanned my body, it showed me that my body fat was hiding my muscle definition and that my shoulders and chest needed more focus. Once I followed the personalized plan BODY MAX AI gave me, the difference started showing way faster than I expected.", author: "– Daniel, 27 • Los Angeles", progress: "10 weeks progress", image: "/review1.jpg" } },
+
   { phase: "PHASE 2 — SELF PERCEPTION", title: "WHEN YOU LOOK IN THE MIRROR SHIRTLESS, HOW DO YOU FEEL?", subtitle: "This reveals your current confidence gap", type: "single", layout: "grid-5", id: "selfPerception1", options: [{ label: "Disappointed", icon: Frown }, { label: "Not happy", icon: Frown }, { label: "Okay-ish", icon: Meh }, { label: "Pretty good", icon: Smile }, { label: "Love it", icon: Heart }], infoBox: { icon: Lightbulb, title: "Did you know?", text: "87% of guys who've been training for 1+ year still feel dissatisfied. The problem isn't effort — it's direction." } },
   { phase: "PHASE 2 — SELF PERCEPTION", title: "WHAT'S THE FIRST THING THAT BOTHERS YOU?", type: "single", id: "selfPerception2", options: [{ label: "My arms look too small", icon: Dumbbell }, { label: "My belly fat / love handles", icon: Activity }, { label: "My shoulders aren't wide enough", icon: Target }, { label: "Lack of muscle definition", icon: Search }, { label: "My back looks flat", icon: User }, { label: "My legs are too skinny", icon: Flame }] },
-  
   { type: "interstitial", icon: Frown, title: "We Get It.", subtitle: "You're putting in the work. You train. But the mirror doesn't show what you expected. That's not your fault — it's because nobody showed you exactly what to fix.\n\nThe next questions will expose your real weak points.", buttonText: "Show Me My Weak Points →" },
-  
   { phase: "PHASE 3 — PAIN POINTS", title: "WHICH OF THESE HIT CLOSE TO HOME?", subtitle: "Choose all that apply — be brutally honest", type: "multiple", id: "painPoints", options: [{ label: "Training for months but look the same", icon: Activity }, { label: "Other guys build muscle faster", icon: Users }, { label: "I look small in clothes", icon: User }, { label: "Don't look impressive shirtless", icon: ShieldAlert }, { label: "Avoid taking photos", icon: CameraOff }, { label: "Nothing sticks", icon: XCircle }] },
+  
+  { type: "review", review: { title: `"2 years of guessing. 11 weeks of actually knowing."`, text: "Winging it at the gym for 2 years with nothing to show for it. BodyMax scanned my body, showed me exactly what was holding me back — in 5 minutes. 11 weeks later: visible abs, broader shoulders, real definition for the first time. I finally have a plan I actually trust. My dream physique doesn't feel impossible anymore. It feels close.", author: "– Ryan, 24 • London", progress: "11 weeks progress", image: "/review2.jpg" } },
+
   { phase: "PHASE 3 — PAIN POINTS", title: "SEEING AN ELITE PHYSIQUE, WHAT DO YOU FEEL?", subtitle: "This reveals your motivation type", type: "single", id: "motivationTrigger", options: [{ label: "Jealous — I want that", icon: Flame }, { label: "Defeated — feel like I'll never get there", icon: Frown }, { label: "Inspired to work harder", icon: Target }, { label: "Nothing — not focused on comparisons", icon: Meh }] },
   { phase: "PHASE 3 — PAIN POINTS", title: "EVER AVOIDED A SITUATION BECAUSE OF YOUR BODY?", subtitle: "e.g. beach, pool, taking your shirt off", type: "single", id: "avoidance", options: [{ label: "Yes, often — I feel self-conscious", icon: Frown }, { label: "Sometimes — it crosses my mind", icon: Meh }, { label: "Rarely — I'm fairly comfortable", icon: Smile }, { label: "Never — I'm confident", icon: Heart }] },
   
-  { type: "comparison", title: "The Hard Truth", subtitle: "Most guys train for years without identifying their single biggest weak point. That one weak point is the difference between an average physique and an elite one.", buttonText: "Find My Weak Point →" },
+  { 
+    type: "comparison", 
+    title: "The Hard Truth", 
+    subtitle: "Most guys train for years without identifying their single biggest weak point. That one weak point is the difference between an average physique and an elite one.", 
+    buttonText: "Find My Weak Point →",
+    imgAverage: "/Average.png", 
+    imgElite: "/Muscular.png"   
+  },
   
-  { phase: "PHASE 4 — YOUR DREAM", title: "WHICH PHYSIQUE DO YOU WANT THE MOST?", subtitle: "Choose the body type that makes you think \"I want that\"", type: "single", layout: "grid-2", id: "dreamPhysique", options: [{ label: "Aesthetic V-Taper (David Laid)", icon: Target }, { label: "Lean & Shredded", icon: Flame }, { label: "Classic Bodybuilder (CBum)", icon: Trophy }, { label: "Athletic Build", icon: Zap }] },
+  { 
+    phase: "PHASE 4 — YOUR DREAM", 
+    title: "WHICH PHYSIQUE DO YOU WANT THE MOST?", 
+    subtitle: "Choose the body type that makes you think \"I want that\"", 
+    type: "single", 
+    layout: "grid-image", 
+    id: "dreamPhysique", 
+    options: [
+      { label: "Aesthetic V-Taper", img: "/V-shape.jpg" }, 
+      { label: "Lean & Shredded", img: "/Lean.jpg" }, 
+      { label: "Classic Bodybuilder", img: "/Classic.jpg" }, 
+      { label: "Athletic Build", img: "/Atheletic.jpg" },
+      { label: "Calisthenics", img: "/Calisthenics.jpg" }, 
+      { label: "Big & Massive", img: "/Big-massive.jpg" }
+    ] 
+  },
+  
+  { type: "review", review: { title: `"I was lean. I just didn't know what to build."`, text: "I thought being skinny meant I was close. I wasn't, I just had no idea which muscles were actually lagging. BodyMax told me in minutes. Shoulders, arms, upper chest, all underdeveloped. Followed the plan exactly. 8 weeks later my arms are bigger, my shoulders are wider and people are actually noticing. This is the first time training has felt intentional.", author: "– Jake, 21 • California", progress: "8 weeks progress", image: "/review3.jpg" } },
+
   { phase: "PHASE 4 — PERSONALISATION", title: "WHAT'S YOUR #1 PHYSIQUE STRUGGLE?", subtitle: "The AI will prioritise fixing this first", type: "single", id: "mainStruggle", options: [{ label: "Losing body fat / getting lean", icon: Flame }, { label: "Building more muscle mass", icon: Dumbbell }, { label: "Improving symmetry & proportions", icon: Scale }, { label: "Building wider shoulders / V-taper", icon: Target }, { label: "Breaking through a plateau", icon: Activity }] },
   { phase: "PHASE 5 — PERSONALISATION", title: "TRAINING SCHEDULE & LOCATION?", subtitle: "Your plan will be built around your schedule", type: "mixed-training", id: "trainingSetup" },
   { phase: "PHASE 5 — PERSONALISATION", title: "HOW WOULD YOU DESCRIBE YOUR CURRENT DIET?", type: "single", id: "diet", options: [{ label: "I eat well, track macros", icon: CheckCircle }, { label: "Random — I eat whatever", icon: Activity }, { label: "Healthy but not optimised for muscle", icon: HelpCircle }, { label: "Mostly junk food / takeaways", icon: AlertCircle }, { label: "I have no idea what I'm doing", icon: XCircle }] },
   { phase: "PHASE 5 — PERSONALISATION", title: "HOW'S YOUR SLEEP & STRESS?", subtitle: "Average sleep per night", type: "single", id: "sleep", options: [{ label: "Less than 5 hours", icon: AlertCircle }, { label: "5–6 hours", icon: Clock }, { label: "7–8 hours", icon: CheckCircle }, { label: "8+ hours", icon: Heart }] },
-  { phase: "PHASE 5 — MINDSET", title: "HOW MOTIVATED ARE YOU RIGHT NOW?", subtitle: "The AI calibrates your plan intensity based on this", type: "single", layout: "grid-5", id: "motivationLevel", options: [{ label: "Low", icon: Frown }, { label: "Okay", icon: Meh }, { label: "Good", icon: Dumbbell }, { label: "High", icon: Flame }, { label: "Obsessed", icon: Zap }], infoBox: { icon: Flame, title: "Fact:", text: "The most motivated guys using BodyMax AI see results 3x faster." } },
   
-  // QUESTION 16
+  { type: "review", review: { title: `"I didn't think this was possible for my body type."`, text: "I'd written myself off. Overweight, no idea where to start, tried everything and stayed the same. BodyMax scanned me and was brutally honest, high body fat, weak shoulders, obese. Finally something told me the truth AND gave me the exact plan to fix it. I went from embarrassed to take my shirt off to looking like a completely different person.", author: "– Marcus, 31 • Melbourne", progress: "6 months progress", image: "/review4.jpg" } },
+
+  { phase: "PHASE 5 — MINDSET", title: "HOW MOTIVATED ARE YOU RIGHT NOW?", subtitle: "The AI calibrates your plan intensity based on this", type: "single", layout: "grid-5", id: "motivationLevel", options: [{ label: "Low", icon: Frown }, { label: "Okay", icon: Meh }, { label: "Good", icon: Dumbbell }, { label: "High", icon: Flame }, { label: "Obsessed", icon: Zap }], infoBox: { icon: Flame, title: "Fact:", text: "The most motivated guys using BodyMax AI see results 3x faster." } },
   { phase: "PHASE 5 — COMMITMENT", title: "ARE YOU WILLING TO COMMIT TO 12 WEEKS?", subtitle: "This determines whether we build an aggressive or moderate plan", type: "single", id: "commitment", options: [{ label: "Absolutely — ready to go all in", icon: Flame }, { label: "Yes — I'll follow the plan consistently", icon: CheckCircle }, { label: "Maybe — depends on what it asks", icon: HelpCircle }, { label: "I'll try but not sure", icon: Activity }] },
   
-  // THE NEW COMPACT SOCIAL PROOF SECTION
-  { type: "social-proof" },
+  { 
+    type: "before-after-comparison",
+    before: {
+      title: "Before BodyMax",
+      points: [
+        "Feel invisible next to other guys",
+        "Soft, undefined, underwhelming",
+        "Shirt stays on at the beach",
+        "No one looks twice",
+        "Stuck in the same body for years"
+      ],
+      image: "/Before.png"
+    },
+    after: {
+      title: "After BodyMax",
+      points: [
+        "Jacked, defined, impossible to ignore",
+        "The guy other men envy",
+        "Shirt comes off with confidence",
+        "Dream body — actually achieved",
+        "Walk into any room and own it"
+      ],
+      image: "/After.png"
+    }
+  },
 
+  { type: "social-proof" },
   { type: "scan-interstitial" },
-  
-  // CUSTOM PHOTO UPLOAD STEP (MATCHING YOUR SCREENSHOT)
   { type: "upload-3" },
   
-  { phase: "AI SCAN", title: "WHAT'S YOUR DREAM PHYSIQUE?", subtitle: "Choose a preset or upload a photo of your goal body", type: "upload-goal", layout: "grid-1", options: [{ label: "Aesthetic V-Taper", icon: Target }, { label: "Lean & Shredded", icon: Flame }, { label: "Athletic Build", icon: Zap }, { label: "Classic Bodybuilder", icon: Trophy }, { label: "Calisthenics", icon: Activity }, { label: "Big & Massive", icon: Dumbbell }] }
+  { 
+    phase: "AI SCAN", 
+    title: "WHAT'S YOUR DREAM PHYSIQUE?", 
+    subtitle: "Choose a preset or upload a photo of your goal body", 
+    type: "upload-goal", 
+    options: [
+      { label: "Aesthetic V-Taper", img: "/V-shape.jpg" }, 
+      { label: "Lean & Shredded", img: "/Lean.jpg" }, 
+      { label: "Athletic Build", img: "/Atheletic.jpg" }, 
+      { label: "Classic Bodybuilder", img: "/Classic.jpg" }, 
+      { label: "Calisthenics", img: "/Calisthenics.jpg" }, 
+      { label: "Big & Massive", img: "/Big-massive.jpg" }
+    ] 
+  },
+  
+  // --- NEW FINAL GRAPH STEP ---
+  { type: "results-graph" }
 ];
 
-const isQuestionStep = (step) => !['interstitial', 'comparison', 'scan-interstitial', 'social-proof'].includes(step.type);
+const isQuestionStep = (step) => !['interstitial', 'comparison', 'scan-interstitial', 'social-proof', 'upload-3', 'review', 'transformation-preview', 'before-after-comparison', 'results-graph'].includes(step.type);
 const TOTAL_QUESTIONS = assessmentData.filter(isQuestionStep).length;
 
 // ==========================================
@@ -118,9 +253,9 @@ const AssessmentFlow = ({ formData, setFormData }) => {
   const [direction, setDirection] = useState(1);
   const [showPaywall, setShowPaywall] = useState(false); 
 
-  // Native Device Camera/Gallery Triggers
-  const galleryRef = React.useRef(null);
-  const cameraRef = React.useRef(null);
+  const galleryRef = useRef(null);
+  const cameraRef = useRef(null);
+  const goalUploadRef = useRef(null);
 
   const currentStep = assessmentData[currentIndex];
   const isLastStep = currentIndex === assessmentData.length - 1;
@@ -154,7 +289,6 @@ const AssessmentFlow = ({ formData, setFormData }) => {
     }
   };
 
-  // The Magic File Handler
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -162,15 +296,22 @@ const AssessmentFlow = ({ formData, setFormData }) => {
       const currentPhotos = formData.photos || { 1: null, 2: null, 3: null };
       const newPhotos = { ...currentPhotos };
       
-      // Auto-fills the first empty slot, starting from Front (1) to Back (3)
       if (!newPhotos[1]) newPhotos[1] = url;
       else if (!newPhotos[2]) newPhotos[2] = url;
-      else newPhotos[3] = url; // If all are full, it just overwrites the 3rd one.
+      else newPhotos[3] = url; 
 
       setFormData(prev => ({ ...prev, photos: newPhotos }));
     }
-    
-    // Clear the input value so the same file can be uploaded again if needed
+    e.target.value = null;
+  };
+
+  const handleGoalPhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setFormData(prev => ({ ...prev, customGoalPhoto: url, goal: "Custom Upload" }));
+      setTimeout(() => handleNext(), 400);
+    }
     e.target.value = null;
   };
 
@@ -185,6 +326,14 @@ const AssessmentFlow = ({ formData, setFormData }) => {
       x: dir < 0 ? -40 : 40, opacity: 0, scale: 0.92, rotateY: dir < 0 ? -15 : 15, filter: "blur(12px)", transformPerspective: 1000
     }) 
   };
+
+  // Data for the Graph Points
+  const graphPoints = [
+    { x: 15, y: 80, label: "Week 1", tooltip: "You will feel it" },
+    { x: 40, y: 55, label: "Week 4", tooltip: "You will see it" },
+    { x: 65, y: 35, label: "Week 8", tooltip: "You will start notice it" },
+    { x: 90, y: 15, label: "Week 12", tooltip: "Body Maxxed" },
+  ];
 
   return (
     <div className="w-full min-h-screen flex flex-col font-sans relative overflow-hidden bg-[#020202]">
@@ -235,10 +384,194 @@ const AssessmentFlow = ({ formData, setFormData }) => {
           <motion.div
             key={currentIndex} custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
             transition={{ type: "spring", stiffness: 350, damping: 30 }}
-            className="w-full flex flex-col transform-gpu"
+            className="w-full flex flex-col transform-gpu h-full"
           >
+            
+            {/* --- SEPARATE REVIEW COMPONENT RENDER --- */}
+            {currentStep.type === 'review' && (
+              <ReviewStep review={currentStep.review} onNext={handleNext} />
+            )}
+
+            {/* --- NEW: FINAL RESULTS GRAPH SCREEN --- */}
+            {currentStep.type === 'results-graph' && (
+              <div className="flex flex-col items-center w-full mt-2 h-full">
+                <motion.h2 
+                  initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                  className="text-[22px] md:text-[26px] font-bold text-white mb-6 text-center leading-tight max-w-sm tracking-tight"
+                >
+                  Based on your body scan and answers:
+                </motion.h2>
+
+                {/* Glowing Green Banners */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 20 }}
+                  className="w-full flex flex-col rounded-[1.5rem] overflow-hidden shadow-[0_0_30px_rgba(34,197,94,0.15)] mb-10"
+                >
+                  {/* Top Bright Green Section */}
+                  <div className="bg-gradient-to-r from-[#4ade80] to-[#22c55e] p-6 flex items-center justify-center text-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white/20 mix-blend-overlay pointer-events-none"></div>
+                    <h3 className="text-white font-bold text-xl md:text-2xl drop-shadow-md leading-snug relative z-10">
+                      you can improve your physique by up to 66% in the next 12 weeks.
+                    </h3>
+                  </div>
+                  {/* Bottom Dark Green Section */}
+                  <div className="bg-[#0f2e16] p-5 text-center border-t border-[#4ade80]/20">
+                    <p className="text-green-300/90 text-sm md:text-[15px] font-medium leading-relaxed">
+                      There's also a <strong className="text-white font-bold tracking-wide drop-shadow-sm">73% probability</strong> of reaching your dream physique if you consistently follow your personalized BodyMax plan.
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* The Animated Graph */}
+                <div className="relative w-full h-[220px] md:h-[260px] mt-4 mb-16">
+                  
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible">
+                    <defs>
+                      <filter id="greenGlow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="2" result="blur" />
+                        <feMerge>
+                          <feMergeNode in="blur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+
+                    {/* Vertical Week Markers */}
+                    {graphPoints.map((pt, i) => (
+                      <line key={i} x1={pt.x} y1="0" x2={pt.x} y2="100" stroke="#333" strokeWidth="0.5" />
+                    ))}
+                    {/* Baseline */}
+                    <line x1="0" y1="100" x2="100" y2="100" stroke="#444" strokeWidth="1" />
+
+                    {/* The Smooth Curved Line */}
+                    <motion.path 
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
+                      d="M -5 105 Q 5 95 15 80 C 25 65 30 60 40 55 C 50 50 55 45 65 35 C 75 25 80 20 90 15 C 95 10 100 5 105 0" 
+                      fill="none" 
+                      stroke="#4ade80" 
+                      strokeWidth="1.5"
+                      filter="url(#greenGlow)"
+                    />
+                  </svg>
+
+                  {/* Nodes & Tooltips */}
+                  {graphPoints.map((pt, i) => (
+                    <div key={i} className="absolute" style={{ left: `${pt.x}%`, top: `${pt.y}%` }}>
+                      
+                      {/* Tooltip Bubble */}
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.8 }} 
+                        animate={{ opacity: 1, y: 0, scale: 1 }} 
+                        transition={{ delay: i * 0.4 + 1.2, type: "spring", stiffness: 200 }}
+                        className="absolute bg-white text-black font-extrabold text-[10px] md:text-xs py-1.5 px-3 rounded-lg shadow-[0_5px_15px_rgba(0,0,0,0.5)] whitespace-nowrap transform -translate-x-1/2 -translate-y-[170%] z-20"
+                      >
+                        {pt.tooltip}
+                        {/* Little Triangle Pointer */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-white" />
+                      </motion.div>
+
+                      {/* Glowing Circle Node */}
+                      <motion.div 
+                        initial={{ scale: 0 }} 
+                        animate={{ scale: 1 }} 
+                        transition={{ delay: i * 0.4 + 1, type: "spring", bounce: 0.5 }}
+                        className="absolute w-3.5 h-3.5 md:w-4 md:h-4 bg-[#0a2010] border-[2.5px] border-[#4ade80] rounded-full transform -translate-x-1/2 -translate-y-1/2 shadow-[0_0_12px_rgba(74,222,128,0.8)] z-10"
+                      />
+                    </div>
+                  ))}
+
+                  {/* X-Axis Labels (Weeks) */}
+                  {graphPoints.map((pt, i) => (
+                    <motion.div 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                      key={`label-${i}`}
+                      className="absolute text-gray-500 text-[10px] md:text-[11px] font-bold transform -translate-x-1/2 mt-4"
+                      style={{ left: `${pt.x}%`, top: `100%` }}
+                    >
+                      {pt.label}
+                    </motion.div>
+                  ))}
+                </div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 2.5 }} className="w-full flex justify-center mt-auto pb-2">
+                  <MagneticButton text="Continue" onClick={handleNext} />
+                </motion.div>
+              </div>
+            )}
+
+            {/* --- EXACT REPLICA: BEFORE VS AFTER COMPARISON STEP --- */}
+            {currentStep.type === 'before-after-comparison' && (
+              <div className="flex flex-col items-center w-full mt-2 h-full">
+                <div className="w-full flex justify-between items-end px-6 md:px-10 mb-3 relative z-10">
+                   <span className="text-[#E71B25] font-black text-sm md:text-base uppercase tracking-widest">Today</span>
+                   <div className="absolute left-1/2 -translate-x-1/2 top-0 mt-1 w-12 md:w-16">
+                     <svg viewBox="0 0 100 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto drop-shadow-md">
+                       <path d="M10 30 Q 50 -10 90 30" stroke="white" strokeWidth="6" strokeLinecap="round" fill="none"/>
+                       <path d="M75 28 L 90 30 L 85 15" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                     </svg>
+                   </div>
+                   <span className="text-white font-black text-sm md:text-base uppercase tracking-widest">In 12 Weeks</span>
+                </div>
+
+                <div className="flex w-full gap-2 md:gap-4 mb-6 stretch flex-1 min-h-[460px] md:min-h-[520px]">
+                  {/* Before Card */}
+                  <div className="flex-1 bg-[#242529] rounded-3xl flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-white/[0.05]">
+                    <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
+                      <h3 className="text-white font-bold text-[16px] md:text-[18px] mb-3 md:mb-5 tracking-tight">{currentStep.before.title}</h3>
+                      <div className="flex flex-col gap-2.5 md:gap-4">
+                        {currentStep.before.points.map((point, i) => (
+                          <div key={i} className="flex items-start gap-1.5 md:gap-2">
+                            <X className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25] shrink-0 mt-0.5" strokeWidth={3} />
+                            <span className="text-white text-[11px] md:text-[13px] font-bold leading-snug tracking-wide">{point}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 h-[55%]">
+                       <div className="absolute inset-0 bg-gradient-to-b from-[#242529] via-[#242529]/60 to-transparent z-10 pointer-events-none" />
+                       <img src={currentStep.before.image} className="w-full h-full object-cover object-top" alt="Before" />
+                    </div>
+                  </div>
+
+                  {/* After Card */}
+                  <div className="flex-1 bg-gradient-to-b from-[#139E46] to-[#0A5A26] rounded-3xl flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(19,158,70,0.2)]">
+                    <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
+                      <h3 className="text-white font-bold text-[16px] md:text-[18px] mb-3 md:mb-5 tracking-tight drop-shadow-sm">{currentStep.after.title}</h3>
+                      <div className="flex flex-col gap-2.5 md:gap-4">
+                        {currentStep.after.points.map((point, i) => (
+                          <div key={i} className="flex items-start gap-1.5 md:gap-2">
+                            <Check className="w-4 h-4 md:w-5 md:h-5 text-black shrink-0 mt-0.5" strokeWidth={4} />
+                            <span className="text-white text-[11px] md:text-[13px] font-bold leading-snug tracking-wide drop-shadow-sm">{point}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 h-[55%]">
+                       <div className="absolute inset-0 bg-gradient-to-b from-[#0d8538] via-[#0d8538]/60 to-transparent z-10 pointer-events-none" />
+                       <img src={currentStep.after.image} className="w-full h-full object-cover object-top" alt="After" />
+                    </div>
+                  </div>
+                </div>
+
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-center px-2 mb-6 md:mb-8">
+                  <h2 className="text-[20px] md:text-2xl font-bold text-white leading-tight tracking-tight mb-3">
+                    Your Personalized BodyMax<br/>Transformation Plan
+                  </h2>
+                  <p className="text-gray-400 text-[12px] md:text-[14px] font-medium leading-relaxed max-w-sm mx-auto">
+                    Answer a few quick questions so we can analyze your body, identify what's holding you back, and generate a custom plan designed to help you achieve your dream physique faster.
+                  </p>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="w-full flex justify-center mt-auto pb-2">
+                  <MagneticButton text="Continue" onClick={handleNext} />
+                </motion.div>
+              </div>
+            )}
+
             {/* COMPACT TYPOGRAPHY */}
-            {!['interstitial', 'comparison', 'scan-interstitial', 'social-proof', 'upload-3'].includes(currentStep.type) && (
+            {!['interstitial', 'comparison', 'scan-interstitial', 'social-proof', 'upload-3', 'review', 'before-after-comparison', 'results-graph'].includes(currentStep.type) && (
               <div className="mb-10 text-center md:text-left">
                 {currentStep.phase && (
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 mb-4">
@@ -315,8 +648,42 @@ const AssessmentFlow = ({ formData, setFormData }) => {
               </div>
             )}
 
-            {/* --- ADVANCED GRID MIXED & GRID-2 --- */}
-            {(currentStep.layout === 'grid-mixed' || currentStep.layout === 'grid-2') && (
+            {/* --- ADVANCED IMAGE GRID (For Current Body / Goal Physique) --- */}
+            {currentStep.layout === 'grid-image' && (
+              <div className="grid grid-cols-2 gap-3.5">
+                {currentStep.options.map((option, idx) => {
+                  const isSelected = formData[currentStep.id] === option.label;
+                  return (
+                    <motion.button 
+                      whileHover={{ scale: 1.025, y: -3 }} whileTap={{ scale: 0.98 }} key={idx} onClick={() => handleSelect(option.label)} 
+                      className={`${option.fullWidth ? 'col-span-2 aspect-[21/9]' : 'aspect-square'} relative group rounded-[1.25rem] transition-all duration-400 overflow-hidden transform-gpu will-change-transform border ${
+                        isSelected ? 'border-[#E71B25] shadow-[0_10px_30px_rgba(231,27,37,0.3)]' : 'border-white/[0.05] hover:border-white/20 hover:shadow-lg'
+                      }`}
+                    >
+                      <img src={option.img} alt={option.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <div className={`absolute inset-0 transition-opacity duration-300 ${isSelected ? 'bg-gradient-to-t from-[#E71B25]/80 via-[#110505]/40 to-transparent' : 'bg-gradient-to-t from-[#050505]/90 via-[#050505]/30 to-transparent group-hover:from-[#050505]/70'}`} />
+
+                      <AnimatePresence>
+                        {isSelected && (
+                          <motion.div initial={{ scale: 0, rotate: 45 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }} transition={{ type: "spring", bounce: 0.5 }} className="absolute top-3 right-3 bg-green-500 rounded-full p-1 shadow-[0_0_15px_rgba(34,197,94,0.6)] z-20">
+                            <Check className="w-4 h-4 text-black" strokeWidth={4} />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="absolute bottom-4 left-0 right-0 px-3 flex justify-center z-10">
+                        <span className={`font-bold leading-tight text-center transition-colors duration-300 ${option.fullWidth ? 'text-[15px] md:text-[17px]' : 'text-[13px] md:text-[14px]'} ${isSelected ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-gray-200 group-hover:text-white'}`}>
+                          {option.label}
+                        </span>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* --- ADVANCED GRID MIXED & GRID-2 (Icons) --- */}
+            {(currentStep.layout === 'grid-mixed' || currentStep.layout === 'grid-2') && currentStep.layout !== 'grid-image' && (
               <div className="grid grid-cols-2 gap-3.5">
                 {currentStep.options.map((option, idx) => {
                   const isSelected = formData[currentStep.id] === option.label;
@@ -431,48 +798,6 @@ const AssessmentFlow = ({ formData, setFormData }) => {
                   </div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }} className="w-full flex justify-center">
-                  <MagneticButton text={currentStep.buttonText} onClick={handleNext} />
-                </motion.div>
-              </div>
-            )}
-
-            {/* --- PREMIUM INTERSTITIAL 2 (COMPARISON) --- */}
-            {currentStep.type === 'comparison' && (
-              <div className="flex flex-col items-center w-full mt-2">
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-                  className="w-full flex justify-center gap-4 mb-8"
-                >
-                  <div className="flex-1 bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] p-6 md:p-8 rounded-[2rem] text-center shadow-lg">
-                    <div className="bg-black/50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5 border border-gray-800">
-                      <User className="w-6 h-6 text-gray-500" strokeWidth={2} />
-                    </div>
-                    <h3 className="font-black text-gray-300 mb-4 text-lg">Average Guy</h3>
-                    <p className="text-[11px] md:text-xs text-gray-500 uppercase tracking-[0.2em] font-bold leading-relaxed">No plan.<br/><span className="my-1 block">Random training.</span>5 years, same body</p>
-                  </div>
-                  <div className="flex-1 bg-gradient-to-b from-[#0a140a]/90 to-[#040804]/90 backdrop-blur-xl border border-green-500/30 p-6 md:p-8 rounded-[2rem] text-center shadow-[0_0_40px_rgba(34,197,94,0.1),inset_0_1px_1px_rgba(255,255,255,0.1)] relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-24 h-10 bg-green-500 blur-[30px] opacity-30 rounded-full pointer-events-none"></div>
-                    
-                    <div className="bg-green-500/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-                      <Trophy className="w-6 h-6 text-green-400" strokeWidth={2.5} />
-                    </div>
-                    <h3 className="font-black text-white mb-4 text-lg drop-shadow-md">BodyMax User</h3>
-                    <p className="text-[11px] md:text-xs text-green-500/90 uppercase tracking-[0.2em] font-bold leading-relaxed">AI-guided.<br/><span className="my-1 block">Precise plan.</span>12 weeks, new physique</p>
-                  </div>
-                </motion.div>
-                
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-                  className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-2xl p-6 mb-10 flex gap-4 text-left shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
-                >
-                  <div className="bg-[#E71B25]/10 p-2.5 rounded-full h-fit shrink-0 border border-[#E71B25]/20"><Brain className="w-5 h-5 text-[#E71B25]" /></div>
-                  <p className="text-[14.5px] md:text-base text-gray-300 font-medium leading-relaxed">
-                    <strong className="text-white font-bold tracking-wide">The hard truth:</strong> {currentStep.subtitle}
-                  </p>
-                </motion.div>
-                
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} className="w-full flex justify-center">
                   <MagneticButton text={currentStep.buttonText} onClick={handleNext} />
                 </motion.div>
               </div>
@@ -630,8 +955,21 @@ const AssessmentFlow = ({ formData, setFormData }) => {
                 </div>
 
                 {/* HIDDEN FILE INPUTS */}
-                <input type="file" accept="image/png, image/jpeg, image/webp" ref={galleryRef} onChange={handlePhotoUpload} className="hidden" />
-                <input type="file" accept="image/*" capture="environment" ref={cameraRef} onChange={handlePhotoUpload} className="hidden" />
+                <input 
+                  type="file" 
+                  accept="image/png, image/jpeg, image/webp" 
+                  ref={galleryRef} 
+                  onChange={handlePhotoUpload} 
+                  className="hidden" 
+                />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment" 
+                  ref={cameraRef} 
+                  onChange={handlePhotoUpload} 
+                  className="hidden" 
+                />
 
                 {/* DYNAMIC CONTINUE BUTTON */}
                 <AnimatePresence>
@@ -673,34 +1011,74 @@ const AssessmentFlow = ({ formData, setFormData }) => {
             {currentStep.type === 'upload-goal' && (
               <div className="flex flex-col gap-4 mt-2">
                 <div className="grid grid-cols-2 gap-3.5 mb-5">
-                  {currentStep.options.map((opt, i) => (
-                    <motion.button 
-                      whileHover={{ scale: 1.025, y: -2 }} 
-                      whileTap={{ scale: 0.98 }} 
-                      key={i} 
-                      onClick={() => setFormData(prev => ({ ...prev, goal: opt.label }))} 
-                      className={`flex flex-col items-center justify-center p-6 rounded-[1.25rem] border transition-all duration-400 overflow-hidden transform-gpu will-change-transform ${
-                        formData.goal === opt.label 
-                          ? 'border-[#E71B25] shadow-[0_10px_25px_rgba(231,27,37,0.2),inset_0_1px_1px_rgba(255,255,255,0.1)] bg-[#110505]/80 backdrop-blur-xl' 
-                          : 'border-white/[0.04] bg-white/[0.02] backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] hover:bg-white/[0.04] hover:border-white/10'
-                      }`}
-                    >
-                      <motion.div animate={{ scale: formData.goal === opt.label ? 1.2 : 1, color: formData.goal === opt.label ? '#E71B25' : '#888', y: formData.goal === opt.label ? -2 : 0 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}>
-                        <opt.icon className="w-8 h-8 mb-4 drop-shadow-md" strokeWidth={formData.goal === opt.label ? 2.5 : 2} />
-                      </motion.div>
-                      <span className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest text-center transition-colors duration-300 ${formData.goal === opt.label ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'}`}>{opt.label}</span>
-                    </motion.button>
-                  ))}
+                  {currentStep.options.map((opt, i) => {
+                    const isSelected = formData.goal === opt.label;
+                    return (
+                      <motion.button 
+                        whileHover={{ scale: 1.025, y: -3 }} whileTap={{ scale: 0.98 }} key={i} 
+                        onClick={() => setFormData(prev => ({ ...prev, goal: opt.label }))} 
+                        className={`aspect-square relative group rounded-[1.25rem] transition-all duration-400 overflow-hidden transform-gpu will-change-transform border ${
+                          isSelected ? 'border-[#E71B25] shadow-[0_10px_30px_rgba(231,27,37,0.3)]' : 'border-white/[0.05] hover:border-white/20 hover:shadow-lg'
+                        }`}
+                      >
+                        {/* The Image Background */}
+                        <img src={opt.img} alt={opt.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        
+                        {/* Deep Gradient Overlay */}
+                        <div className={`absolute inset-0 transition-opacity duration-300 ${isSelected ? 'bg-gradient-to-t from-[#E71B25]/80 via-[#110505]/40 to-transparent' : 'bg-gradient-to-t from-[#050505]/90 via-[#050505]/30 to-transparent group-hover:from-[#050505]/70'}`} />
+
+                        {/* Select Checkmark */}
+                        <AnimatePresence>
+                          {isSelected && (
+                            <motion.div initial={{ scale: 0, rotate: 45 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }} transition={{ type: "spring", bounce: 0.5 }} className="absolute top-3 right-3 bg-green-500 rounded-full p-1 shadow-[0_0_15px_rgba(34,197,94,0.6)] z-20">
+                              <Check className="w-4 h-4 text-black" strokeWidth={4} />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Label Text at Bottom */}
+                        <div className="absolute bottom-4 left-0 right-0 px-3 flex justify-center z-10">
+                          <span className={`font-bold leading-tight text-center transition-colors duration-300 text-[13px] md:text-[14px] ${isSelected ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-gray-200 group-hover:text-white'}`}>
+                            {opt.label}
+                          </span>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
                 </div>
+                
                 <div className="flex items-center justify-center gap-4 text-[10px] font-black text-gray-600 mb-3 uppercase tracking-[0.4em]">
                   <div className="w-12 h-px bg-gray-800"></div> OR <div className="w-12 h-px bg-gray-800"></div>
                 </div>
-                <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }} className="flex flex-col items-center justify-center py-10 border-[1.5px] border-dashed border-[#E71B25]/40 bg-[#E71B25]/5 rounded-[1.5rem] hover:border-[#E71B25] transition-colors mb-10 group relative overflow-hidden">
+                
+                {/* Clickable Custom Upload Box */}
+                <input 
+                  type="file" 
+                  accept="image/png, image/jpeg, image/webp" 
+                  ref={goalUploadRef} 
+                  onChange={handleGoalPhotoUpload} 
+                  className="hidden" 
+                />
+                
+                <motion.button 
+                  whileHover={{ scale: 1.015 }} 
+                  whileTap={{ scale: 0.98 }} 
+                  onClick={() => goalUploadRef.current.click()}
+                  className="flex flex-col items-center justify-center py-10 border-[1.5px] border-dashed border-[#E71B25]/40 bg-[#E71B25]/5 rounded-[1.5rem] hover:border-[#E71B25] transition-colors mb-10 group relative overflow-hidden"
+                >
                   <Upload className="w-8 h-8 text-[#E71B25] mb-4 group-hover:-translate-y-2 transition-transform duration-400 drop-shadow-[0_0_10px_rgba(231,27,37,0.5)]" strokeWidth={2.5} />
                   <span className="text-[15px] font-black text-white uppercase tracking-widest mb-1.5 drop-shadow-md">Upload Goal Photo</span>
                   <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Favourite athlete or influencer</span>
                 </motion.button>
-                <div className="flex justify-center"><MagneticButton text="Compare to My Body →" onClick={handleNext} /></div>
+
+                <AnimatePresence>
+                  {formData.goal && (
+                    <motion.div initial={{ opacity: 0, height: 0, scale: 0.9 }} animate={{ opacity: 1, height: "auto", scale: 1 }} className="w-full flex justify-center mb-6">
+                      <MagneticButton text="Compare to My Body →" onClick={handleNext} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
               </div>
             )}
 
