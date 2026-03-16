@@ -146,6 +146,7 @@ const ComparisonStep = ({ onNext }) => {
         <MagneticButton text="I want to be on the right →" onClick={onNext} />
       </motion.div>
       
+      
     </motion.div>
   );
 };

@@ -34,7 +34,7 @@ const LandingStep = ({ onNext }) => {
       className="flex flex-col items-center text-center w-full px-4 md:px-8 max-w-4xl mx-auto transform-gpu will-change-[opacity,transform,filter]"
     >
       
-      {/* 0. Hardcoded Brand Logo (Top Center, Now Larger) */}
+     {/* 0. Hardcoded Brand Logo (Top Center, Now Larger) */}
       <motion.div 
         variants={itemVariants}
         className="mb-6 md:mb-8 flex justify-center transform-gpu will-change-[opacity,transform,filter]"
@@ -42,7 +42,8 @@ const LandingStep = ({ onNext }) => {
         <img 
           src="/logo.png" 
           alt="Brand Logo" 
-          className="h-14 md:h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.15)]" 
+          // INCREASED SIZE: Changed from h-14 md:h-20 to h-20 md:h-28
+          className="h-38 md:h-28 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.15)]" 
         />
       </motion.div>
 

@@ -68,6 +68,7 @@ const CustomSlider = ({ label, min, max, value, onChange, unit }) => {
 };
 
 // ==========================================
+// ==========================================
 // SEPARATE COMPONENT: REVIEW STEP
 // ==========================================
 const ReviewStep = ({ review, onNext }) => {
@@ -81,21 +82,27 @@ const ReviewStep = ({ review, onNext }) => {
         ))}
       </motion.div>
       
-      <motion.h2 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-[26px] md:text-3xl font-bold text-white mb-5 leading-[1.25] tracking-tight">
+      <motion.h2 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-[24px] md:text-3xl font-bold text-white mb-5 leading-[1.2] tracking-tight">
         {review.title}
       </motion.h2>
       
-      <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-gray-300 text-[15px] md:text-base font-medium leading-relaxed mb-4">
+      <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-gray-300 text-[14px] md:text-[15px] font-medium leading-relaxed mb-4">
         {review.text}
       </motion.p>
       
-      <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-white font-semibold text-sm mb-8">
+      <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-white font-semibold text-sm mb-6">
         {review.author}
       </motion.p>
       
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4, type: "spring", stiffness: 200 }} className="relative w-full aspect-[4/5] md:aspect-square rounded-3xl overflow-hidden shadow-2xl mb-10 border border-white/10">
+      {/* SIZED DOWN REVIEW IMAGE CONTAINER */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        transition={{ delay: 0.4, type: "spring", stiffness: 200 }} 
+        className="relative w-[280px] md:w-[320px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl mb-10 border border-white/10"
+      >
         <img src={review.image} alt="Transformation progress" className="w-full h-full object-cover" />
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.5)] border border-white/10 whitespace-nowrap">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.5)] border border-white/10 whitespace-nowrap">
           <span className="text-white font-bold text-sm tracking-wide">{review.progress}</span>
         </div>
       </motion.div>
@@ -117,6 +124,40 @@ const ReviewStep = ({ review, onNext }) => {
 // THE DATA ENGINE
 // ==========================================
 const assessmentData = [
+  
+
+    { type: "social-proof" },
+  { type: "scan-interstitial" },
+  { type: "upload-3" },
+
+  
+  { 
+    phase: "AI SCAN", 
+    title: "WHAT'S YOUR DREAM PHYSIQUE?", 
+    subtitle: "Choose a preset or upload a photo of your goal body", 
+    type: "upload-goal", 
+    options: [
+      { label: "Aesthetic V-Taper", img: "/V-shape.jpg" }, 
+      { label: "Lean & Shredded", img: "/Lean.jpg" }, 
+      { label: "Athletic Build", img: "/Atheletic.jpg" }, 
+      { label: "Classic Bodybuilder", img: "/Classic.jpg" }, 
+      { label: "Calisthenics", img: "/Calisthenics.jpg" }, 
+      { label: "Big & Massive", img: "/Big-massive.jpg" }
+    ] 
+  },
+    { 
+    type: "Today-Future",
+    before: {
+      title: "Today",
+    
+      image: "/Today.png"
+    },
+    after: {
+      title: "After BodyMax",
+   
+      image: "/Future.png"
+    }
+  },
   { phase: "PHASE 1 — GETTING STARTED", title: "HOW OLD ARE YOU?", subtitle: "Select your age range for a more accurate analysis", type: "single", id: "age", options: [{ label: "Under 18", icon: User }, { label: "18 – 22", icon: Flame }, { label: "23 – 27", icon: Dumbbell }, { label: "28 – 35", icon: Zap }, { label: "36+", icon: Trophy }] },
   { phase: "PHASE 1 — GETTING STARTED", title: "WHAT'S YOUR HEIGHT & WEIGHT?", subtitle: "Used to calculate your ideal physique targets", type: "sliders", id: "metrics" },
   { phase: "PHASE 1 — GETTING STARTED", title: "HOW LONG HAVE YOU BEEN TRAINING?", subtitle: "Be honest — the AI needs this for accurate baselines.", type: "single", id: "experience", options: [{ label: "Just starting out", icon: Target }, { label: "Less than 1 year", icon: Clock }, { label: "1–3 years", icon: Activity }, { label: "3–5 years", icon: Flame }, { label: "5+ years (serious lifter)", icon: Trophy }] },
@@ -137,7 +178,7 @@ const assessmentData = [
   },
   
   // --- REVIEW 1 ---
-  { type: "review", review: { title: `"I didn't realize how much better my body could actually look..."`, text: "I had been going to the gym for a while but my physique still looked the same & pretty average. When I scanned my body, it showed me that my body fat was hiding my muscle definition and that my shoulders and chest needed more focus. Once I followed the personalized plan BODY MAX AI gave me, the difference started showing way faster than I expected.", author: "– Daniel, 27 • Los Angeles", progress: "10 weeks progress", image: "/review1.jpg" } },
+  { type: "review", review: { title: `I didn't realize how much better my body could actually look...`, text: "I had been going to the gym for a while but my physique still looked the same & pretty average. When I scanned my body, it showed me that my body fat was hiding my muscle definition and that my shoulders and chest needed more focus. Once I followed the personalized plan BODY MAX AI gave me, the difference started showing way faster than I expected.", author: "– Daniel, 27 • Los Angeles", progress: "10 weeks progress", image: "/review1.jpg" } },
 
   { phase: "PHASE 2 — SELF PERCEPTION", title: "WHEN YOU LOOK IN THE MIRROR SHIRTLESS, HOW DO YOU FEEL?", subtitle: "This reveals your current confidence gap", type: "single", layout: "grid-5", id: "selfPerception1", options: [{ label: "Disappointed", icon: Frown }, { label: "Not happy", icon: Frown }, { label: "Okay-ish", icon: Meh }, { label: "Pretty good", icon: Smile }, { label: "Love it", icon: Heart }], infoBox: { icon: Lightbulb, title: "Did you know?", text: "87% of guys who've been training for 1+ year still feel dissatisfied. The problem isn't effort — it's direction." } },
   { phase: "PHASE 2 — SELF PERCEPTION", title: "WHAT'S THE FIRST THING THAT BOTHERS YOU?", type: "single", id: "selfPerception2", options: [{ label: "My arms look too small", icon: Dumbbell }, { label: "My belly fat / love handles", icon: Activity }, { label: "My shoulders aren't wide enough", icon: Target }, { label: "Lack of muscle definition", icon: Search }, { label: "My back looks flat", icon: User }, { label: "My legs are too skinny", icon: Flame }] },
@@ -145,7 +186,7 @@ const assessmentData = [
   { phase: "PHASE 3 — PAIN POINTS", title: "WHICH OF THESE HIT CLOSE TO HOME?", subtitle: "Choose all that apply — be brutally honest", type: "multiple", id: "painPoints", options: [{ label: "Training for months but look the same", icon: Activity }, { label: "Other guys build muscle faster", icon: Users }, { label: "I look small in clothes", icon: User }, { label: "Don't look impressive shirtless", icon: ShieldAlert }, { label: "Avoid taking photos", icon: CameraOff }, { label: "Nothing sticks", icon: XCircle }] },
   
   // --- REVIEW 2 ---
-  { type: "review", review: { title: `"2 years of guessing. 11 weeks of actually knowing."`, text: "Winging it at the gym for 2 years with nothing to show for it. BodyMax scanned my body, showed me exactly what was holding me back — in 5 minutes. 11 weeks later: visible abs, broader shoulders, real definition for the first time. I finally have a plan I actually trust. My dream physique doesn't feel impossible anymore. It feels close.", author: "– Ryan, 24 • London", progress: "11 weeks progress", image: "/review2.jpg" } },
+  { type: "review", review: { title: `2 years of guessing. 11 weeks of actually knowing.`, text: "Winging it at the gym for 2 years with nothing to show for it. BodyMax scanned my body, showed me exactly what was holding me back — in 5 minutes. 11 weeks later: visible abs, broader shoulders, real definition for the first time. I finally have a plan I actually trust. My dream physique doesn't feel impossible anymore. It feels close.", author: "– Ryan, 24 • London", progress: "11 weeks progress", image: "/review2.jpg" } },
 
   { phase: "PHASE 3 — PAIN POINTS", title: "SEEING AN ELITE PHYSIQUE, WHAT DO YOU FEEL?", subtitle: "This reveals your motivation type", type: "single", id: "motivationTrigger", options: [{ label: "Jealous — I want that", icon: Flame }, { label: "Defeated — feel like I'll never get there", icon: Frown }, { label: "Inspired to work harder", icon: Target }, { label: "Nothing — not focused on comparisons", icon: Meh }] },
   { phase: "PHASE 3 — PAIN POINTS", title: "EVER AVOIDED A SITUATION BECAUSE OF YOUR BODY?", subtitle: "e.g. beach, pool, taking your shirt off", type: "single", id: "avoidance", options: [{ label: "Yes, often — I feel self-conscious", icon: Frown }, { label: "Sometimes — it crosses my mind", icon: Meh }, { label: "Rarely — I'm fairly comfortable", icon: Smile }, { label: "Never — I'm confident", icon: Heart }] },
@@ -177,7 +218,7 @@ const assessmentData = [
   },
   
   // --- REVIEW 3 ---
-  { type: "review", review: { title: `"I was lean. I just didn't know what to build."`, text: "I thought being skinny meant I was close. I wasn't, I just had no idea which muscles were actually lagging. BodyMax told me in minutes. Shoulders, arms, upper chest, all underdeveloped. Followed the plan exactly. 8 weeks later my arms are bigger, my shoulders are wider and people are actually noticing. This is the first time training has felt intentional.", author: "– Jake, 21 • California", progress: "8 weeks progress", image: "/review3.jpg" } },
+  { type: "review", review: { title: `I was lean. I just didn't know what to build.`, text: "I thought being skinny meant I was close. I wasn't, I just had no idea which muscles were actually lagging. BodyMax told me in minutes. Shoulders, arms, upper chest, all underdeveloped. Followed the plan exactly. 8 weeks later my arms are bigger, my shoulders are wider and people are actually noticing. This is the first time training has felt intentional.", author: "– Jake, 21 • California", progress: "8 weeks progress", image: "/review3.jpg" } },
 
   { phase: "PHASE 4 — PERSONALISATION", title: "WHAT'S YOUR #1 PHYSIQUE STRUGGLE?", subtitle: "The AI will prioritise fixing this first", type: "single", id: "mainStruggle", options: [{ label: "Losing body fat / getting lean", icon: Flame }, { label: "Building more muscle mass", icon: Dumbbell }, { label: "Improving symmetry & proportions", icon: Scale }, { label: "Building wider shoulders / V-taper", icon: Target }, { label: "Breaking through a plateau", icon: Activity }] },
   { phase: "PHASE 5 — PERSONALISATION", title: "TRAINING SCHEDULE & LOCATION?", subtitle: "Your plan will be built around your schedule", type: "mixed-training", id: "trainingSetup" },
@@ -185,7 +226,7 @@ const assessmentData = [
   { phase: "PHASE 5 — PERSONALISATION", title: "HOW'S YOUR SLEEP & STRESS?", subtitle: "Average sleep per night", type: "single", id: "sleep", options: [{ label: "Less than 5 hours", icon: AlertCircle }, { label: "5–6 hours", icon: Clock }, { label: "7–8 hours", icon: CheckCircle }, { label: "8+ hours", icon: Heart }] },
   
   // --- REVIEW 4 ---
-  { type: "review", review: { title: `"I didn't think this was possible for my body type."`, text: "I'd written myself off. Overweight, no idea where to start, tried everything and stayed the same. BodyMax scanned me and was brutally honest, high body fat, weak shoulders, obese. Finally something told me the truth AND gave me the exact plan to fix it. I went from embarrassed to take my shirt off to looking like a completely different person.", author: "– Marcus, 31 • Melbourne", progress: "6 months progress", image: "/review4.jpg" } },
+  { type: "review", review: { title: `I didn't think this was possible for my body type.`, text: "I'd written myself off. Overweight, no idea where to start, tried everything and stayed the same. BodyMax scanned me and was brutally honest, high body fat, weak shoulders, obese. Finally something told me the truth AND gave me the exact plan to fix it. I went from embarrassed to take my shirt off to looking like a completely different person.", author: "– Marcus, 31 • Melbourne", progress: "6 months progress", image: "/review4.jpg" } },
 
   { phase: "PHASE 5 — MINDSET", title: "HOW MOTIVATED ARE YOU RIGHT NOW?", subtitle: "The AI calibrates your plan intensity based on this", type: "single", layout: "grid-5", id: "motivationLevel", options: [{ label: "Low", icon: Frown }, { label: "Okay", icon: Meh }, { label: "Good", icon: Dumbbell }, { label: "High", icon: Flame }, { label: "Obsessed", icon: Zap }], infoBox: { icon: Flame, title: "Fact:", text: "The most motivated guys using BodyMax AI see results 3x faster." } },
   { phase: "PHASE 5 — COMMITMENT", title: "ARE YOU WILLING TO COMMIT TO 12 WEEKS?", subtitle: "This determines whether we build an aggressive or moderate plan", type: "single", id: "commitment", options: [{ label: "Absolutely — ready to go all in", icon: Flame }, { label: "Yes — I'll follow the plan consistently", icon: CheckCircle }, { label: "Maybe — depends on what it asks", icon: HelpCircle }, { label: "I'll try but not sure", icon: Activity }] },
@@ -217,24 +258,7 @@ const assessmentData = [
     }
   },
 
-  { type: "social-proof" },
-  { type: "scan-interstitial" },
-  { type: "upload-3" },
-  
-  { 
-    phase: "AI SCAN", 
-    title: "WHAT'S YOUR DREAM PHYSIQUE?", 
-    subtitle: "Choose a preset or upload a photo of your goal body", 
-    type: "upload-goal", 
-    options: [
-      { label: "Aesthetic V-Taper", img: "/V-shape.jpg" }, 
-      { label: "Lean & Shredded", img: "/Lean.jpg" }, 
-      { label: "Athletic Build", img: "/Atheletic.jpg" }, 
-      { label: "Classic Bodybuilder", img: "/Classic.jpg" }, 
-      { label: "Calisthenics", img: "/Calisthenics.jpg" }, 
-      { label: "Big & Massive", img: "/Big-massive.jpg" }
-    ] 
-  },
+
   
   // --- NEW: RESULTS PROJECTION (BEFORE PAYWALL) ---
   { type: "results-projection" }
@@ -381,27 +405,26 @@ const AssessmentFlow = ({ formData, setFormData }) => {
             {currentStep.type === 'review' && (
               <ReviewStep review={currentStep.review} onNext={handleNext} />
             )}
-
             {/* --- EXACT REPLICA: BEFORE VS AFTER COMPARISON STEP --- */}
             {currentStep.type === 'before-after-comparison' && (
               <div className="flex flex-col items-center w-full mt-2 h-full">
                 
                 {/* Floating Header Tags with SVG Arrow */}
                 <div className="w-full flex justify-between items-end px-6 md:px-10 mb-3 relative z-10">
-                   <span className="text-[#E71B25] font-black text-sm md:text-base uppercase tracking-widest">Today</span>
+                   
                    
                    {/* Custom Curved SVG Arrow */}
-                   <div className="absolute left-1/2 -translate-x-1/2 top-0 mt-1 w-12 md:w-16">
+                   <div className="absolute left-1/2 -translate-x-1/2  mt-1 w-12 md:w-16">
                      <svg viewBox="0 0 100 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto drop-shadow-md">
                        <path d="M10 30 Q 50 -10 90 30" stroke="white" strokeWidth="6" strokeLinecap="round" fill="none"/>
                        <path d="M75 28 L 90 30 L 85 15" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                      </svg>
                    </div>
 
-                   <span className="text-white font-black text-sm md:text-base uppercase tracking-widest">In 12 Weeks</span>
+
                 </div>
 
-                <div className="flex w-full gap-2 md:gap-4 mb-6 stretch flex-1 min-h-[460px] md:min-h-[520px]">
+                <div className="flex w-full gap-2 md:gap-4 mb-6 stretch flex-1 min-h-[500px] md:min-h-[520px]">
                   
                   {/* Before Card */}
                   <div className="flex-1 bg-[#242529] rounded-3xl flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-white/[0.05]">
@@ -417,8 +440,8 @@ const AssessmentFlow = ({ formData, setFormData }) => {
                       </div>
                     </div>
                     {/* Image fills exact bottom half */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[55%]">
-                       <div className="absolute inset-0 bg-gradient-to-b from-[#242529] via-[#242529]/60 to-transparent z-10 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-[60%]">
+                       <div className="absolute inset-0 bg-gradient-to-b from-[#242529] via-[#242529]/1 to-transparent z-10 pointer-events-none" />
                        <img src={currentStep.before.image} className="w-full h-full object-cover object-top" alt="Before" />
                     </div>
                   </div>
@@ -437,8 +460,8 @@ const AssessmentFlow = ({ formData, setFormData }) => {
                       </div>
                     </div>
                     {/* Image fills exact bottom half */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[55%]">
-                       <div className="absolute inset-0 bg-gradient-to-b from-[#0d8538] via-[#0d8538]/60 to-transparent z-10 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-[60%]">
+                       <div className="absolute inset-0 bg-gradient-to-b from-[#0d8538] via-[#0d8538]/1 to-transparent z-10 pointer-events-none" />
                        <img src={currentStep.after.image} className="w-full h-full object-cover object-top" alt="After" />
                     </div>
                   </div>
@@ -446,11 +469,56 @@ const AssessmentFlow = ({ formData, setFormData }) => {
                 </div>
 
                 {/* Bottom Text */}
+            
+
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="w-full flex justify-center mt-auto pb-2">
+                  <MagneticButton text="Continue" onClick={handleNext} />
+                </motion.div>
+              </div>
+            )}
+
+            {/* --- EXACT REPLICA: BEFORE VS AFTER COMPARISON STEP --- */}
+            {currentStep.type === 'Today-Future' && (
+              <div className="flex flex-col items-center w-full mt-2 h-full">
+                
+                {/* Unified Split Card */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }} 
+                  animate={{ opacity: 1, y: 0, scale: 1 }} 
+                  transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
+                  className="relative w-full max-w-[340px] md:max-w-[420px] mx-auto flex rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] mb-8 border border-white/[0.05]"
+                >
+                  {/* Left Side: Today */}
+                  <div className="flex-1 relative flex flex-col pt-6 bg-[#6E2B2A]">
+                    <span className="text-[#FF4A4A] font-black text-[13px] md:text-[15px] uppercase tracking-widest text-center z-10">Today</span>
+                    <div className="relative w-full h-[300px] md:h-[380px] mt-4">
+                      <img src={currentStep.before.image} className="absolute inset-0 w-full h-full object-cover object-bottom" alt="Before" />
+                    </div>
+                  </div>
+
+                  {/* Right Side: In 12 Weeks */}
+                  <div className="flex-1 relative flex flex-col pt-6 bg-[#4CA75B]">
+                    <span className="text-white font-black text-[13px] md:text-[15px] uppercase tracking-widest text-center z-10">In 12 Weeks</span>
+                    <div className="relative w-full h-[300px] md:h-[380px] mt-4">
+                      <img src={currentStep.after.image} className="absolute inset-0 w-full h-full object-cover object-bottom" alt="After" />
+                    </div>
+                  </div>
+
+                  {/* Custom Curved SVG Arrow (Centered over the split) */}
+                  <div className="absolute top-[98px] md:top-[30px] left-1/2 -translate-x-1/2 w-25 md:w-20 z-20 pointer-events-none drop-shadow-lg">
+                    <svg viewBox="0 0 100 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+                      <path d="M10 25 Q 50 -10 85 20" stroke="white" strokeWidth="5" strokeLinecap="round" fill="none"/>
+                      <path d="M70 18 L 85 20 L 80 5" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    </svg>
+                  </div>
+                </motion.div>
+
+                {/* Bottom Text matching the screenshot EXACTLY */}
                 <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-center px-2 mb-6 md:mb-8">
-                  <h2 className="text-[20px] md:text-2xl font-bold text-white leading-tight tracking-tight mb-3">
+                  <h2 className="text-[22px] md:text-[28px] font-bold text-white leading-[1.2] tracking-tight mb-4">
                     Your Personalized BodyMax<br/>Transformation Plan
                   </h2>
-                  <p className="text-gray-400 text-[12px] md:text-[14px] font-medium leading-relaxed max-w-sm mx-auto">
+                  <p className="text-gray-300 text-[13px] md:text-[15px] font-medium leading-relaxed max-w-sm mx-auto">
                     Answer a few quick questions so we can analyze your body, identify what's holding you back, and generate a custom plan designed to help you achieve your dream physique faster.
                   </p>
                 </motion.div>
@@ -930,10 +998,10 @@ const AssessmentFlow = ({ formData, setFormData }) => {
                     <Sparkles className="w-3.5 h-3.5" /> Initializing AI Engine
                   </div>
                   <h2 className="text-4xl md:text-[3.25rem] font-black uppercase tracking-tighter mb-4 text-white drop-shadow-lg">
-                    Now for the <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] drop-shadow-[0_0_20px_rgba(231,27,37,0.4)]">AI Scan</span>
+                    Scan your body with <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] drop-shadow-[0_0_20px_rgba(231,27,37,0.4)]">AI</span>
                   </h2>
                   <p className="text-gray-400 text-[15px] md:text-base mb-10 text-balance max-w-sm mx-auto leading-relaxed">
-                    Upload 3 photos so our neural network can calculate your exact BodyMax Score and map your physical weak points.
+                    Discover your body score & see exactly whats holding you back from achieving your dream physique
                   </p>
                 </motion.div>
 
