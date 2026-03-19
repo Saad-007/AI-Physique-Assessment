@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, CreditCard, X, Lock, Sparkles, Zap } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+// WHOP OFFICIAL PACKAGE IMPORT KAREIN
+import { WhopCheckoutEmbed } from "@whop/checkout/react"; 
 
 // ==========================================
 // MAP CONFIGURATION
@@ -58,14 +60,57 @@ const GuaranteeSeal = () => (
 );
 
 // ==========================================
+// PIXEL-PERFECT PRICING DATA WITH REAL IDs
+// ==========================================
+const pricingPlans = [
+  {
+    id: '1-week',
+    title: 'Kickstart Plan',
+    subtitle: 'Test the system, see results fast',
+    duration: '1 week',
+    oldTotal: '$13.98',
+    newTotal: '$6.99',
+    oldDaily: '$2.00',
+    newDaily: '$0.99',
+    // WAQAS SE ASAL PLAN ID (plan_xxxx) MANG KAR YAHAN DALAIN:
+    planId: 'plan_Ria8do63uXIu3', 
+    badge: null
+  },
+  {
+    id: '4-weeks',
+    title: 'Momentum Plan',
+    subtitle: 'Build consistency, feel the change',
+    duration: '4 weeks',
+    oldTotal: '$59.98',
+    newTotal: '$29.99',
+    oldDaily: '$2.14',
+    newDaily: '$1.07',
+    // WAQAS SE ASAL PLAN ID (plan_xxxx) MANG KAR YAHAN DALAIN:
+    planId: 'plan_IKQC0xVZiDswT', 
+    badge: { text: 'MOST POPULAR', style: 'bg-[#FF4A2B] text-white left-0 -top-3.5 rounded-lg rounded-bl-none px-3 py-1' }
+  },
+  {
+    id: '12-weeks',
+    title: 'Transformation Plan',
+    subtitle: 'Complete body transformation — best results',
+    duration: '12 weeks',
+    oldTotal: '$89.98',
+    newTotal: '$44.99',
+    oldDaily: '', 
+    newDaily: '$0.53',
+    // WAQAS SE ASAL PLAN ID (plan_xxxx) MANG KAR YAHAN DALAIN:
+    planId: 'plan_kflTr1LhnYkps', 
+    badge: { text: 'BEST VALUE', style: 'bg-gradient-to-r from-[#FCE18D] to-[#F1C40F] text-black right-4 md:right-6 -top-3.5 rounded-md px-3 py-1 shadow-[0_0_10px_rgba(241,196,15,0.4)]' }
+  }
+];
+
+// ==========================================
 // MAIN COMPONENT
 // ==========================================
-// ==========================================
-// MAIN COMPONENT
-// ==========================================
-const PaywallModal = ({ isOpen, onClose, onCheckout }) => {
-  // Timer State for the Upgraded section
+const PaywallModal = ({ isOpen, onClose }) => {
   const [timeLeft, setTimeLeft] = useState(7 * 60 + 47);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false); // EMBED STATE
+  const [selectedPlan, setSelectedPlan] = useState('12-weeks'); 
 
   useEffect(() => {
     if (!isOpen) return;
@@ -92,7 +137,6 @@ const PaywallModal = ({ isOpen, onClose, onCheckout }) => {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
             className="fixed inset-0 z-[999] flex items-start justify-center bg-[#050505]/95 backdrop-blur-xl overflow-y-auto hide-scrollbar px-4 py-8 md:py-12"
           >
-            {/* Minimal Close Button */}
             <button 
               onClick={onClose}
               className="fixed top-5 right-5 p-2 bg-white/5 hover:bg-white/15 rounded-full transition-colors border border-white/5 z-50 text-gray-400 hover:text-white"
@@ -102,72 +146,127 @@ const PaywallModal = ({ isOpen, onClose, onCheckout }) => {
 
             <motion.div 
               initial={{ opacity: 0, y: 30, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.96 }} transition={{ type: "spring", stiffness: 350, damping: 25 }}
-              className="w-full max-w-[420px] flex flex-col items-center mt-2 mb-12" // Reduced padding bottom since the button is no longer sticky
+              className="w-full max-w-[440px] flex flex-col items-center mt-2 mb-12"
             >
               
               {/* ==========================================
-                  SECTION 1: THE CORE PAYWALL 
+                  SECTION 1: ARROW-SHAPED PRICING CARDS
                   ========================================== */}
-              <div className="flex flex-col items-center text-center w-full mb-12">
-                <div className="bg-[#E71B25]/10 border border-[#E71B25]/20 text-[#E71B25] px-3.5 py-1 rounded-full text-[8.5px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5 mb-4 shadow-[0_0_15px_rgba(231,27,37,0.1)]">
-                  <Sparkles className="w-2.5 h-2.5 fill-[#E71B25]" /> Analysis Complete
-                </div>
-
-                <h1 className="text-[22px] md:text-[24px] font-black text-white leading-[1.2] tracking-tight mb-3 drop-shadow-md">
-                  BodyMax Analyzed Your <br />Dream Physique
+              <div className="flex flex-col items-center text-center w-full mb-6">
+                <h1 className="text-[28px] md:text-[34px] font-bold text-white leading-[1.1] tracking-tight mb-8 drop-shadow-md">
+                  Get Started with <br />Special Pricing
                 </h1>
                 
-                <p className="text-gray-400 text-[12px] md:text-[13px] leading-relaxed mb-8 px-2 font-medium text-balance opacity-80">
-                  Stop guessing in the gym. Discover exactly what's holding you back and reach your goals fast.
-                </p>
+                <div className="w-full flex flex-col gap-5">
+                  {pricingPlans.map((plan) => {
+                    const isSelected = selectedPlan === plan.id;
+                    return (
+                      <div 
+                        key={plan.id}
+                        onClick={() => setSelectedPlan(plan.id)}
+                        className={`relative w-full rounded-2xl cursor-pointer transition-all duration-200 border-[1.5px] overflow-visible flex h-[105px] md:h-[115px] ${
+                          isSelected 
+                            ? 'border-[#FF4A2B] bg-[#120a09] shadow-[0_0_20px_rgba(255,74,43,0.15)]' 
+                            : 'border-[#2C2C2E] bg-[#161618] hover:border-[#3C3C3E]'
+                        }`}
+                      >
+                        {/* FLOATING BADGE */}
+                        {plan.badge && (
+                          <div className={`absolute text-[10px] font-bold tracking-wider z-30 ${plan.badge.style}`}>
+                            {plan.badge.text}
+                          </div>
+                        )}
 
-                <div className="w-full bg-[#0D0D0D] rounded-[1.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/[0.06] flex flex-col text-left">
-                  {/* Split Image */}
-                  <div className="w-full flex h-[240px] relative border-b border-white/[0.05]">
-                    <div className="flex-1 relative bg-[#1A0B0B]">
-                      <img src="/Today.png" alt="Present" className="absolute inset-0 w-full h-full object-cover object-center grayscale opacity-80" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] via-transparent to-transparent z-10" />
-                      <div className="absolute bottom-3 left-0 right-0 z-20 flex flex-col items-center"><span className="text-white font-bold text-[11px] tracking-wide">Before</span></div>
-                    </div>
-                    <div className="flex-1 relative bg-[#0B1A0E]">
-                      <img src="/Future.png" alt="Future" className="absolute inset-0 w-full h-full object-cover object-center" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] via-transparent to-transparent z-10" />
-                      <div className="absolute bottom-3 left-0 right-0 z-20 flex flex-col items-center"><span className="text-white font-bold text-[11px] tracking-wide">After</span></div>
-                    </div>
-                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-white/5 z-20" />
-                  </div>
+                        {/* LEFT CONTENT */}
+                        <div className="flex flex-1 items-center pl-4 pr-1 py-3 h-full z-20">
+                          <div className={`w-6 h-6 rounded-full border-[2px] flex items-center justify-center shrink-0 mr-3 md:mr-4 transition-colors ${isSelected ? 'border-[#FF4A2B]' : 'border-[#4A4A4C]'}`}>
+                            {isSelected && <div className="w-3 h-3 bg-[#FF4A2B] rounded-full" />}
+                          </div>
 
-                  {/* Offer Details */}
-                  <div className="p-6 bg-[#111111]">
-                    <h3 className="text-white font-bold text-[16px] mb-5 text-center tracking-tight opacity-90">Try BodyMax for 7 days</h3>
-                    
-                    <div className="flex flex-col gap-3 mb-6">
-                      {[ "Full-Body Score & Detailed Report", "Custom 12-Week AI-Guided Protocol", "Unlock your personalized plan", "Crush your goals fast" ].map((text, i) => (
-                        <div key={i} className="flex items-start gap-2.5">
-                          <Check className="w-[16px] h-[16px] text-[#4ade80] shrink-0 mt-[1px]" strokeWidth={3} />
-                          <span className="text-gray-300 text-[12px] font-medium leading-snug tracking-wide">{text}</span>
+                          <div className="flex flex-col justify-center h-full pt-1">
+                            <h3 className="text-white font-bold text-[16px] md:text-[18px] leading-none mb-1.5 text-left">{plan.title}</h3>
+                            <p className="text-[#98989A] text-[11px] md:text-[12px] leading-tight pr-2 mb-auto text-left">{plan.subtitle}</p>
+                            
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-white text-[12px] md:text-[13px] font-medium">{plan.duration}</span>
+                              <span className="text-[#98989A] text-[12px] md:text-[13px] line-through decoration-[#98989A]">{plan.oldTotal}</span>
+                              <span className="text-white text-[12px] md:text-[13px] font-medium">→ {plan.newTotal}</span>
+                            </div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
 
-                    <div className="w-full border border-[#4ade80]/30 bg-[#4ade80]/[0.02] rounded-xl p-3.5 mb-6 flex flex-col gap-0.5">
-                      <p className="text-gray-400 text-[12px] font-medium">Promo code <span className="text-[#4ade80] font-bold">MAXXING-95</span> applied</p>
-                      <p className="text-[#4ade80] font-black text-[13px] uppercase tracking-wider">You save -95%</p>
-                    </div>
+                        {/* RIGHT PANEL */}
+                        <div className="absolute right-[4px] top-[4px] bottom-[4px] w-[110px] md:w-[130px] overflow-hidden rounded-[0.8rem] z-10 pointer-events-none">
+                          <div 
+                            className={`absolute inset-0 transition-colors duration-300 ${isSelected ? 'bg-[#FF4A2B]' : 'bg-[#222224]'}`}
+                            style={{ clipPath: 'polygon(15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%)' }}
+                          />
+                          <div className="relative z-20 flex flex-col items-center justify-center h-full w-full pl-4 md:pl-5">
+                            {plan.oldDaily && (
+                              <span className={`text-[11px] md:text-[12px] line-through decoration-current mb-0.5 ${isSelected ? 'text-white/80' : 'text-[#98989A]'}`}>
+                                {plan.oldDaily}
+                              </span>
+                            )}
+                            <span className={`font-bold text-[24px] md:text-[28px] leading-none tracking-tight mb-0.5 ${isSelected ? 'text-white drop-shadow-sm' : 'text-white'}`}>
+                              {plan.newDaily}
+                            </span>
+                            <span className={`text-[10px] md:text-[11px] ${isSelected ? 'text-white/90' : 'text-[#98989A]'}`}>
+                              per day
+                            </span>
+                          </div>
+                        </div>
 
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-white font-bold text-[14px]">Total today:</span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-gray-600 line-through text-[12px] font-bold mb-[1px]">$19.99</span>
-                        <span className="text-white font-black text-[28px] leading-none tracking-tighter">$0.99</span>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* ==========================================
-                  SECTION 2: UPGRADED BODY COMPARISON
+                  CHECKOUT ACTION & WHOP OFFICIAL EMBED SDK
+                  ========================================== */}
+              <div className="w-full flex flex-col items-center mb-12">
+                {!isCheckoutOpen ? (
+                  <>
+                    <motion.button 
+                      whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }}
+                      onClick={() => setIsCheckoutOpen(true)} // Button click pe embed form khulega
+                      className="w-full max-w-[420px] bg-[#FF4A2B] hover:bg-[#ff3333] text-white py-4 rounded-2xl font-bold text-[15px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(255,74,43,0.3)] border border-[#FF4A2B]/20"
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <CreditCard className="w-5 h-5 text-white" strokeWidth={2} />
+                        <div className="absolute left-[3px] top-[4px] w-[5px] h-[3px] bg-[#FFD700] rounded-[1px] opacity-70" />
+                      </div>
+                      Proceed to Checkout
+                    </motion.button>
+                    
+                    <div className="mt-4 flex items-center gap-1.5 text-gray-500">
+                      <Lock className="w-3 h-3" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
+                    </div>
+                  </>
+                ) : (
+                  /* --- WHOP OFFICIAL REACT EMBED --- */
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: "auto" }} 
+                    className="w-full max-w-[420px] rounded-[1.5rem] overflow-hidden shadow-[0_0_40px_rgba(231,27,37,0.3)] border border-white/10"
+                  >
+                    <WhopCheckoutEmbed 
+                      planId={pricingPlans.find(plan => plan.id === selectedPlan)?.planId} 
+                      theme="dark" 
+                      hidePrice={false} 
+                      onComplete={() => {
+                        console.log("Payment 100% Successful for:", selectedPlan);
+                        // Redirect logic here...
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </div>
+
+              {/* ==========================================
+                  SECTION 3: UPGRADED BODY COMPARISON
                   ========================================== */}
               <div className="w-full flex flex-col items-center text-center mb-12">
                 <h2 className="text-white text-[26px] font-bold tracking-tight leading-[1.1] mb-3">Your Body, Upgraded.</h2>
@@ -218,9 +317,9 @@ const PaywallModal = ({ isOpen, onClose, onCheckout }) => {
               </div>
 
               {/* ==========================================
-                  SECTION 3: TRUST & COMMUNITY
+                  SECTION 4: TRUST & COMMUNITY
                   ========================================== */}
-              <div className="w-full flex flex-col gap-4 mb-8">
+              <div className="w-full flex flex-col gap-4 mb-4">
                 <div className="bg-[#1c1c1e]/80 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-5 w-full text-center">
                   <h1 className="text-[16px] font-bold text-white mb-4 leading-tight">Join the #1 Community for Levelling Up</h1>
                   <CommunityMap />
@@ -235,36 +334,6 @@ const PaywallModal = ({ isOpen, onClose, onCheckout }) => {
                     <p className="text-gray-400 text-[10px] pr-4">Find more about limitations in our policy.</p>
                     <GuaranteeSeal />
                   </div>
-                </div>
-
-                <div className="bg-[#1c1c1e]/80 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-5 w-full">
-                  <h2 className="text-[15px] font-bold text-white mb-1.5">Your information is safe</h2>
-                  <p className="text-[11px] text-gray-400 mb-4">We will not sell your personal info.</p>
-                  <div className="text-[12px] text-white font-bold flex items-center gap-1.5 pt-3 border-t border-white/5">
-                    <span>Need help? Contact us</span><a href="#" className="text-[#3b82f6] hover:underline">here</a>
-                  </div>
-                </div>
-              </div>
-
-              {/* ==========================================
-                  CHECKOUT BUTTON (Now properly stacked at the bottom)
-                  ========================================== */}
-              <div className="w-full flex flex-col items-center">
-                <motion.button 
-                  whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }}
-                  onClick={onCheckout}
-                  className="w-full max-w-[420px] bg-[#E71B25] hover:bg-[#d41820] text-white py-4 rounded-2xl font-black text-[15px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(231,27,37,0.3)] border border-[#ff4747]/20"
-                >
-                  <div className="relative flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-white" strokeWidth={2} />
-                    <div className="absolute left-[3px] top-[4px] w-[5px] h-[3px] bg-[#FFD700] rounded-[1px] opacity-70" />
-                  </div>
-                  Proceed to Checkout
-                </motion.button>
-                
-                <div className="mt-4 flex items-center gap-1.5 text-gray-500">
-                  <Lock className="w-3 h-3" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
                 </div>
               </div>
 
