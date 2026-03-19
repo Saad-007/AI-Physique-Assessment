@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, CreditCard, X, Lock, Sparkles, Zap } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
-// WHOP OFFICIAL PACKAGE IMPORT KAREIN
+// WHOP KA OFFICIAL PACKAGE
 import { WhopCheckoutEmbed } from "@whop/checkout/react"; 
 
 // ==========================================
@@ -60,7 +60,7 @@ const GuaranteeSeal = () => (
 );
 
 // ==========================================
-// PIXEL-PERFECT PRICING DATA WITH REAL IDs
+// PIXEL-PERFECT PRICING DATA 
 // ==========================================
 const pricingPlans = [
   {
@@ -72,8 +72,8 @@ const pricingPlans = [
     newTotal: '$6.99',
     oldDaily: '$2.00',
     newDaily: '$0.99',
-    // WAQAS SE ASAL PLAN ID (plan_xxxx) MANG KAR YAHAN DALAIN:
-    planId: 'plan_Ria8do63uXIu3', 
+    // YAHAN STRICTLY "plan_" WALI ID AYEGI
+    planId: ' plan_Ria8do63uXIu3', 
     badge: null
   },
   {
@@ -85,9 +85,9 @@ const pricingPlans = [
     newTotal: '$29.99',
     oldDaily: '$2.14',
     newDaily: '$1.07',
-    // WAQAS SE ASAL PLAN ID (plan_xxxx) MANG KAR YAHAN DALAIN:
+    // YAHAN STRICTLY "plan_" WALI ID AYEGI
     planId: 'plan_IKQC0xVZiDswT', 
-    badge: { text: 'MOST POPULAR', style: 'bg-[#FF4A2B] text-white left-0 -top-3.5 rounded-lg rounded-bl-none px-3 py-1' }
+    badge: { text: 'MOST POPULAR', style: 'bg-[#E71B25] text-white left-0 -top-3.5 rounded-lg rounded-bl-none px-3 py-1' }
   },
   {
     id: '12-weeks',
@@ -98,7 +98,7 @@ const pricingPlans = [
     newTotal: '$44.99',
     oldDaily: '', 
     newDaily: '$0.53',
-    // WAQAS SE ASAL PLAN ID (plan_xxxx) MANG KAR YAHAN DALAIN:
+    // YAHAN STRICTLY "plan_" WALI ID AYEGI
     planId: 'plan_kflTr1LhnYkps', 
     badge: { text: 'BEST VALUE', style: 'bg-gradient-to-r from-[#FCE18D] to-[#F1C40F] text-black right-4 md:right-6 -top-3.5 rounded-md px-3 py-1 shadow-[0_0_10px_rgba(241,196,15,0.4)]' }
   }
@@ -109,7 +109,7 @@ const pricingPlans = [
 // ==========================================
 const PaywallModal = ({ isOpen, onClose }) => {
   const [timeLeft, setTimeLeft] = useState(7 * 60 + 47);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false); // EMBED STATE
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('12-weeks'); 
 
   useEffect(() => {
@@ -166,7 +166,7 @@ const PaywallModal = ({ isOpen, onClose }) => {
                         onClick={() => setSelectedPlan(plan.id)}
                         className={`relative w-full rounded-2xl cursor-pointer transition-all duration-200 border-[1.5px] overflow-visible flex h-[105px] md:h-[115px] ${
                           isSelected 
-                            ? 'border-[#FF4A2B] bg-[#120a09] shadow-[0_0_20px_rgba(255,74,43,0.15)]' 
+                            ? 'border-[#E71B25] bg-[#120a09] shadow-[0_0_20px_rgba(231,27,37,0.15)]' 
                             : 'border-[#2C2C2E] bg-[#161618] hover:border-[#3C3C3E]'
                         }`}
                       >
@@ -179,8 +179,8 @@ const PaywallModal = ({ isOpen, onClose }) => {
 
                         {/* LEFT CONTENT */}
                         <div className="flex flex-1 items-center pl-4 pr-1 py-3 h-full z-20">
-                          <div className={`w-6 h-6 rounded-full border-[2px] flex items-center justify-center shrink-0 mr-3 md:mr-4 transition-colors ${isSelected ? 'border-[#FF4A2B]' : 'border-[#4A4A4C]'}`}>
-                            {isSelected && <div className="w-3 h-3 bg-[#FF4A2B] rounded-full" />}
+                          <div className={`w-6 h-6 rounded-full border-[2px] flex items-center justify-center shrink-0 mr-3 md:mr-4 transition-colors ${isSelected ? 'border-[#E71B25]' : 'border-[#4A4A4C]'}`}>
+                            {isSelected && <div className="w-3 h-3 bg-[#E71B25] rounded-full" />}
                           </div>
 
                           <div className="flex flex-col justify-center h-full pt-1">
@@ -195,10 +195,10 @@ const PaywallModal = ({ isOpen, onClose }) => {
                           </div>
                         </div>
 
-                        {/* RIGHT PANEL */}
+                        {/* RIGHT PANEL (ARROW SHAPE WITH MARGIN) */}
                         <div className="absolute right-[4px] top-[4px] bottom-[4px] w-[110px] md:w-[130px] overflow-hidden rounded-[0.8rem] z-10 pointer-events-none">
                           <div 
-                            className={`absolute inset-0 transition-colors duration-300 ${isSelected ? 'bg-[#FF4A2B]' : 'bg-[#222224]'}`}
+                            className={`absolute inset-0 transition-colors duration-300 ${isSelected ? 'bg-[#E71B25]' : 'bg-[#222224]'}`}
                             style={{ clipPath: 'polygon(15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%)' }}
                           />
                           <div className="relative z-20 flex flex-col items-center justify-center h-full w-full pl-4 md:pl-5">
@@ -230,8 +230,8 @@ const PaywallModal = ({ isOpen, onClose }) => {
                   <>
                     <motion.button 
                       whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => setIsCheckoutOpen(true)} // Button click pe embed form khulega
-                      className="w-full max-w-[420px] bg-[#FF4A2B] hover:bg-[#ff3333] text-white py-4 rounded-2xl font-bold text-[15px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(255,74,43,0.3)] border border-[#FF4A2B]/20"
+                      onClick={() => setIsCheckoutOpen(true)}
+                      className="w-full max-w-[420px] bg-[#E71B25] hover:bg-[#d41820] text-white py-4 rounded-2xl font-bold text-[15px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(231,27,37,0.3)] border border-[#E71B25]/20"
                     >
                       <div className="relative flex items-center justify-center">
                         <CreditCard className="w-5 h-5 text-white" strokeWidth={2} />
@@ -258,7 +258,6 @@ const PaywallModal = ({ isOpen, onClose }) => {
                       hidePrice={false} 
                       onComplete={() => {
                         console.log("Payment 100% Successful for:", selectedPlan);
-                        // Redirect logic here...
                       }}
                     />
                   </motion.div>
@@ -275,8 +274,7 @@ const PaywallModal = ({ isOpen, onClose }) => {
                 <div className="bg-[#8A53C6] w-full py-2.5 rounded-xl shadow-[0_4px_20px_rgba(138,83,198,0.2)] flex justify-center items-center gap-2 mb-6">
                   <Sparkles className="w-3.5 h-3.5 text-white/60" />
                   <span className="text-white text-[11px] font-semibold uppercase tracking-widest">
-                    Discount Reserved For 7:47
-                    {/* {formattedTime} */}
+                    Discount Reserved For {formattedTime}
                   </span>
                 </div>
 
