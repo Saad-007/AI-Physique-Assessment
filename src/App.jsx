@@ -5,14 +5,10 @@ import MissionStep from './components/steps/MissionStep';
 import ComparisonStep from './components/steps/ComparsionStep';
 import SocialProofStep from './components/steps/SocialProofStep';
 import AssessmentFlow from './components/steps/AssessmentFlow'; 
-import UpgradedBodyModal from './components/steps/UpgradedBodyModal'; 
-import TrustUpflowPage from './components/steps/TrustUpflowPage'; 
 
 const BodyMaxFunnel = () => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
-  const [showUpgradedModal, setShowUpgradedModal] = useState(false);
-  const [resumeAssessment, setResumeAssessment] = useState(false); // <--- NAYA STATE ADD KIYA
 
   // Smooth universal transition for page turns
   const pageTransition = {
@@ -66,46 +62,13 @@ const BodyMaxFunnel = () => {
               <AssessmentFlow 
                 formData={formData} 
                 setFormData={setFormData} 
-                onOpenUpgradedModal={() => setShowUpgradedModal(true)}
                 onBack={() => setStep(4)} 
-                resumeAssessment={resumeAssessment} // <--- PROPS MEIN PASS KIYA
-                setResumeAssessment={setResumeAssessment} // <--- PROPS MEIN PASS KIYA
-              />
-            </motion.div>
-          )}
-
-          {/* STEP 6: The Trust Page */}
-          {step === 6 && (
-            <motion.div key="s6" {...pageTransition} className="w-full">
-              <TrustUpflowPage 
-                onFinalCheckout={() => {
-                  console.log("FINAL CHECKOUT! Sending user to Stripe with data:", formData);
-                }}
-                onBack={() => {
-                  setResumeAssessment(true); // <--- WAPIS AAKHRI SLIDE PAR BHEJEGA
-                  setStep(5);
-                }}
               />
             </motion.div>
           )}
 
         </AnimatePresence>
       </div>
-
-      {/* The Upgraded Body Modal (Shows over Step 5) */}
-      <UpgradedBodyModal 
-        isOpen={showUpgradedModal} 
-        onGetPlan={() => {
-          setShowUpgradedModal(false);
-          setTimeout(() => {
-            setStep(6);
-          }, 300);
-        }} 
-        onClose={() => {
-          setShowUpgradedModal(false);
-          setResumeAssessment(true); // <--- WAPIS AAKHRI SLIDE PAR BHEJEGA
-        }}
-      />
 
     </div>
   );
