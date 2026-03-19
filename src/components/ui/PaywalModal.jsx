@@ -72,8 +72,7 @@ const pricingPlans = [
     newTotal: '$6.99',
     oldDaily: '$2.00',
     newDaily: '$0.99',
-    // YAHAN STRICTLY "plan_" WALI ID AYEGI
-    planId: 'plan_Ria8do63uXIu3', 
+    planId: 'plan_Ria8do63uXIu3', // WAHI ID, WAQAS REAL (plan_) WALY DE GA 
     badge: null
   },
   {
@@ -85,8 +84,7 @@ const pricingPlans = [
     newTotal: '$29.99',
     oldDaily: '$2.14',
     newDaily: '$1.07',
-    // YAHAN STRICTLY "plan_" WALI ID AYEGI
-    planId: 'plan_IKQC0xVZiDswT', 
+    planId: 'plan_IKQC0xVZiDswT', // WAHI ID, WAQAS REAL (plan_) WALY DE GA
     badge: { text: 'MOST POPULAR', style: 'bg-[#E71B25] text-white left-0 -top-3.5 rounded-lg rounded-bl-none px-3 py-1' }
   },
   {
@@ -98,8 +96,7 @@ const pricingPlans = [
     newTotal: '$44.99',
     oldDaily: '', 
     newDaily: '$0.53',
-    // YAHAN STRICTLY "plan_" WALI ID AYEGI
-    planId: 'plan_kflTr1LhnYkps', 
+    planId: 'plan_kflTr1LhnYkps', // WAHI ID, WAQAS REAL (plan_) WALY DE GA
     badge: { text: 'BEST VALUE', style: 'bg-gradient-to-r from-[#FCE18D] to-[#F1C40F] text-black right-4 md:right-6 -top-3.5 rounded-md px-3 py-1 shadow-[0_0_10px_rgba(241,196,15,0.4)]' }
   }
 ];
@@ -109,8 +106,15 @@ const pricingPlans = [
 // ==========================================
 const PaywallModal = ({ isOpen, onClose }) => {
   const [timeLeft, setTimeLeft] = useState(7 * 60 + 47);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState('12-weeks'); 
+  // Hum pehlay se false rakhein gay. Jaise hi user koi plan dbayega yeh true ho jayega.
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false); 
+  const [selectedPlan, setSelectedPlan] = useState(null); // Initally null rakhein taake user khud select kare
+
+  // Smart Handle Click
+  const handlePlanClick = (planId) => {
+    setSelectedPlan(planId);
+    setIsCheckoutOpen(true); // Foran Embed khol do!
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -163,7 +167,8 @@ const PaywallModal = ({ isOpen, onClose }) => {
                     return (
                       <div 
                         key={plan.id}
-                        onClick={() => setSelectedPlan(plan.id)}
+                        // YAHAN CLICK HONE PAR SMART FUNCTION RUN HOGA
+                        onClick={() => handlePlanClick(plan.id)}
                         className={`relative w-full rounded-2xl cursor-pointer transition-all duration-200 border-[1.5px] overflow-visible flex h-[105px] md:h-[115px] ${
                           isSelected 
                             ? 'border-[#E71B25] bg-[#120a09] shadow-[0_0_20px_rgba(231,27,37,0.15)]' 
@@ -223,45 +228,45 @@ const PaywallModal = ({ isOpen, onClose }) => {
               </div>
 
               {/* ==========================================
-                  CHECKOUT ACTION & WHOP OFFICIAL EMBED SDK
+                  SMART CHECKOUT ACTION & WHOP EMBED SDK
                   ========================================== */}
               <div className="w-full flex flex-col items-center mb-12">
-                {!isCheckoutOpen ? (
-                  <>
-                    <motion.button 
-                      whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => setIsCheckoutOpen(true)}
-                      className="w-full max-w-[420px] bg-[#E71B25] hover:bg-[#d41820] text-white py-4 rounded-2xl font-bold text-[15px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(231,27,37,0.3)] border border-[#E71B25]/20"
-                    >
-                      <div className="relative flex items-center justify-center">
-                        <CreditCard className="w-5 h-5 text-white" strokeWidth={2} />
-                        <div className="absolute left-[3px] top-[4px] w-[5px] h-[3px] bg-[#FFD700] rounded-[1px] opacity-70" />
-                      </div>
-                      Proceed to Checkout
-                    </motion.button>
-                    
-                    <div className="mt-4 flex items-center gap-1.5 text-gray-500">
-                      <Lock className="w-3 h-3" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
-                    </div>
-                  </>
-                ) : (
-                  /* --- WHOP OFFICIAL REACT EMBED --- */
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }} 
-                    animate={{ opacity: 1, height: "auto" }} 
-                    className="w-full max-w-[420px] rounded-[1.5rem] overflow-hidden shadow-[0_0_40px_rgba(231,27,37,0.3)] border border-white/10"
-                  >
-                    <WhopCheckoutEmbed 
-                      planId={pricingPlans.find(plan => plan.id === selectedPlan)?.planId} 
-                      theme="dark" 
-                      hidePrice={false} 
-                      onComplete={() => {
-                        console.log("Payment 100% Successful for:", selectedPlan);
-                      }}
-                    />
-                  </motion.div>
+                
+                {/* Agar plan select nahi hua toh "Select Plan" button dikhao */}
+                {!isCheckoutOpen && !selectedPlan && (
+                  <div className="w-full max-w-[420px] bg-[#1c1c1e] text-gray-400 py-4 rounded-2xl font-bold text-[15px] uppercase tracking-widest flex items-center justify-center border border-white/5 opacity-70">
+                    Select a Plan Above
+                  </div>
                 )}
+
+                {/* Jaise hi plan select hoga, form automatically Animate hokay khul jayega */}
+                <AnimatePresence mode="wait">
+                  {isCheckoutOpen && selectedPlan && (
+                    <motion.div 
+                      key="embed-form"
+                      initial={{ opacity: 0, height: 0, y: -20 }} 
+                      animate={{ opacity: 1, height: "auto", y: 0 }} 
+                      exit={{ opacity: 0, height: 0 }}
+                      className="w-full max-w-[420px] rounded-[1.5rem] overflow-hidden shadow-[0_0_40px_rgba(231,27,37,0.3)] border border-white/10"
+                    >
+                      {/* Remount embed to ensure new plan is loaded properly when switched */}
+                      <WhopCheckoutEmbed 
+                        key={selectedPlan} // Ensures the iframe refreshes when a new plan is clicked
+                        planId={pricingPlans.find(plan => plan.id === selectedPlan)?.planId} 
+                        theme="dark" 
+                        hidePrice={false} 
+                        onComplete={() => {
+                          console.log("Payment 100% Successful for:", selectedPlan);
+                        }}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="mt-4 flex items-center gap-1.5 text-gray-500">
+                  <Lock className="w-3 h-3" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
+                </div>
               </div>
 
               {/* ==========================================
