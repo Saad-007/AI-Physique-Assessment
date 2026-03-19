@@ -761,115 +761,98 @@ const AssessmentFlow = ({
               )}
 
               {/* --- EXACT REPLICA: BEFORE VS AFTER COMPARISON STEP --- */}
-              {currentStep.type === "before-after-comparison" && (
-                <div className="flex flex-col items-center w-full mt-2 h-full">
-                  {/* Floating Header Tags with SVG Arrow */}
-                  <div className="w-full flex justify-between items-end px-6 md:px-10 mb-3 relative z-10">
-                    {/* Custom Curved SVG Arrow */}
-                    <div className="absolute left-1/2 -translate-x-1/2  mt-1 w-12 md:w-16">
-                      <svg
-                        viewBox="0 0 100 40"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-full h-auto drop-shadow-md"
-                      >
-                        <path
-                          d="M10 30 Q 50 -10 90 30"
-                          stroke="white"
-                          strokeWidth="6"
-                          strokeLinecap="round"
-                          fill="none"
-                        />
-                        <path
-                          d="M75 28 L 90 30 L 85 15"
-                          stroke="white"
-                          strokeWidth="6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          fill="none"
-                        />
-                      </svg>
-                    </div>
+            {currentStep.type === "before-after-comparison" && (
+              <div className="flex flex-col items-center w-full mt-2 h-full">
+                
+                {/* Floating Header Tags with Sleek SVG Arrow */}
+                <div className="w-full flex justify-between items-end px-6 md:px-10 mb-3 relative z-10">
+                  <div className="absolute left-1/2 -translate-x-1/2 mt-1 w-12 md:w-14 opacity-60">
+                    <svg viewBox="0 0 100 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto drop-shadow-sm">
+                      <path d="M10 30 Q 50 -10 90 30" stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+                      <path d="M75 28 L 90 30 L 85 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    </svg>
                   </div>
-
-                  <div className="flex w-full gap-2 md:gap-4 mb-6 stretch flex-1 min-h-[500px] md:min-h-[520px]">
-                    {/* Before Card */}
-                    <div className="flex-1 bg-[#242529] rounded-3xl flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-white/[0.05]">
-                      <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
-                        <h3 className="text-white font-bold text-[16px] md:text-[18px] mb-3 md:mb-5 tracking-tight">
-                          {currentStep.before.title}
-                        </h3>
-                        <div className="flex flex-col gap-2.5 md:gap-4">
-                          {currentStep.before.points.map((point, i) => (
-                            <div
-                              key={i}
-                              className="flex items-start gap-1.5 md:gap-2"
-                            >
-                              <X
-                                className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25] shrink-0 mt-0.5"
-                                strokeWidth={3}
-                              />
-                              <span className="text-white text-[11px] md:text-[13px] font-bold leading-snug tracking-wide">
-                                {point}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 h-[60%]">
-                        <div className="absolute inset-0 bg-gradient-to-b from-[#242529] via-[#242529]/1 to-transparent z-10 pointer-events-none" />
-                        <img
-                          src={currentStep.before.image}
-                          className="w-full h-full object-cover object-top"
-                          alt="Before"
-                        />
-                      </div>
-                    </div>
-
-                    {/* After Card */}
-                    <div className="flex-1 bg-gradient-to-b from-[#139E46] to-[#0A5A26] rounded-3xl flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(19,158,70,0.2)]">
-                      <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
-                        <h3 className="text-white font-bold text-[16px] md:text-[18px] mb-3 md:mb-5 tracking-tight drop-shadow-sm">
-                          {currentStep.after.title}
-                        </h3>
-                        <div className="flex flex-col gap-2.5 md:gap-4">
-                          {currentStep.after.points.map((point, i) => (
-                            <div
-                              key={i}
-                              className="flex items-start gap-1.5 md:gap-2"
-                            >
-                              <Check
-                                className="w-4 h-4 md:w-5 md:h-5 text-black shrink-0 mt-0.5"
-                                strokeWidth={4}
-                              />
-                              <span className="text-white text-[11px] md:text-[13px] font-bold leading-snug tracking-wide drop-shadow-sm">
-                                {point}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 h-[60%]">
-                        <div className="absolute inset-0 bg-gradient-to-b from-[#0d8538] via-[#0d8538]/1 to-transparent z-10 pointer-events-none" />
-                        <img
-                          src={currentStep.after.image}
-                          className="w-full h-full object-cover object-top"
-                          alt="After"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="w-full flex justify-center mt-auto pb-2"
-                  >
-                    <MagneticButton text="Continue" onClick={handleNext} />
-                  </motion.div>
                 </div>
-              )}
+
+                {/* Reduced gap and min-height for a tighter mobile view */}
+                <div className="flex w-full gap-2.5 md:gap-4 mb-6 stretch flex-1 min-h-[460px] md:min-h-[500px]">
+                  
+                  {/* --- BEFORE CARD --- */}
+                  <div className="flex-1 bg-[#1A1A1C] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                    {/* Tighter padding */}
+                    <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
+                      <h3 className="text-gray-400 font-bold text-[12px] md:text-[14px] mb-3 md:mb-4 tracking-tight">
+                        {currentStep.before.title}
+                      </h3>
+                      {/* Tighter gaps between points */}
+                      <div className="flex flex-col gap-2.5 md:gap-3">
+                        {currentStep.before.points.map((point, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            {/* Raw icon, no border, no background, tight margin */}
+                            <X className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#E71B25] shrink-0 mt-[2px]" strokeWidth={2.5} />
+                            <span className="text-gray-300 text-[11.5px] md:text-[13px] font-medium leading-snug tracking-wide">
+                              {point}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Raw Image, no overlay or dimming */}
+                    <div className="absolute bottom-0 left-0 right-0 h-[50%]">
+                      {/* Keeping only a tiny bottom gradient so the image blends into the bottom curve */}
+                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#1A1A1C] to-transparent z-10" />
+                      <img
+                        src={currentStep.before.image}
+                        className="w-full h-full object-cover object-top"
+                        alt="Before"
+                      />
+                    </div>
+                  </div>
+
+                  {/* --- AFTER CARD --- */}
+                  <div className="flex-1 bg-gradient-to-b from-[#139E46] to-[#0A5A26] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(19,158,70,0.2)]">
+                    {/* Tighter padding */}
+                    <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
+                      <h3 className="text-white font-bold text-[12px] md:text-[14px] mb-3 md:mb-4 tracking-tight drop-shadow-sm">
+                        {currentStep.after.title}
+                      </h3>
+                      {/* Tighter gaps between points */}
+                      <div className="flex flex-col gap-2.5 md:gap-3">
+                        {currentStep.after.points.map((point, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            {/* Raw icon, no border, no background, tight margin */}
+                            <Check className="w-4 h-4 md:w-[18px] md:h-[18px] text-black shrink-0 mt-[2px]" strokeWidth={3.5} />
+                            <span className="text-white text-[11.5px] md:text-[13px] font-semibold leading-snug tracking-wide drop-shadow-sm">
+                              {point}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Raw Image, no overlay or dimming */}
+                    <div className="absolute bottom-0 left-0 right-0 h-[50%]">
+                      {/* Keeping only a tiny bottom gradient so the image blends into the bottom curve */}
+                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0A5A20] to-transparent z-10" />
+                      <img
+                        src={currentStep.after.image}
+                        className="w-full h-full object-cover object-top"
+                        alt="After"
+                      />
+                    </div>
+                  </div>
+
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="w-full flex justify-center mt-auto pb-2"
+                >
+                  <MagneticButton text="Continue" onClick={handleNext} />
+                </motion.div>
+              </div>
+            )}
 
               {/* --- EXACT REPLICA: BEFORE VS AFTER COMPARISON STEP --- */}
               {currentStep.type === "Today-Future" && (
