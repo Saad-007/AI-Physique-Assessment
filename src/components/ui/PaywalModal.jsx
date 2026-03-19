@@ -275,7 +275,8 @@ const PaywallModal = ({ isOpen, onClose }) => {
                 <div className="bg-[#8A53C6] w-full py-2.5 rounded-xl shadow-[0_4px_20px_rgba(138,83,198,0.2)] flex justify-center items-center gap-2 mb-6">
                   <Sparkles className="w-3.5 h-3.5 text-white/60" />
                   <span className="text-white text-[11px] font-semibold uppercase tracking-widest">
-                    Discount Reserved For {formattedTime}
+                    Discount Reserved For 7:47
+                    {/* {formattedTime} */}
                   </span>
                 </div>
 
