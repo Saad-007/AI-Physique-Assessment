@@ -73,7 +73,7 @@ const pricingPlans = [
     oldDaily: '$2.00',
     newDaily: '$0.99',
     // YAHAN STRICTLY "plan_" WALI ID AYEGI
-    planId: ' plan_Ria8do63uXIu3', 
+    planId: 'plan_Ria8do63uXIu3', 
     badge: null
   },
   {
