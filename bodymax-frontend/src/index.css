@@ -1,0 +1,9 @@
+@import "tailwindcss";
+html {
+  scroll-behavior: smooth;
+}
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none; /* Stops the bouncy 'pull-to-refresh' lag on mobile */
+}
