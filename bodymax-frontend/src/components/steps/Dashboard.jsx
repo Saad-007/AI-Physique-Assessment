@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Activity, Dumbbell, Target, User, LogOut, 
-  Cpu, Camera, ChevronRight, Zap, ScanLine, XCircle, 
+  Cpu, Camera, ChevronRight, Zap, ScanLine, XCircle,Utensils, 
   Timer, CheckCircle, Apple, Coffee, Moon, TrendingUp, Star, BicepsFlexed,Clock,X,
   Crosshair, Focus, MessageCircle, Droplets, Footprints, Send, PlayCircle, LayoutGrid,
   Flame
@@ -114,25 +114,28 @@ const Dashboard = () => {
   };
 
   const generateAndSaveProtocol = async (assessmentData, userId) => {
-  try {
-    // 🔴 DYNAMIC URL: Yeh Vercel par Render ka link uthayega, aur local par localhost
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+    try {
+      // 🔴 BULLETPROOF HACK: No Environment Variables needed!
+      // Agar URL mein localhost hai toh local backend, warna Render backend!
+      const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:5000" 
+        : "https://ai-physique-assessment.onrender.com"; 
 
-    const response = await fetch(`${backendUrl}/api/generate-protocol`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: userId, assessmentData: assessmentData }),
-    });
-    
-    if (!response.ok) throw new Error("Backend failed to generate protocol");
-    const data = await response.json();
-    setProtocol(data.protocol);
-    setIsAIGenerating(false);
-  } catch (error) {
-    console.error("AI Generation Failed:", error);
-    setIsAIGenerating(false);
-  }
-};
+      const response = await fetch(`${backendUrl}/api/generate-protocol`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: userId, assessmentData: assessmentData }),
+      });
+      
+      if (!response.ok) throw new Error("Backend failed to generate protocol");
+      const data = await response.json();
+      setProtocol(data.protocol);
+      setIsAIGenerating(false);
+    } catch (error) {
+      console.error("AI Generation Failed:", error);
+      setIsAIGenerating(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
