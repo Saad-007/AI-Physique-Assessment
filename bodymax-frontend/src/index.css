@@ -3,7 +3,14 @@ html {
   scroll-behavior: smooth;
 }
 body {
+  font-family: var(--font-sans);
+  background-color: #020202;
+  color: #ffffff;
+  /* Smooth text rendering on mobile */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none; /* Stops the bouncy 'pull-to-refresh' lag on mobile */
+}
+html {
+  -webkit-text-size-adjust: 100%;
 }
