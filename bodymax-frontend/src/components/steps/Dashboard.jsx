@@ -114,21 +114,25 @@ const Dashboard = () => {
   };
 
   const generateAndSaveProtocol = async (assessmentData, userId) => {
-    try {
-      const response = await fetch("http://localhost:5000/api/generate-protocol", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: userId, assessmentData: assessmentData }),
-      });
-      if (!response.ok) throw new Error("Backend failed to generate protocol");
-      const data = await response.json();
-      setProtocol(data.protocol);
-      setIsAIGenerating(false);
-    } catch (error) {
-      console.error("AI Generation Failed:", error);
-      setIsAIGenerating(false);
-    }
-  };
+  try {
+    // 🔴 DYNAMIC URL: Yeh Vercel par Render ka link uthayega, aur local par localhost
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+
+    const response = await fetch(`${backendUrl}/api/generate-protocol`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userId, assessmentData: assessmentData }),
+    });
+    
+    if (!response.ok) throw new Error("Backend failed to generate protocol");
+    const data = await response.json();
+    setProtocol(data.protocol);
+    setIsAIGenerating(false);
+  } catch (error) {
+    console.error("AI Generation Failed:", error);
+    setIsAIGenerating(false);
+  }
+};
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
