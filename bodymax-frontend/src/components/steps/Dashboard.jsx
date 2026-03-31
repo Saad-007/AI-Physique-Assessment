@@ -113,7 +113,7 @@ const Dashboard = () => {
     }
   };
 
-const generateAndSaveProtocol = async (assessmentData, userId) => {
+  const generateAndSaveProtocol = async (assessmentData, userId) => {
     try {
       console.log("🚀 Sending request to AI Engine with data:", assessmentData);
       
@@ -187,9 +187,17 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
   const nutrition = safeProtocol.nutrition || { strategy: "Mapping...", meals: [] };
   const workouts = safeProtocol.workouts || [];
   
+  // 🔴 DYNAMIC ROADMAP: Backend se array aaye toh wo use karo, warna fallback fallback do
+  const roadmap = safeProtocol.roadmap || [
+    { phase: "Phase 1: Adaptation", description: "Your central nervous system adapts to targeted vectors. Initial supercompensation occurs." },
+    { phase: "Phase 2: Hypertrophy", description: "Myofibrillar growth begins in your designated weak zones. Body fat drops steadily." },
+    { phase: "Phase 3: Solidification", description: "Visual alignment with your target archetype is achieved. Metabolic rate stabilizes." }
+  ];
+  
   const assessment = profile?.assessment_data || {};
   const userName = profile?.full_name?.split(' ')[0] || 'Athlete';
   const userGoal = assessment.goal || "Hypertrophy & Definition";
+  const planDurationTitle = assessment.planDuration ? assessment.planDuration.split('-').join(' ') : "12-Week";
   const dreamImage = assessment.dreamPhysiqueImage || assessment.customGoalPhoto || null;
   const userDays = assessment.days || 4;
 
@@ -322,7 +330,7 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
                     
                     <div className="mt-4 md:mt-5 flex items-start gap-2.5 bg-[#E71B25]/5 border border-[#E71B25]/10 rounded-xl p-3.5 md:p-4">
                       <Activity className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25] shrink-0 mt-0.5" />
-                      <p className="text-[11px] md:text-[12px] text-gray-300 leading-relaxed"><span className="font-black text-white uppercase tracking-wider">AI Projection:</span> Strictly following this protocol will visibly shift your morphology towards the <span className="text-[#E71B25] font-bold">"{userGoal}"</span> archetype by Week 4.</p>
+                      <p className="text-[11px] md:text-[12px] text-gray-300 leading-relaxed"><span className="font-black text-white uppercase tracking-wider">AI Projection:</span> Strictly following this protocol will visibly shift your morphology towards the <span className="text-[#E71B25] font-bold">"{userGoal}"</span> archetype.</p>
                     </div>
                   </div>
                 </div>
@@ -340,27 +348,20 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
                   <p className="text-center text-[9px] md:text-[10px] font-medium text-gray-500 mt-4 md:mt-5 uppercase tracking-wider">Connect wearable device in settings to automate tracking.</p>
                 </div>
 
+                {/* 🔴 THE DYNAMIC AI ROADMAP */}
                 <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 md:p-6 shadow-lg">
                   <div className="flex items-center gap-2 mb-6 border-b border-white/[0.05] pb-3">
                     <TrendingUp className="w-4 h-4 text-purple-400" />
-                    <h3 className="text-[12px] md:text-[13px] font-bold text-white uppercase tracking-widest">12-Week Roadmap</h3>
+                    <h3 className="text-[12px] md:text-[13px] font-bold text-white uppercase tracking-widest">{planDurationTitle} Roadmap</h3>
                   </div>
                   <div className="relative pl-6 border-l border-white/[0.05] space-y-6 md:space-y-8 ml-2">
-                    <div className="relative">
-                      <div className="absolute -left-[30px] top-1 w-3 h-3 bg-[#E71B25] rounded-full shadow-[0_0_10px_#E71B25] border-2 border-[#0a0a0a]"></div>
-                      <h4 className="text-[13px] font-bold text-white">Weeks 1-4: Neurological Adaptation</h4>
-                      <p className="text-[11.5px] md:text-[12.5px] font-medium text-gray-400 mt-1.5 leading-relaxed">Central nervous system adapts to targeted vectors. Initial glycogen supercompensation occurs. Noticeable strength increase.</p>
-                    </div>
-                    <div className="relative">
-                      <div className="absolute -left-[30px] top-1 w-3 h-3 bg-white/[0.1] border-2 border-white/[0.2] rounded-full"></div>
-                      <h4 className="text-[13px] font-bold text-gray-400">Weeks 5-8: Hypertrophic Shift</h4>
-                      <p className="text-[11.5px] md:text-[12.5px] font-medium text-gray-500 mt-1.5 leading-relaxed">Myofibrillar growth begins in the designated weak zones ({analysis.weaknesses?.[0] || 'target areas'}). Body fat drops towards baseline.</p>
-                    </div>
-                    <div className="relative">
-                      <div className="absolute -left-[30px] top-1 w-3 h-3 bg-white/[0.1] border-2 border-white/[0.2] rounded-full"></div>
-                      <h4 className="text-[13px] font-bold text-gray-400">Weeks 9-12: Aesthetic Solidification</h4>
-                      <p className="text-[11.5px] md:text-[12.5px] font-medium text-gray-500 mt-1.5 leading-relaxed">Visual alignment with the '{userGoal}' archetype. Metabolic rate stabilizes at a higher functional threshold.</p>
-                    </div>
+                    {roadmap.map((step, idx) => (
+                      <div className="relative" key={idx}>
+                        <div className={`absolute -left-[30px] top-1 w-3 h-3 rounded-full ${idx === 0 ? "bg-[#E71B25] shadow-[0_0_10px_#E71B25] border-2 border-[#0a0a0a]" : "bg-white/[0.1] border-2 border-white/[0.2]"}`}></div>
+                        <h4 className={`text-[13px] font-bold ${idx === 0 ? "text-white" : "text-gray-400"}`}>{step.phase}</h4>
+                        <p className={`text-[11.5px] md:text-[12.5px] font-medium mt-1.5 leading-relaxed ${idx === 0 ? "text-gray-400" : "text-gray-500"}`}>{step.description}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -512,12 +513,9 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
               </motion.div>
             )}
 
-            {/* ==========================================
-                TAB 4: NAYA CREATIVE PROTOCOL (Workouts) 
-                ========================================== */}
+            {/* TAB 4: WORKOUTS */}
             {activeTab === 'protocol' && (
                <motion.div key="protocol" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-6">
-                 {/* Header Banner */}
                  <div className="bg-gradient-to-r from-[#E71B25]/20 to-transparent border border-[#E71B25]/30 rounded-3xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                    <div>
                      <div className="flex items-center gap-2 mb-1">
@@ -539,10 +537,8 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
                    </div>
                  </div>
 
-                 {/* Grid Layout for Workouts */}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                    {workouts.map((workout, idx) => {
-                     // Calculate estimated time (roughly 8 mins per exercise + 5 min warmup)
                      const estTime = (workout.exercises?.length || 0) * 8 + 5;
                      
                      return (
@@ -551,7 +547,6 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
                          key={idx} 
                          className="group relative bg-[#0a0a0a] border border-white/[0.04] hover:border-[#E71B25]/50 rounded-3xl overflow-hidden transition-all duration-300 shadow-lg hover:shadow-[0_10px_30px_rgba(231,27,37,0.15)] flex flex-col"
                        >
-                         {/* Accent Line */}
                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#E71B25] to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
                          
                          <div className="p-5 md:p-6 flex flex-col h-full z-10">
@@ -667,9 +662,7 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
         )}
       </AnimatePresence>
       
-      {/* ==========================================
-          NAYA CREATIVE: EXECUTION HUD MODAL
-          ========================================== */}
+      {/* EXECUTION HUD MODAL */}
       <AnimatePresence>
         {selectedWorkout && (
           <>
@@ -678,7 +671,6 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} 
               className="fixed top-[2%] md:top-1/2 left-1/2 -translate-x-1/2 md:-translate-y-1/2 w-[96%] md:w-[90%] max-w-3xl h-[94vh] md:max-h-[85vh] bg-[#0a0a0a] border border-white/[0.1] rounded-3xl z-50 flex flex-col shadow-[0_0_50px_rgba(231,27,37,0.15)] overflow-hidden"
             >
-              {/* HUD Header */}
               <div className="p-5 md:p-6 border-b border-white/[0.05] bg-[#0f0f0f] relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#E71B25]/10 rounded-full blur-3xl"></div>
                 <div className="flex items-start justify-between relative z-10">
@@ -697,24 +689,20 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
                 </div>
               </div>
 
-              {/* Sequential Exercise List */}
               <div className="flex-1 overflow-y-auto p-5 md:p-8 bg-[#0a0a0a] relative">
                 {selectedWorkout.exercises ? (
                   <div className="relative">
-                    {/* The Connecting Line */}
                     <div className="absolute left-[17px] md:left-[23px] top-6 bottom-6 w-0.5 bg-gradient-to-b from-[#E71B25] via-white/[0.1] to-white/[0.05] z-0"></div>
                     
                     <div className="space-y-6 md:space-y-8 relative z-10">
                       {selectedWorkout.exercises.map((ex, i) => (
                         <div key={i} className="flex gap-4 md:gap-6 group">
-                          {/* Sequential Node */}
                           <div className="flex flex-col items-center mt-1 shrink-0">
                             <div className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-[#111] border-2 border-[#E71B25] flex items-center justify-center text-[12px] md:text-[14px] font-black text-white shadow-[0_0_15px_rgba(231,27,37,0.3)] z-10 transition-transform group-hover:scale-110">
                               {i + 1}
                             </div>
                           </div>
                           
-                          {/* Exercise Content Card */}
                           <div className="bg-[#111] border border-white/[0.03] rounded-2xl p-4 md:p-5 w-full hover:bg-white/[0.02] transition-colors shadow-lg">
                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                               <div>
@@ -747,7 +735,6 @@ const generateAndSaveProtocol = async (assessmentData, userId) => {
                 )}
               </div>
 
-              {/* HUD Footer */}
               <div className="p-4 md:p-6 border-t border-white/[0.05] bg-[#0f0f0f] flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                   <div className="bg-black/50 px-4 py-2 rounded-lg border border-white/[0.05] flex items-center gap-2 flex-1 md:flex-none justify-center">

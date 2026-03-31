@@ -103,6 +103,11 @@ app.post('/api/generate-protocol', async (req, res) => {
             { "name": "Dinner", "food": "Specific meal", "cals": 550, "p": 45, "c": 40, "f": 20 }
           ]
         },
+        "roadmap": [
+          { "phase": "Weeks 1-4: Foundation", "description": "Write 2 sentences specific to how their body will initially adapt based on their pain points." },
+          { "phase": "Weeks 5-8: Transformation", "description": "Write 2 sentences about specific muscle growth or fat loss happening in their target areas." },
+          { "phase": "Weeks 9-12: Realization", "description": "Write 2 sentences explaining what their final physique will look like compared to their starting point." }
+        ],
         "workouts": [
           { 
             "title": "Workout Day 1 (e.g., Heavy Push)", 
