@@ -115,11 +115,11 @@ const Dashboard = () => {
 
   const generateAndSaveProtocol = async (assessmentData, userId) => {
     try {
-      // 🔴 BULLETPROOF HACK: No Environment Variables needed!
-      // Agar URL mein localhost hai toh local backend, warna Render backend!
+      console.log("🚀 Sending request to AI Engine with data:", assessmentData); // Dekhein data ja bhi raha hai ya nahi
+      
       const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
         ? "http://localhost:5000" 
-        : "https://ai-physique-assessment.onrender.com"; 
+        : "[https://ai-physique-assessment.onrender.com](https://ai-physique-assessment.onrender.com)"; 
 
       const response = await fetch(`${backendUrl}/api/generate-protocol`, {
         method: "POST",
@@ -127,12 +127,19 @@ const Dashboard = () => {
         body: JSON.stringify({ userId: userId, assessmentData: assessmentData }),
       });
       
-      if (!response.ok) throw new Error("Backend failed to generate protocol");
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Backend failed to generate protocol");
+      }
+
+      console.log("✅ AI Response Successfully Received:", data.protocol); // Agar data aagaya toh console mein dikhega!
       setProtocol(data.protocol);
       setIsAIGenerating(false);
+      
     } catch (error) {
-      console.error("AI Generation Failed:", error);
+      console.error("❌ AI Generation Failed:", error);
+      alert(`AI Engine Error: ${error.message}`); // Yeh aapko screen par error batayega!
       setIsAIGenerating(false);
     }
   };
