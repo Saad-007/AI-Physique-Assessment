@@ -10,7 +10,14 @@ import OpenAI from "openai";
 
 const app = express(); 
 
-app.use(cors({ origin: 'http://localhost:5173' })); 
+app.use(cors({
+  origin: [
+    'http://localhost:5173', 
+    'https://ai-physique-assessment-saad-3892s-projects.vercel.app' // <-- Aapka Vercel URL
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' })); 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
