@@ -57,49 +57,71 @@ app.post('/api/generate-protocol', async (req, res) => {
       }
     }
 
+    // 3. THE MASTER PROMPT: Ultimate Personalization Engine
     const systemPrompt = `
-      You are BodyMax AI, an elite, world-class fitness coach. 
-      Analyze the profile and generate a hyper-personalized plan.
+      You are BodyMax AI, an elite biometric analyst and fitness coach.
       
-      === USER'S DEEP PROFILE ===
+      === USER ASSESSMENT DATA ===
       ${completeUserProfile}
       ===========================
 
-      You MUST respond ONLY in valid JSON format matching this exact structure:
+      TASK:
+      1. Calculate BMR and TDEE: Use the Mifflin-St Jeor Equation based on the user's Age, Weight, Height, and Gender from the profile.
+      2. Calculate Score: Rate their current physique/readiness from 0-100 based on their metrics and activity level.
+      3. Vectors: Generate realistic 0-100 scores for Upper Body, Lower Body, Core, and Symmetry based on their "mainStruggle" and "experience".
+      4. Workouts: Design exactly ${workoutDays} high-performance workout sessions.
+
+      MANDATORY JSON STRUCTURE (Do not use placeholder text, calculate real values):
       {
         "body_analysis": {
-          "score": 65,
-          "classification": "String",
-          "estimated_bf": "String",
-          "bmr": 1850,
-          "tdee": 2450,
-          "strengths": ["string"],
-          "weaknesses": ["string"],
-          "vectors": { "upper_body": 60, "lower_body": 55, "core": 40, "symmetry": 70 },
-          "executive_summary": "3-4 sentence summary."
+          "score": (Integer between 1-100),
+          "classification": "Specific category (e.g., Athletic Overweight, Sedentary Ectomorph)",
+          "estimated_bf": "Specific % range based on height/weight",
+          "bmr": (Calculated Integer),
+          "tdee": (Calculated Integer based on activity level),
+          "strengths": ["Two specific physical or psychological strengths"],
+          "weaknesses": ["Two specific areas needing immediate improvement"],
+          "vectors": { 
+            "upper_body": (0-100), 
+            "lower_body": (0-100), 
+            "core": (0-100), 
+            "symmetry": (0-100) 
+          },
+          "executive_summary": "A 3-4 sentence high-level analysis of their current state and the psychological shift required."
         },
-        "macros": { "calories": 2500, "protein": 180, "carbs": 250, "fats": 70 },
+        "macros": { 
+          "calories": (Target daily intake), 
+          "protein": (Grams), 
+          "carbs": (Grams), 
+          "fats": (Grams) 
+        },
         "nutrition": {
-          "strategy": "String",
+          "strategy": "A custom nutritional approach based on their specific 'diet' and 'sleep' inputs.",
           "meals": [
-            { "name": "Breakfast", "food": "String", "cals": 450, "p": 30, "c": 35, "f": 20 }
+            { "name": "Meal Name", "food": "Specific food items", "cals": 0, "p": 0, "c": 0, "f": 0 }
           ]
         },
         "roadmap": [
-          { "phase": "Weeks 1-4", "description": "String" }
+          { "phase": "Weeks 1-4: Foundation", "description": "Specific adaptation details." },
+          { "phase": "Weeks 5-8: Progression", "description": "Specific hypertrophy/strength details." },
+          { "phase": "Weeks 9-12: Peak", "description": "Expected visual outcome details." }
         ],
         "workouts": [
           { 
-            "title": "String", 
-            "targets": ["String"], 
-            "intensity": "High", 
+            "title": "Workout Name", 
+            "targets": ["Muscle Group 1", "Muscle Group 2"], 
+            "intensity": "Scale 1-10", 
             "exercises": [ 
-              { "name": "Exercise Name", "sets": 4, "reps": "8-10", "rest": "90s", "notes": "String" } 
+              { "name": "Exercise", "sets": 0, "reps": "Range", "rest": "Seconds", "notes": "Form cues" } 
             ] 
           }
         ]
       }
-      CRITICAL: The "workouts" array MUST contain EXACTLY ${workoutDays} objects.
+
+      CRITICAL:
+      - NO "String" or "Example" text.
+      - Every number must be a calculated estimate based on the user's specific profile.
+      - Return EXACTLY ${workoutDays} workouts.
     `;
 
     let contentArray = [{ type: "text", text: "Please analyze my profile and generate the exact JSON response." }];
