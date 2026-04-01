@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Activity, Dumbbell, Target, User, LogOut, 
-  Cpu, Camera, ChevronRight, Zap, ScanLine, XCircle,Utensils, 
-  Timer, CheckCircle, Apple, Coffee, Moon, TrendingUp, Star, BicepsFlexed,Clock,X,
+import {
+  Activity, Dumbbell, Target, User, LogOut,
+  Cpu, Camera, ChevronRight, Zap, ScanLine, XCircle, Utensils,
+  Timer, CheckCircle, Apple, Coffee, Moon, TrendingUp, Star, BicepsFlexed, Clock, X,
   Crosshair, Focus, MessageCircle, Droplets, Footprints, Send, PlayCircle, LayoutGrid,
   Flame
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase'; 
+import { supabase } from '../../lib/supabase';
 
 // --- Mini Component: Premium Progress Bar ---
 const ProgressBar = ({ label, value, color }) => (
@@ -17,7 +17,7 @@ const ProgressBar = ({ label, value, color }) => (
       <span className="text-[11px] font-mono text-white">{value}%</span>
     </div>
     <div className="w-full bg-white/[0.03] rounded-full h-1.5 border border-white/[0.05] overflow-hidden">
-      <motion.div 
+      <motion.div
         initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 1.5, ease: "easeOut" }}
         className={`h-full rounded-full ${color}`}
       />
@@ -33,7 +33,7 @@ const MacroRing = ({ label, value, max, color, hex, icon: Icon }) => {
       <div className="relative w-16 h-16 md:w-20 md:h-20 flex items-center justify-center mb-2">
         <svg className="w-full h-full transform -rotate-90">
           <circle cx="50%" cy="50%" r="40%" fill="transparent" stroke="#222" strokeWidth="6" />
-          <motion.circle 
+          <motion.circle
             cx="50%" cy="50%" r="40%" fill="transparent" stroke={hex} strokeWidth="6" strokeLinecap="round"
             strokeDasharray="250" strokeDashoffset={250 - (250 * percentage) / 100}
             initial={{ strokeDashoffset: 250 }} animate={{ strokeDashoffset: 250 - (250 * percentage) / 100 }} transition={{ duration: 1.5, delay: 0.5 }}
@@ -54,11 +54,11 @@ const Dashboard = () => {
   const [profile, setProfile] = useState(null);
   const [protocol, setProtocol] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview'); 
+  const [activeTab, setActiveTab] = useState('overview');
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [isAIGenerating, setIsAIGenerating] = useState(false);
   const [aiLogIndex, setAiLogIndex] = useState(0);
-  
+
   // AI Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
@@ -116,27 +116,30 @@ const Dashboard = () => {
   const generateAndSaveProtocol = async (assessmentData, userId) => {
     try {
       console.log("🚀 Sending request to AI Engine with data:", assessmentData);
-      
+
       const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-        ? "http://localhost:5000" 
-        : "https://ai-physique-assessment.onrender.com"; 
+        ? "http://localhost:5000"
+        : "https://ai-physique-assessment.onrender.com";
 
       const response = await fetch(`${backendUrl}/api/generate-protocol`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: userId, assessmentData: assessmentData }),
       });
-      
+
       const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Backend failed to generate protocol");
+
+      // 🔴 SAFETY CHECK: Agar data ya protocol missing hai toh yahin rok do
+      if (!response.ok || !data || !data.protocol) {
+        throw new Error(data?.error || "AI Response is empty or invalid");
       }
+
+      setProtocol(data.protocol);
 
       console.log("✅ AI Response Successfully Received:", data.protocol);
       setProtocol(data.protocol);
       setIsAIGenerating(false);
-      
+
     } catch (error) {
       console.error("❌ AI Generation Failed:", error);
       alert(`AI Engine Error: ${error.message}`);
@@ -151,7 +154,7 @@ const Dashboard = () => {
 
   const handleChatSubmit = (e) => {
     e.preventDefault();
-    if(!chatMessage.trim()) return;
+    if (!chatMessage.trim()) return;
     setChatHistory(prev => [...prev, { role: 'user', text: chatMessage }]);
     setChatMessage('');
     setTimeout(() => {
@@ -186,14 +189,14 @@ const Dashboard = () => {
   const macros = safeProtocol.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 };
   const nutrition = safeProtocol.nutrition || { strategy: "Mapping...", meals: [] };
   const workouts = safeProtocol.workouts || [];
-  
+
   // 🔴 DYNAMIC ROADMAP: Backend se array aaye toh wo use karo, warna fallback fallback do
   const roadmap = safeProtocol.roadmap || [
     { phase: "Phase 1: Adaptation", description: "Your central nervous system adapts to targeted vectors. Initial supercompensation occurs." },
     { phase: "Phase 2: Hypertrophy", description: "Myofibrillar growth begins in your designated weak zones. Body fat drops steadily." },
     { phase: "Phase 3: Solidification", description: "Visual alignment with your target archetype is achieved. Metabolic rate stabilizes." }
   ];
-  
+
   const assessment = profile?.assessment_data || {};
   const userName = profile?.full_name?.split(' ')[0] || 'Athlete';
   const userGoal = assessment.goal || "Hypertrophy & Definition";
@@ -210,10 +213,10 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-[100dvh] bg-[#030303] text-gray-300 font-sans flex overflow-hidden selection:bg-[#E71B25] selection:text-white relative">
-      
+
       {/* DESKTOP SIDEBAR */}
       <aside className="hidden md:flex flex-col w-[240px] bg-[#050505] border-r border-white/[0.04] h-screen relative z-20 shrink-0">
-      <div className="p-6 md:p-8 flex items-center justify-between">
+        <div className="p-6 md:p-8 flex items-center justify-between">
           <img src="/logo.png" alt="BodyMax" className="h-14 md:h-16 w-auto object-contain" />
           <span className="text-[9px] bg-[#E71B25]/10 text-[#E71B25] border border-[#E71B25]/30 px-2 py-0.5 rounded font-mono ml-3">PRO</span>
         </div>
@@ -224,9 +227,8 @@ const Dashboard = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[13px] transition-all duration-300 ${
-                activeTab === tab.id ? "bg-white/[0.06] text-white shadow-sm border border-white/[0.02]" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]"
-              }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[13px] transition-all duration-300 ${activeTab === tab.id ? "bg-white/[0.06] text-white shadow-sm border border-white/[0.02]" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]"
+                }`}
             >
               <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? "text-[#E71B25]" : ""}`} strokeWidth={2.5} />
               {tab.label}
@@ -283,7 +285,7 @@ const Dashboard = () => {
       {/* MAIN WORKSPACE SCROLL AREA */}
       <main className="flex-1 relative overflow-y-auto pt-24 md:pt-0 pb-[100px] md:pb-0 bg-[#030303] w-full">
         <div className="max-w-5xl mx-auto p-4 md:p-8 relative z-10">
-          
+
           <header className="hidden md:flex mb-8 flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2 text-[11px] font-mono text-gray-500">
@@ -301,14 +303,14 @@ const Dashboard = () => {
             {/* TAB 1: OVERVIEW */}
             {activeTab === 'overview' && (
               <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-6">
-                
+
                 <div className="bg-gradient-to-br from-[#0a0a0a] to-[#0f0f0f] border border-white/[0.05] rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6 md:gap-8">
                   <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-[#E71B25] filter blur-[100px] md:blur-[150px] opacity-[0.08] rounded-full pointer-events-none"></div>
-                  
+
                   <div className="relative w-28 h-28 md:w-40 md:h-40 shrink-0 flex items-center justify-center">
                     <svg className="w-full h-full transform -rotate-90">
                       <circle cx="50%" cy="50%" r="45%" fill="transparent" stroke="#222" strokeWidth="8" />
-                      <motion.circle 
+                      <motion.circle
                         cx="50%" cy="50%" r="45%" fill="transparent" stroke="#E71B25" strokeWidth="8" strokeLinecap="round"
                         strokeDasharray="283" strokeDashoffset={283 - (283 * analysis.score) / 100}
                         initial={{ strokeDashoffset: 283 }} animate={{ strokeDashoffset: 283 - (283 * analysis.score) / 100 }} transition={{ duration: 2 }}
@@ -327,7 +329,7 @@ const Dashboard = () => {
                     </div>
                     <h2 className="text-xl md:text-2xl font-bold text-white mb-2 md:mb-3 tracking-tight">Gap Analysis Summary</h2>
                     <p className="text-[12px] md:text-[13.5px] text-gray-400 leading-relaxed font-medium">{analysis.executive_summary}</p>
-                    
+
                     <div className="mt-4 md:mt-5 flex items-start gap-2.5 bg-[#E71B25]/5 border border-[#E71B25]/10 rounded-xl p-3.5 md:p-4">
                       <Activity className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25] shrink-0 mt-0.5" />
                       <p className="text-[11px] md:text-[12px] text-gray-300 leading-relaxed"><span className="font-black text-white uppercase tracking-wider">AI Projection:</span> Strictly following this protocol will visibly shift your morphology towards the <span className="text-[#E71B25] font-bold">"{userGoal}"</span> archetype.</p>
@@ -400,7 +402,7 @@ const Dashboard = () => {
                     <ProgressBar label="Core & Posture" value={analysis.vectors.core || 0} color="bg-yellow-500" />
                     <ProgressBar label="Overall Symmetry" value={analysis.vectors.symmetry || 0} color="bg-[#E71B25]" />
                     <div className="mt-6 bg-[#111] p-4 rounded-2xl border border-white/[0.02]">
-                      <span className="text-[9px] md:text-[10px] text-[#E71B25] uppercase font-bold tracking-widest block mb-2.5 flex items-center gap-1.5"><Crosshair className="w-3.5 h-3.5"/> Discrepancy Zones Identified</span>
+                      <span className="text-[9px] md:text-[10px] text-[#E71B25] uppercase font-bold tracking-widest block mb-2.5 flex items-center gap-1.5"><Crosshair className="w-3.5 h-3.5" /> Discrepancy Zones Identified</span>
                       <div className="flex flex-wrap gap-2">
                         {analysis.weaknesses?.map((w, i) => (
                           <span key={i} className="text-[10px] font-medium text-gray-300 bg-white/[0.03] border border-[#E71B25]/30 px-2.5 py-1.5 rounded-lg">{w}</span>
@@ -415,7 +417,7 @@ const Dashboard = () => {
             {/* TAB 2: AI SCANS */}
             {activeTab === 'photos' && (
               <motion.div key="photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                 <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 md:p-8 shadow-lg">
+                <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 md:p-8 shadow-lg">
                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-2">
                     <div>
                       <h2 className="text-[16px] md:text-[18px] font-bold text-white">Comparative Matrix Scans</h2>
@@ -427,7 +429,7 @@ const Dashboard = () => {
                       { id: 'front', label: 'Front Map', img: assessment?.photos?.[1], isTarget: false },
                       { id: 'side', label: 'Side Map', img: assessment?.photos?.[2], isTarget: false },
                       { id: 'back', label: 'Back Map', img: assessment?.photos?.[3], isTarget: false },
-                      { id: 'target', label: `Target: ${userGoal}`, img: dreamImage, isTarget: true } 
+                      { id: 'target', label: `Target: ${userGoal}`, img: dreamImage, isTarget: true }
                     ].map((card, i) => (
                       <div key={i} className={`group relative aspect-[3/4] bg-[#050505] rounded-2xl md:rounded-3xl overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.3)] border ${card.isTarget ? "border-green-500/40 shadow-[0_0_30px_rgba(34,197,94,0.15)]" : "border-white/[0.05]"}`}>
                         {card.img ? (
@@ -444,7 +446,7 @@ const Dashboard = () => {
                               <>
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 mix-blend-overlay z-10 pointer-events-none"></div>
                                 <div className="absolute top-2 right-2 z-20 flex flex-col gap-1">
-                                  <span className="bg-green-500/20 text-green-400 text-[7px] md:text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-sm border border-green-500/50 flex items-center gap-1"><CheckCircle className="w-2 h-2"/> GOAL</span>
+                                  <span className="bg-green-500/20 text-green-400 text-[7px] md:text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-sm border border-green-500/50 flex items-center gap-1"><CheckCircle className="w-2 h-2" /> GOAL</span>
                                 </div>
                               </>
                             )}
@@ -469,7 +471,7 @@ const Dashboard = () => {
             {/* TAB 3: NUTRITION */}
             {activeTab === 'nutrition' && (
               <motion.div key="nutrition" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-6">
-                 <div className="bg-gradient-to-r from-[#0a0a0a] to-[#0d0d0d] border border-white/[0.04] rounded-3xl p-5 md:p-8 shadow-lg">
+                <div className="bg-gradient-to-r from-[#0a0a0a] to-[#0d0d0d] border border-white/[0.04] rounded-3xl p-5 md:p-8 shadow-lg">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2.5 md:gap-3">
                       <Apple className="w-4 h-4 md:w-5 md:h-5 text-green-500" />
@@ -477,12 +479,12 @@ const Dashboard = () => {
                     </div>
                     <span className="text-[10px] md:text-[12px] font-mono text-[#E71B25] font-bold bg-[#E71B25]/10 px-2.5 py-1 rounded-md border border-[#E71B25]/20">{macros.calories} Kcal</span>
                   </div>
-                  
+
                   <p className="text-[12px] md:text-[13px] text-gray-400 leading-relaxed font-medium mb-8">
                     <span className="text-white font-bold block mb-1">To achieve the {userGoal}:</span>
                     {nutrition.strategy}
                   </p>
-                  
+
                   <div className="flex flex-wrap justify-center items-center gap-4 md:gap-12 pb-2">
                     <MacroRing label="Protein" value={macros.protein} max={300} color="text-blue-400" hex="#60A5FA" />
                     <MacroRing label="Carbs" value={macros.carbs} max={400} color="text-yellow-500" hex="#EAB308" />
@@ -501,7 +503,7 @@ const Dashboard = () => {
                         <span className="text-[10px] md:text-[12px] font-mono text-white font-bold bg-white/[0.05] px-2 py-1 rounded-md">{meal.cals} kcal</span>
                       </div>
                       <p className="text-[11.5px] md:text-[12.5px] text-gray-400 leading-relaxed font-medium mb-4 min-h-[35px]">{meal.food}</p>
-                      
+
                       <div className="flex gap-2 pt-3 md:pt-4 border-t border-white/[0.02]">
                         <span className="text-[9px] md:text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded-md">P: {meal.p}g</span>
                         <span className="text-[9px] md:text-[10px] font-bold text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded-md">C: {meal.c}g</span>
@@ -515,84 +517,84 @@ const Dashboard = () => {
 
             {/* TAB 4: WORKOUTS */}
             {activeTab === 'protocol' && (
-               <motion.div key="protocol" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-6">
-                 <div className="bg-gradient-to-r from-[#E71B25]/20 to-transparent border border-[#E71B25]/30 rounded-3xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                   <div>
-                     <div className="flex items-center gap-2 mb-1">
-                       <BicepsFlexed className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25]" />
-                       <h2 className="text-[14px] md:text-[16px] font-black text-white uppercase tracking-wide">Neural Training Modules</h2>
-                     </div>
-                     <p className="text-[11px] md:text-[12px] text-gray-400 font-medium">Your customized weekly routine aligned with the {userGoal} objective.</p>
-                   </div>
-                   <div className="flex items-center gap-4 bg-black/40 px-4 py-2.5 rounded-xl border border-white/[0.05]">
-                      <div className="text-center">
-                        <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest">Modules</span>
-                        <span className="text-[14px] font-black text-white">{workouts.length}</span>
-                      </div>
-                      <div className="w-px h-6 bg-white/[0.1]"></div>
-                      <div className="text-center">
-                        <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest">Weekly Vol</span>
-                        <span className="text-[14px] font-black text-[#E71B25]">High</span>
-                      </div>
-                   </div>
-                 </div>
+              <motion.div key="protocol" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-6">
+                <div className="bg-gradient-to-r from-[#E71B25]/20 to-transparent border border-[#E71B25]/30 rounded-3xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <BicepsFlexed className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25]" />
+                      <h2 className="text-[14px] md:text-[16px] font-black text-white uppercase tracking-wide">Neural Training Modules</h2>
+                    </div>
+                    <p className="text-[11px] md:text-[12px] text-gray-400 font-medium">Your customized weekly routine aligned with the {userGoal} objective.</p>
+                  </div>
+                  <div className="flex items-center gap-4 bg-black/40 px-4 py-2.5 rounded-xl border border-white/[0.05]">
+                    <div className="text-center">
+                      <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest">Modules</span>
+                      <span className="text-[14px] font-black text-white">{workouts.length}</span>
+                    </div>
+                    <div className="w-px h-6 bg-white/[0.1]"></div>
+                    <div className="text-center">
+                      <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest">Weekly Vol</span>
+                      <span className="text-[14px] font-black text-[#E71B25]">High</span>
+                    </div>
+                  </div>
+                </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                   {workouts.map((workout, idx) => {
-                     const estTime = (workout.exercises?.length || 0) * 8 + 5;
-                     
-                     return (
-                       <motion.div 
-                         whileHover={{ y: -4 }}
-                         key={idx} 
-                         className="group relative bg-[#0a0a0a] border border-white/[0.04] hover:border-[#E71B25]/50 rounded-3xl overflow-hidden transition-all duration-300 shadow-lg hover:shadow-[0_10px_30px_rgba(231,27,37,0.15)] flex flex-col"
-                       >
-                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#E71B25] to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                         
-                         <div className="p-5 md:p-6 flex flex-col h-full z-10">
-                           <div className="flex justify-between items-start mb-4">
-                             <div className="bg-white/[0.03] border border-white/[0.05] px-2.5 py-1 rounded-lg">
-                               <span className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">Mod 0{idx + 1}</span>
-                             </div>
-                             <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg border border-white/[0.02]">
-                               <div className={`w-1.5 h-1.5 rounded-full ${workout.intensity === 'Low' ? 'bg-blue-500' : workout.intensity === 'High' ? 'bg-orange-500 shadow-[0_0_8px_#f97316]' : 'bg-[#E71B25] shadow-[0_0_8px_#E71B25]'}`}></div>
-                               <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400">{workout.intensity}</span>
-                             </div>
-                           </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                  {workouts.map((workout, idx) => {
+                    const estTime = (workout.exercises?.length || 0) * 8 + 5;
 
-                           <h4 className="text-[16px] md:text-[18px] font-bold text-white leading-tight mb-3 pr-4 group-hover:text-[#E71B25] transition-colors">{workout.title}</h4>
-                           
-                           <div className="flex flex-wrap gap-1.5 mb-6">
-                             {workout.targets?.map((t, i) => (
-                               <span key={i} className="text-[9px] font-bold uppercase tracking-wider text-gray-300 bg-white/[0.05] px-2 py-1 rounded-md">{t}</span>
-                             ))}
-                           </div>
+                    return (
+                      <motion.div
+                        whileHover={{ y: -4 }}
+                        key={idx}
+                        className="group relative bg-[#0a0a0a] border border-white/[0.04] hover:border-[#E71B25]/50 rounded-3xl overflow-hidden transition-all duration-300 shadow-lg hover:shadow-[0_10px_30px_rgba(231,27,37,0.15)] flex flex-col"
+                      >
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#E71B25] to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
 
-                           <div className="mt-auto pt-4 border-t border-white/[0.04] flex items-center justify-between">
-                             <div className="flex items-center gap-3 text-gray-500">
-                               <div className="flex items-center gap-1">
-                                 <Clock className="w-3.5 h-3.5" />
-                                 <span className="text-[11px] font-bold">{estTime}m</span>
-                               </div>
-                               <div className="flex items-center gap-1">
-                                 <Activity className="w-3.5 h-3.5" />
-                                 <span className="text-[11px] font-bold">{workout.exercises?.length || 0} Exs</span>
-                               </div>
-                             </div>
-                             
-                             <button 
-                               onClick={() => setSelectedWorkout(workout)} 
-                               className="text-[11px] flex items-center justify-center gap-1.5 text-[#E71B25] group-hover:bg-[#E71B25] group-hover:text-white transition-all font-bold bg-[#E71B25]/10 px-4 py-2 rounded-xl uppercase tracking-widest"
-                             >
-                               Initiate <PlayCircle className="w-3.5 h-3.5" strokeWidth={2.5} />
-                             </button>
-                           </div>
-                         </div>
-                       </motion.div>
-                     );
-                   })}
-                 </div>
-               </motion.div>
+                        <div className="p-5 md:p-6 flex flex-col h-full z-10">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="bg-white/[0.03] border border-white/[0.05] px-2.5 py-1 rounded-lg">
+                              <span className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">Mod 0{idx + 1}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg border border-white/[0.02]">
+                              <div className={`w-1.5 h-1.5 rounded-full ${workout.intensity === 'Low' ? 'bg-blue-500' : workout.intensity === 'High' ? 'bg-orange-500 shadow-[0_0_8px_#f97316]' : 'bg-[#E71B25] shadow-[0_0_8px_#E71B25]'}`}></div>
+                              <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400">{workout.intensity}</span>
+                            </div>
+                          </div>
+
+                          <h4 className="text-[16px] md:text-[18px] font-bold text-white leading-tight mb-3 pr-4 group-hover:text-[#E71B25] transition-colors">{workout.title}</h4>
+
+                          <div className="flex flex-wrap gap-1.5 mb-6">
+                            {workout.targets?.map((t, i) => (
+                              <span key={i} className="text-[9px] font-bold uppercase tracking-wider text-gray-300 bg-white/[0.05] px-2 py-1 rounded-md">{t}</span>
+                            ))}
+                          </div>
+
+                          <div className="mt-auto pt-4 border-t border-white/[0.04] flex items-center justify-between">
+                            <div className="flex items-center gap-3 text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span className="text-[11px] font-bold">{estTime}m</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Activity className="w-3.5 h-3.5" />
+                                <span className="text-[11px] font-bold">{workout.exercises?.length || 0} Exs</span>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => setSelectedWorkout(workout)}
+                              className="text-[11px] flex items-center justify-center gap-1.5 text-[#E71B25] group-hover:bg-[#E71B25] group-hover:text-white transition-all font-bold bg-[#E71B25]/10 px-4 py-2 rounded-xl uppercase tracking-widest"
+                            >
+                              Initiate <PlayCircle className="w-3.5 h-3.5" strokeWidth={2.5} />
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
             )}
 
           </AnimatePresence>
@@ -600,7 +602,7 @@ const Dashboard = () => {
       </main>
 
       {/* FLOATING AI COACH BUTTON */}
-      <button 
+      <button
         onClick={() => setIsChatOpen(true)}
         className="fixed bottom-24 right-4 md:bottom-8 md:right-8 w-12 h-12 md:w-14 md:h-14 bg-[#E71B25] hover:bg-[#C6161F] rounded-full shadow-[0_0_20px_rgba(231,27,37,0.5)] flex items-center justify-center z-40 transition-transform hover:scale-105"
       >
@@ -612,7 +614,7 @@ const Dashboard = () => {
         {isChatOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsChatOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-            <motion.div 
+            <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed top-0 right-0 bottom-0 w-full md:w-[400px] bg-[#0c0c0c] border-l border-white/[0.08] shadow-2xl z-50 flex flex-col"
             >
@@ -645,11 +647,11 @@ const Dashboard = () => {
 
               <div className="p-4 border-t border-white/[0.05] bg-[#111] pb-8 md:pb-4">
                 <form onSubmit={handleChatSubmit} className="relative">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
-                    placeholder="Ask about your plan..." 
+                    placeholder="Ask about your plan..."
                     className="w-full bg-[#050505] border border-white/[0.05] rounded-full py-3.5 pl-5 pr-14 text-[13px] text-white focus:outline-none focus:border-[#E71B25]/50 focus:ring-1 focus:ring-[#E71B25]/50 shadow-inner placeholder-gray-600"
                   />
                   <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#E71B25] rounded-full flex items-center justify-center hover:bg-[#C6161F] transition-colors shadow-md">
@@ -661,14 +663,14 @@ const Dashboard = () => {
           </>
         )}
       </AnimatePresence>
-      
+
       {/* EXECUTION HUD MODAL */}
       <AnimatePresence>
         {selectedWorkout && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedWorkout(null)} className="fixed inset-0 bg-black/90 backdrop-blur-md z-50" />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} 
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="fixed top-[2%] md:top-1/2 left-1/2 -translate-x-1/2 md:-translate-y-1/2 w-[96%] md:w-[90%] max-w-3xl h-[94vh] md:max-h-[85vh] bg-[#0a0a0a] border border-white/[0.1] rounded-3xl z-50 flex flex-col shadow-[0_0_50px_rgba(231,27,37,0.15)] overflow-hidden"
             >
               <div className="p-5 md:p-6 border-b border-white/[0.05] bg-[#0f0f0f] relative overflow-hidden">
@@ -679,7 +681,7 @@ const Dashboard = () => {
                       <span className="flex items-center gap-1.5 text-[9px] md:text-[10px] font-mono font-bold text-[#E71B25] uppercase tracking-widest bg-[#E71B25]/10 px-2.5 py-1 rounded-md border border-[#E71B25]/20">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#E71B25] animate-pulse"></span> Live Session
                       </span>
-                      <span className="text-[10px] text-gray-500 font-mono flex items-center gap-1"><Activity className="w-3 h-3"/> SYNCING BIOMETRICS</span>
+                      <span className="text-[10px] text-gray-500 font-mono flex items-center gap-1"><Activity className="w-3 h-3" /> SYNCING BIOMETRICS</span>
                     </div>
                     <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase">{selectedWorkout.title}</h2>
                   </div>
@@ -693,7 +695,7 @@ const Dashboard = () => {
                 {selectedWorkout.exercises ? (
                   <div className="relative">
                     <div className="absolute left-[17px] md:left-[23px] top-6 bottom-6 w-0.5 bg-gradient-to-b from-[#E71B25] via-white/[0.1] to-white/[0.05] z-0"></div>
-                    
+
                     <div className="space-y-6 md:space-y-8 relative z-10">
                       {selectedWorkout.exercises.map((ex, i) => (
                         <div key={i} className="flex gap-4 md:gap-6 group">
@@ -702,14 +704,14 @@ const Dashboard = () => {
                               {i + 1}
                             </div>
                           </div>
-                          
+
                           <div className="bg-[#111] border border-white/[0.03] rounded-2xl p-4 md:p-5 w-full hover:bg-white/[0.02] transition-colors shadow-lg">
                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                               <div>
                                 <h4 className="text-[15px] md:text-[17px] font-bold text-white mb-1.5 leading-tight">{ex.name}</h4>
                                 <p className="text-[11.5px] md:text-[12.5px] text-gray-400 font-medium leading-relaxed max-w-md">{ex.notes}</p>
                               </div>
-                              
+
                               <div className="flex items-center gap-3 bg-[#050505] px-4 py-3 rounded-xl border border-white/[0.02] shrink-0">
                                 <div className="text-center px-2">
                                   <span className="block text-[9px] text-gray-600 uppercase font-black tracking-widest mb-1">Volume</span>
