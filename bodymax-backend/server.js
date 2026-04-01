@@ -13,7 +13,8 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173', 
-    'https://ai-physique-assessment-saad-3892s-projects.vercel.app' // <-- Aapka Vercel URL
+    'https://ai-physique-assessment-saad-3892s-projects.vercel.app',
+    'https://ai-physique-assessment-git-main-saad-3892s-projects.vercel.app' // Naya link add kiya
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
