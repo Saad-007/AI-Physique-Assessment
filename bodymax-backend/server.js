@@ -27,6 +27,7 @@ app.use(cors({
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json({ limit: '50mb' })); 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -57,7 +58,7 @@ app.post('/api/generate-protocol', async (req, res) => {
     }
 
     const systemPrompt = `
-      You are BodyMax AI, an elite, world-class fitness coach.
+      You are BodyMax AI, an elite, world-class fitness coach. 
       Analyze the profile and generate a hyper-personalized plan.
       
       === USER'S DEEP PROFILE ===
@@ -118,7 +119,7 @@ app.post('/api/generate-protocol', async (req, res) => {
 
     let completion;
     try {
-      // FIXED: Timeout moved to the second argument (options object)
+      // Correct implementation of timeout in options object
       completion = await openai.chat.completions.create({
         model: "gpt-4o",
         response_format: { type: "json_object" },
@@ -133,7 +134,6 @@ app.post('/api/generate-protocol', async (req, res) => {
       console.error("OpenAI Error:", aiError.message);
       if (aiError.message.includes("downloading") || aiError.message.includes("image")) {
         console.log("Retrying without images...");
-        // FIXED: Timeout moved here too
         completion = await openai.chat.completions.create({
           model: "gpt-4o",
           response_format: { type: "json_object" },
@@ -149,21 +149,39 @@ app.post('/api/generate-protocol', async (req, res) => {
       }
     }
 
-    let aiContent = completion.choices[0].message.content.trim();
+    // --- SAFE CONTENT EXTRACTION ---
+    const rawContent = completion.choices?.[0]?.message?.content;
+    
+    if (!rawContent) {
+      throw new Error("AI returned an empty response. Please try again.");
+    }
+
+    let aiContent = rawContent.trim();
+
+    // Clean up potential markdown formatting if the AI ignores response_format
+    if (aiContent.startsWith("```json")) {
+      aiContent = aiContent.replace(/^```json/, "").replace(/```$/, "").trim();
+    }
+
     const generatedJSON = JSON.parse(aiContent);
 
+    // --- DATABASE UPDATE ---
     const { error: dbError } = await supabase
       .from('profiles')
       .update({ ai_protocol: generatedJSON })
       .eq('id', userId);
 
-    if (dbError) throw new Error("Failed to save to Supabase");
+    if (dbError) {
+      console.error("Supabase Error:", dbError);
+      throw new Error("Failed to save protocol to database");
+    }
 
     res.status(200).json({ success: true, protocol: generatedJSON });
 
   } catch (error) {
     console.error("[SERVER ERROR]:", error);
-    res.status(500).json({ error: error.message || "Failed to generate AI protocol" });
+    // Send the specific error message back to the frontend for easier debugging
+    res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 });
 
