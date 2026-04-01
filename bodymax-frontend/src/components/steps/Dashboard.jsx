@@ -115,6 +115,10 @@ const Dashboard = () => {
 
   const generateAndSaveProtocol = async (assessmentData, userId) => {
     try {
+      setIsAIGenerating(true);
+    
+    // 🔴 CHOTA SA PAUSE: Taake Supabase image process karle
+    await new Promise(resolve => setTimeout(resolve, 2000));
       console.log("🚀 Sending request to AI Engine with data:", assessmentData);
 
       const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"

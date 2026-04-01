@@ -152,16 +152,35 @@ app.post('/api/generate-protocol', async (req, res) => {
       contentArray.push({ type: "image_url", image_url: { url: goalImg } });
     }
 
-    // 6. Request completion from OpenAI
-    const completion = await openai.chat.completions.create({
+// Request completion from OpenAI
+let completion;
+try {
+  completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: contentArray }
+    ],
+    timeout: 60000, // 60 seconds tak wait kare
+  });
+} catch (aiError) {
+  console.error("OpenAI Error:", aiError.message);
+  // Agar image ki wajah se error hai, toh image ke baghair dobara koshish karein
+  if (aiError.message.includes("downloading")) {
+    console.log("Retrying without images...");
+    completion = await openai.chat.completions.create({
       model: "gpt-4o",
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: contentArray }
+        { role: "user", content: "Analyze based on text assessment only (images failed to load)." }
       ],
-      temperature: 0.7, 
     });
+  } else {
+    throw aiError;
+  }
+}
 
     // 7. SAFE JSON PARSING
     let aiContent = completion.choices[0].message.content.trim();
