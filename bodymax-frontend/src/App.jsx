@@ -72,22 +72,30 @@ const BodyMaxFunnel = () => {
               />
             </motion.div>
           )}
-          {/* === STEP 6: DIRECT PAYWALL / CHECKOUT === */}
+         {/* === STEP 6: DIRECT PAYWALL / CHECKOUT === */}
           {step === 6 && (
             <motion.div key="s6" {...pageTransition} className="w-full min-h-screen flex items-center justify-center">
               <PaywallModal
                 isOpen={true}
                 onClose={() => setStep(5)}
-                onSuccess={() => setStep(7)} // <--- YEH NAYI LINE ADD KAREIN
+                // 🔴 CRITICAL FIX: Accept the 'plan' variable and save it to formData before moving to step 7
+                onSuccess={(plan) => {
+                  console.log("Paywall selected plan:", plan);
+                  setFormData(prev => ({ ...prev, planDuration: plan }));
+                  setStep(7);
+                }} 
               />
             </motion.div>
           )}
+
           {/* === NAYA STEP 7: DIRECT SUCCESS PAGE TEST === */}
           {step === 7 && (
             <motion.div key="s7" {...pageTransition} className="w-full min-h-screen">
               <SuccessPage 
-                assessmentData={formData} 
-                onGoToDashboard={() => setStep(9)} // <--- YEH PROP ZAROOR PASS KAREIN
+                assessmentData={formData}
+                // 🔴 CRITICAL FIX: Pass the newly saved plan down to the SuccessPage
+                selectedPlan={formData.planDuration}
+                onGoToDashboard={() => setStep(9)}
               />
             </motion.div>
           )}

@@ -5,9 +5,10 @@ import {
   Cpu, Camera, ChevronRight, Zap, ScanLine, XCircle, Utensils,
   Timer, CheckCircle, Apple, Coffee, Moon, TrendingUp, Star, BicepsFlexed, Clock, X,
   Crosshair, Focus, MessageCircle, Droplets, Footprints, Send, PlayCircle, LayoutGrid,
-  Flame
+  Flame, Lock
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { updateDailyStreak } from '../../utils/streakUtils';
 
 // --- Mini Component: Premium Progress Bar ---
 const ProgressBar = ({ label, value, color }) => (
@@ -58,6 +59,12 @@ const Dashboard = () => {
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [isAIGenerating, setIsAIGenerating] = useState(false);
   const [aiLogIndex, setAiLogIndex] = useState(0);
+  
+  // 🔴 GAMIFICATION & PROGRESS STATES
+  const [streak, setStreak] = useState(0); 
+  const [completedWorkouts, setCompletedWorkouts] = useState(0);
+  const [totalWorkouts, setTotalWorkouts] = useState(0); 
+  const [toastMessage, setToastMessage] = useState(null);
 
   // AI Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -89,26 +96,66 @@ const Dashboard = () => {
     fetchUserDataAndProtocol();
   }, []);
 
+  useEffect(() => {
+      if (profile) {
+          setStreak(profile.current_streak || 0);
+      }
+  }, [profile]);
+
+  // Fetch Workout Progress from DB
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!session?.user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('user_workout_progress')
+        .select('completed_workouts, total_workouts')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching progress from DB:", error.message);
+      } else if (data) {
+        setCompletedWorkouts(data.completed_workouts || 0);
+        setTotalWorkouts(data.total_workouts || 3); 
+      } else {
+        setCompletedWorkouts(0);
+        setTotalWorkouts(3);
+      }
+    };
+
+    if (session) {
+      fetchProgress();
+    }
+  }, [session]);
+
   const fetchUserDataAndProtocol = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { window.location.href = '/login'; return; }
       setSession(session);
 
-      const { data: profileData, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
       if (error) throw error;
       setProfile(profileData);
 
       if (profileData.ai_protocol) {
         setProtocol(profileData.ai_protocol);
         setIsLoading(false);
-      } else {
+      } else if (profileData.assessment_data) {
         setIsLoading(false);
         setIsAIGenerating(true);
         await generateAndSaveProtocol(profileData.assessment_data, session.user.id);
+      } else {
+        window.location.href = '/assessment';
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Fetch Data Error:", error);
       setIsLoading(false);
     }
   };
@@ -116,10 +163,15 @@ const Dashboard = () => {
   const generateAndSaveProtocol = async (assessmentData, userId) => {
     try {
       setIsAIGenerating(true);
-    
-    // 🔴 CHOTA SA PAUSE: Taake Supabase image process karle
-    await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log("🚀 Sending request to AI Engine with data:", assessmentData);
+      const safePayload = {
+         userId: userId,
+         assessmentData: {
+             ...assessmentData,
+             dreamPhysiquePreview: undefined,
+             dreamPhysiqueFile: undefined,
+             photoFiles: undefined
+         }
+      };
 
       const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
         ? "http://localhost:5000"
@@ -128,25 +180,22 @@ const Dashboard = () => {
       const response = await fetch(`${backendUrl}/api/generate-protocol`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: userId, assessmentData: assessmentData }),
+        body: JSON.stringify(safePayload),
       });
 
       const data = await response.json();
 
-      // 🔴 SAFETY CHECK: Agar data ya protocol missing hai toh yahin rok do
-      if (!response.ok || !data || !data.protocol) {
-        throw new Error(data?.error || "AI Response is empty or invalid");
-      }
+      if (!response.ok) throw new Error(data?.error || "Server responded with an error");
+      if (!data || !data.protocol) throw new Error("AI generated an empty response. Please try again.");
 
-      setProtocol(data.protocol);
+      await supabase.from('profiles').update({ ai_protocol: data.protocol }).eq('id', userId);
 
-      console.log("✅ AI Response Successfully Received:", data.protocol);
       setProtocol(data.protocol);
       setIsAIGenerating(false);
 
     } catch (error) {
       console.error("❌ AI Generation Failed:", error);
-      alert(`AI Engine Error: ${error.message}`);
+      alert(`Failed to build protocol: ${error.message}`);
       setIsAIGenerating(false);
     }
   };
@@ -165,6 +214,125 @@ const Dashboard = () => {
       setChatHistory(prev => [...prev, { role: 'ai', text: "I'm analyzing your request against your target vectors. Stay tuned!" }]);
     }, 1000);
   };
+
+  // 🔴 DYNAMIC WEEK LOGIC VARIABLES
+  const assessment = profile?.assessment_data || {};
+  const safeProtocol = protocol || {};
+  const workoutsList = safeProtocol.workouts || [];
+  
+  // Extract number of weeks from assessment (e.g., "12-Week" -> 12). Fallback to 4.
+  const planDurationText = assessment.planDuration || "4-Week";
+  const maxWeeks = parseInt(planDurationText.split('-')[0]) || 4; 
+  const workoutsPerWeek = workoutsList.length || 1;
+  const programTotalWorkouts = maxWeeks * workoutsPerWeek; // e.g. 12 * 5 = 60
+
+  // Calculate current week and progress within that week
+  let currentWeek = Math.floor(completedWorkouts / workoutsPerWeek) + 1;
+  let doneThisWeek = completedWorkouts % workoutsPerWeek;
+
+  // Cap the progress if they finish the entire program
+  if (currentWeek > maxWeeks) {
+    currentWeek = maxWeeks;
+    doneThisWeek = workoutsPerWeek;
+  }
+
+
+  // 🔴 PROGRESSIVE UNLOCKING & SAVING
+  const handleEndSession = async () => {
+    if (!session?.user?.id || !selectedWorkout) return;
+    
+    const currentWorkoutIndex = workoutsList.findIndex(w => w.title === selectedWorkout.title);
+
+    let justUnlocked = false;
+    let newCount = completedWorkouts;
+    let isWeekComplete = false;
+
+    // Check if the workout they just finished is the active unlocked one
+    // AND check that they haven't finished the whole program yet
+    if (currentWorkoutIndex === doneThisWeek && completedWorkouts < programTotalWorkouts) {
+      newCount = completedWorkouts + 1;
+      
+      // Optimistic UI Update
+      setCompletedWorkouts(newCount);
+      justUnlocked = true;
+
+      // If completing this workout perfectly divides by workoutsPerWeek, the week is done!
+      if (newCount % workoutsPerWeek === 0) {
+          isWeekComplete = true;
+      }
+      
+      // Upsert logic for Supabase
+      const { data: existingProgress } = await supabase
+        .from('user_workout_progress')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      let dbError;
+
+      if (existingProgress) {
+        const { error } = await supabase
+          .from('user_workout_progress')
+          .update({ completed_workouts: newCount })
+          .eq('user_id', session.user.id);
+        dbError = error;
+      } else {
+        const { error } = await supabase
+          .from('user_workout_progress')
+          .insert({ 
+            user_id: session.user.id, 
+            completed_workouts: newCount,
+            total_workouts: programTotalWorkouts 
+          });
+        dbError = error;
+      }
+
+      if (dbError) {
+          console.error("Failed to update progress:", dbError.message);
+          setCompletedWorkouts(completedWorkouts); // Revert if failed
+      }
+    }
+
+    // Log the streak
+    const result = await updateDailyStreak(session.user.id);
+    let streakIncreased = false;
+    
+    if (result && result.updated) {
+      if (result.streak > streak) streakIncreased = true;
+      setStreak(result.streak);
+    }
+
+    // Close the workout modal
+    setSelectedWorkout(null);
+
+    // Smart Toast Notifications
+    const disciplineLines = [
+      "Discipline equals freedom. Module secured.",
+      "Momentum is built in the shadows. Keep going.",
+      "Day by day, the baseline shifts. Solid work.",
+      "Neural mapping updated. Your future self thanks you.",
+      "Consistency over intensity. Protocol advanced."
+    ];
+    
+    const randomLine = disciplineLines[Math.floor(Math.random() * disciplineLines.length)];
+    let finalMessage = "";
+
+    if (isWeekComplete) {
+      finalMessage = `🎉 Week ${currentWeek} Complete! Next phase unlocked.`;
+    } else if (streakIncreased && justUnlocked) {
+      finalMessage = `🔥 ${result.streak} Day Streak! ${randomLine}`;
+    } else if (streakIncreased) {
+      finalMessage = `🔥 Streak extended to ${result.streak} days. Keep the fire alive.`;
+    } else if (justUnlocked) {
+      finalMessage = `✅ Module Complete. ${randomLine}`;
+    } else {
+      finalMessage = `⚡ Session Logged. Consistency is key.`;
+    }
+
+    setToastMessage(finalMessage);
+    setTimeout(() => setToastMessage(null), 4500);
+  };
+
 
   if (isLoading || isAIGenerating) {
     return (
@@ -188,25 +356,38 @@ const Dashboard = () => {
     );
   }
 
-  const safeProtocol = protocol || {};
   const analysis = safeProtocol.body_analysis || { score: 0, classification: "Evaluating...", estimated_bf: "--", bmr: 0, tdee: 0, strengths: [], weaknesses: [], vectors: {}, executive_summary: "" };
   const macros = safeProtocol.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 };
   const nutrition = safeProtocol.nutrition || { strategy: "Mapping...", meals: [] };
-  const workouts = safeProtocol.workouts || [];
-
-  // 🔴 DYNAMIC ROADMAP: Backend se array aaye toh wo use karo, warna fallback fallback do
-  const roadmap = safeProtocol.roadmap || [
-    { phase: "Phase 1: Adaptation", description: "Your central nervous system adapts to targeted vectors. Initial supercompensation occurs." },
-    { phase: "Phase 2: Hypertrophy", description: "Myofibrillar growth begins in your designated weak zones. Body fat drops steadily." },
-    { phase: "Phase 3: Solidification", description: "Visual alignment with your target archetype is achieved. Metabolic rate stabilizes." }
-  ];
-
-  const assessment = profile?.assessment_data || {};
+  
   const userName = profile?.full_name?.split(' ')[0] || 'Athlete';
   const userGoal = assessment.goal || "Hypertrophy & Definition";
-  const planDurationTitle = assessment.planDuration ? assessment.planDuration.split('-').join(' ') : "12-Week";
   const dreamImage = assessment.dreamPhysiqueImage || assessment.customGoalPhoto || null;
-  const userDays = assessment.days || 4;
+  const planDurationTitle = planDurationText.replace('-', ' ').toUpperCase(); 
+
+  const getDefaultRoadmap = (duration) => {
+    if (duration === "1-Week") {
+      return [
+        { phase: "Days 1-3: Initiation", description: "Establishing baseline movement patterns and metabolic priming." },
+        { phase: "Days 4-5: Overload", description: "Pushing target muscle groups to stimulate initial adaptation." },
+        { phase: "Days 6-7: Assessment", description: "Active recovery and assessing your body's initial biometric response." }
+      ];
+    } else if (duration === "4-Week") {
+      return [
+        { phase: "Week 1: Foundation", description: "Neuromuscular adaptation and technique refinement." },
+        { phase: "Week 2-3: Progression", description: "Progressive overload applied. Initial metabolic shifts occur." },
+        { phase: "Week 4: Realization", description: "Peak intensity week followed by visual and strength realization." }
+      ];
+    } else {
+      return [
+        { phase: "Weeks 1-4: Priming", description: "Your central nervous system adapts to targeted vectors. Initial supercompensation occurs." },
+        { phase: "Weeks 5-8: Recomposition", description: "Myofibrillar growth begins in your designated weak zones. Body fat drops steadily." },
+        { phase: "Weeks 9-12: Integration", description: "Visual alignment with your target archetype is achieved. Metabolic rate stabilizes." }
+      ];
+    }
+  };
+
+  const roadmap = safeProtocol.roadmap || getDefaultRoadmap(planDurationText);
 
   const tabs = [
     { id: 'overview', label: 'Report', icon: TrendingUp },
@@ -217,6 +398,21 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-[100dvh] bg-[#030303] text-gray-300 font-sans flex overflow-hidden selection:bg-[#E71B25] selection:text-white relative">
+
+      {/* 🔴 MOTIVATION TOAST POPUP */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -50, scale: 0.9 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[999] bg-[#111]/90 backdrop-blur-xl border border-[#E71B25]/50 shadow-[0_10px_30px_rgba(231,27,37,0.3)] text-white px-5 py-3.5 rounded-full flex items-center justify-center gap-3 font-bold text-[13px] md:text-[14px] w-[90%] md:w-auto text-center"
+          >
+            <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400 shrink-0" />
+            <span dangerouslySetInnerHTML={{ __html: toastMessage.replace(/🔥|✅|🎉|⚡/g, '') }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* DESKTOP SIDEBAR */}
       <aside className="hidden md:flex flex-col w-[240px] bg-[#050505] border-r border-white/[0.04] h-screen relative z-20 shrink-0">
@@ -297,8 +493,17 @@ const Dashboard = () => {
               </div>
               <h1 className="text-2xl font-semibold text-white tracking-tight">{userName}'s Neural Hub</h1>
             </div>
-            <div className="flex items-center gap-2 text-[11px] font-bold bg-[#E71B25]/10 border border-[#E71B25]/20 text-[#E71B25] px-4 py-2 rounded-lg shadow-[0_0_15px_rgba(231,27,37,0.1)]">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#E71B25] animate-pulse"></div> Protocol Synced
+            
+            <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-[#E71B25]/10 border border-[#E71B25]/20 px-3 py-1.5 rounded-lg shadow-[0_0_15px_rgba(231,27,37,0.15)] group cursor-default transition-all hover:bg-[#E71B25]/20">
+                  <Flame className={`w-4 h-4 ${streak > 0 ? 'text-orange-500 animate-pulse' : 'text-gray-500'}`} />
+                  <span className="text-[12px] font-black text-white">{streak}</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Day Streak</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-[11px] font-bold bg-[#111] border border-white/[0.1] text-gray-300 px-4 py-2 rounded-lg">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> Active
+                </div>
             </div>
           </header>
 
@@ -354,11 +559,11 @@ const Dashboard = () => {
                   <p className="text-center text-[9px] md:text-[10px] font-medium text-gray-500 mt-4 md:mt-5 uppercase tracking-wider">Connect wearable device in settings to automate tracking.</p>
                 </div>
 
-                {/* 🔴 THE DYNAMIC AI ROADMAP */}
+                {/* THE DYNAMIC AI ROADMAP */}
                 <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 md:p-6 shadow-lg">
                   <div className="flex items-center gap-2 mb-6 border-b border-white/[0.05] pb-3">
                     <TrendingUp className="w-4 h-4 text-purple-400" />
-                    <h3 className="text-[12px] md:text-[13px] font-bold text-white uppercase tracking-widest">{planDurationTitle} Roadmap</h3>
+                    <h3 className="text-[12px] md:text-[13px] font-bold text-white uppercase tracking-widest">{planDurationTitle} ROADMAP</h3>
                   </div>
                   <div className="relative pl-6 border-l border-white/[0.05] space-y-6 md:space-y-8 ml-2">
                     {roadmap.map((step, idx) => (
@@ -519,7 +724,7 @@ const Dashboard = () => {
               </motion.div>
             )}
 
-            {/* TAB 4: WORKOUTS */}
+            {/* TAB 4: 🔴 WORKOUTS (WITH MULTI-WEEK PROGRESSION LOGIC) */}
             {activeTab === 'protocol' && (
               <motion.div key="protocol" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-6">
                 <div className="bg-gradient-to-r from-[#E71B25]/20 to-transparent border border-[#E71B25]/30 rounded-3xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -528,54 +733,70 @@ const Dashboard = () => {
                       <BicepsFlexed className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25]" />
                       <h2 className="text-[14px] md:text-[16px] font-black text-white uppercase tracking-wide">Neural Training Modules</h2>
                     </div>
-                    <p className="text-[11px] md:text-[12px] text-gray-400 font-medium">Your customized weekly routine aligned with the {userGoal} objective.</p>
+                    <p className="text-[11px] md:text-[12px] text-gray-400 font-medium">Your customized routine aligned with the {userGoal} objective.</p>
                   </div>
+                  
+                  {/* 🔴 UPDATED WIDGET: Displays Current Week AND Total Progress */}
                   <div className="flex items-center gap-4 bg-black/40 px-4 py-2.5 rounded-xl border border-white/[0.05]">
                     <div className="text-center">
-                      <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest">Modules</span>
-                      <span className="text-[14px] font-black text-white">{workouts.length}</span>
+                      <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest">Week {currentWeek} / {maxWeeks}</span>
+                      <span className="text-[14px] font-black text-green-500">{doneThisWeek} <span className="text-gray-500 text-[10px]">/ {workoutsPerWeek}</span></span>
                     </div>
                     <div className="w-px h-6 bg-white/[0.1]"></div>
                     <div className="text-center">
-                      <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest">Weekly Vol</span>
-                      <span className="text-[14px] font-black text-[#E71B25]">High</span>
+                      <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest">Total Done</span>
+                      <span className="text-[14px] font-black text-[#E71B25]">{completedWorkouts} <span className="text-gray-500 text-[10px]">/ {programTotalWorkouts}</span></span>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                  {workouts.map((workout, idx) => {
+                  {workoutsList.map((workout, idx) => {
                     const estTime = (workout.exercises?.length || 0) * 8 + 5;
+                    
+                    // 🔴 UPDATED UNLOCK LOGIC: Driven by "doneThisWeek" instead of overall completed count
+                    const isCompleted = idx < doneThisWeek || completedWorkouts >= programTotalWorkouts;
+                    const isLocked = idx > doneThisWeek && completedWorkouts < programTotalWorkouts;
+                    const isActive = idx === doneThisWeek && completedWorkouts < programTotalWorkouts;
 
                     return (
                       <motion.div
-                        whileHover={{ y: -4 }}
+                        whileHover={!isLocked ? { y: -4 } : {}}
                         key={idx}
-                        className="group relative bg-[#0a0a0a] border border-white/[0.04] hover:border-[#E71B25]/50 rounded-3xl overflow-hidden transition-all duration-300 shadow-lg hover:shadow-[0_10px_30px_rgba(231,27,37,0.15)] flex flex-col"
+                        className={`group relative bg-[#0a0a0a] border rounded-3xl overflow-hidden transition-all duration-300 shadow-lg flex flex-col
+                          ${isLocked ? 'opacity-50 border-white/[0.02] grayscale cursor-not-allowed' : ''}
+                          ${isCompleted ? 'border-green-500/30 hover:border-green-500/60' : ''}
+                          ${isActive ? 'border-white/[0.04] hover:border-[#E71B25]/50 hover:shadow-[0_10px_30px_rgba(231,27,37,0.15)]' : ''}
+                        `}
                       >
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#E71B25] to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                        {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#E71B25] to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>}
+                        {isCompleted && <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 opacity-50"></div>}
 
                         <div className="p-5 md:p-6 flex flex-col h-full z-10">
                           <div className="flex justify-between items-start mb-4">
-                            <div className="bg-white/[0.03] border border-white/[0.05] px-2.5 py-1 rounded-lg">
-                              <span className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">Mod 0{idx + 1}</span>
+                            <div className="bg-white/[0.03] border border-white/[0.05] px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                              <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${isCompleted ? 'text-green-400' : 'text-gray-400'}`}>Mod 0{idx + 1}</span>
+                              {isCompleted && <CheckCircle className="w-3.5 h-3.5 text-green-500 ml-1" />}
                             </div>
-                            <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg border border-white/[0.02]">
-                              <div className={`w-1.5 h-1.5 rounded-full ${workout.intensity === 'Low' ? 'bg-blue-500' : workout.intensity === 'High' ? 'bg-orange-500 shadow-[0_0_8px_#f97316]' : 'bg-[#E71B25] shadow-[0_0_8px_#E71B25]'}`}></div>
-                              <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400">{workout.intensity}</span>
-                            </div>
+                            
+                            {!isLocked && (
+                              <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg border border-white/[0.02]">
+                                <div className={`w-1.5 h-1.5 rounded-full ${workout.intensity === 'Low' ? 'bg-blue-500' : workout.intensity === 'High' ? 'bg-orange-500 shadow-[0_0_8px_#f97316]' : 'bg-[#E71B25] shadow-[0_0_8px_#E71B25]'}`}></div>
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400">{workout.intensity}</span>
+                              </div>
+                            )}
                           </div>
 
-                          <h4 className="text-[16px] md:text-[18px] font-bold text-white leading-tight mb-3 pr-4 group-hover:text-[#E71B25] transition-colors">{workout.title}</h4>
+                          <h4 className={`text-[16px] md:text-[18px] font-bold leading-tight mb-3 pr-4 transition-colors ${isLocked ? 'text-gray-500' : 'text-white'} ${isActive ? 'group-hover:text-[#E71B25]' : ''}`}>{workout.title}</h4>
 
                           <div className="flex flex-wrap gap-1.5 mb-6">
                             {workout.targets?.map((t, i) => (
-                              <span key={i} className="text-[9px] font-bold uppercase tracking-wider text-gray-300 bg-white/[0.05] px-2 py-1 rounded-md">{t}</span>
+                              <span key={i} className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${isLocked ? 'text-gray-600 bg-white/[0.02]' : 'text-gray-300 bg-white/[0.05]'}`}>{t}</span>
                             ))}
                           </div>
 
                           <div className="mt-auto pt-4 border-t border-white/[0.04] flex items-center justify-between">
-                            <div className="flex items-center gap-3 text-gray-500">
+                            <div className={`flex items-center gap-3 ${isLocked ? 'text-gray-600' : 'text-gray-500'}`}>
                               <div className="flex items-center gap-1">
                                 <Clock className="w-3.5 h-3.5" />
                                 <span className="text-[11px] font-bold">{estTime}m</span>
@@ -587,10 +808,21 @@ const Dashboard = () => {
                             </div>
 
                             <button
-                              onClick={() => setSelectedWorkout(workout)}
-                              className="text-[11px] flex items-center justify-center gap-1.5 text-[#E71B25] group-hover:bg-[#E71B25] group-hover:text-white transition-all font-bold bg-[#E71B25]/10 px-4 py-2 rounded-xl uppercase tracking-widest"
+                              onClick={() => !isLocked && setSelectedWorkout(workout)}
+                              disabled={isLocked}
+                              className={`text-[11px] flex items-center justify-center gap-1.5 transition-all font-bold px-4 py-2 rounded-xl uppercase tracking-widest
+                                ${isLocked ? 'text-gray-600 bg-white/5 cursor-not-allowed' : ''}
+                                ${isCompleted ? 'text-green-500 bg-green-500/10 hover:bg-green-500 hover:text-white' : ''}
+                                ${isActive ? 'text-[#E71B25] bg-[#E71B25]/10 hover:bg-[#E71B25] hover:text-white' : ''}
+                              `}
                             >
-                              Initiate <PlayCircle className="w-3.5 h-3.5" strokeWidth={2.5} />
+                              {isLocked ? (
+                                <>Locked <Lock className="w-3.5 h-3.5" /></>
+                              ) : isCompleted ? (
+                                <>Replay <PlayCircle className="w-3.5 h-3.5" /></>
+                              ) : (
+                                <>Initiate <PlayCircle className="w-3.5 h-3.5" strokeWidth={2.5} /></>
+                              )}
                             </button>
                           </div>
                         </div>
@@ -759,7 +991,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <button onClick={() => setSelectedWorkout(null)} className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#E71B25] hover:bg-[#C6161F] text-white px-10 py-4 md:py-3.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(231,27,37,0.4)]">
+                <button onClick={handleEndSession} className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#E71B25] hover:bg-[#C6161F] text-white px-10 py-4 md:py-3.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(231,27,37,0.4)]">
                   End Session <CheckCircle className="w-4 h-4" strokeWidth={3} />
                 </button>
               </div>

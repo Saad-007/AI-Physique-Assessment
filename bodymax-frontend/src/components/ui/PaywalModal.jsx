@@ -278,17 +278,26 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                     <Lock className="w-3 h-3" />
                     <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
                   </div>
-
-                 {/* 🛠 DEVELOPER HACK: BYPASS PAYMENT FOR TESTING */}
+{/* 🛠 DEVELOPER HACK: BYPASS PAYMENT FOR TESTING */}
                   <button
-                    onClick={() => {
-                      // Jo bhi plan select hua hai (ya default '12-weeks'), usko pass karein
-                      const finalPlan = selectedPlan || "12-weeks";
+                    onClick={(e) => {
+                      e.preventDefault(); // Prevent any form submission side effects
+
+                      // 1. Determine which plan is selected, default to 12-weeks if null
+                      const rawPlan = selectedPlan || "12-weeks";
                       
-                      if (onSuccess) {
-                        onSuccess(finalPlan);
-                      } else if (onCheckout) {
-                        onCheckout(finalPlan);
+                      // 2. Format the plan ID strictly to what the backend expects
+                      let formattedPlan = "12-Week";
+                      if (rawPlan === '1-week') formattedPlan = "1-Week";
+                      if (rawPlan === '4-weeks') formattedPlan = "4-Week";
+                      
+                      console.log("Developer Bypass Triggered. Sending Plan:", formattedPlan);
+
+                      // 3. Pass the clean string back to the parent component
+                      if (onCheckout) {
+                        onCheckout(formattedPlan);
+                      } else if (onSuccess) {
+                        onSuccess(formattedPlan);
                       }
                     }}
                     className="mt-6 text-[10px] text-gray-500 uppercase tracking-[0.2em] border-b border-transparent hover:text-white hover:border-white transition-all z-50 cursor-pointer relative"

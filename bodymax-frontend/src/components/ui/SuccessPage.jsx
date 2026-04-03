@@ -10,7 +10,7 @@ const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
     const [errorMsg, setErrorMsg] = useState('');
     const [isSuccess, setIsSuccess] = useState(false);
 
-    const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         setErrorMsg('');
@@ -28,44 +28,75 @@ const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
                 return;
             }
 
-            // 2. UPLOAD PHOTOS & SAVE ASSESSMENT DATA
             if (authData.user) {
-
                 // Destructure to separate actual files from the rest of the JSON data
-                const { photos, photoFiles, ...cleanAssessmentData } = assessmentData;
-                let permanentPhotoUrls = {}; // Asli URLs yahan aayenge
+                const { 
+                  photos, 
+                  photoFiles, 
+                  dreamPhysiqueFile, 
+                  dreamPhysiquePreview, 
+                  ...cleanAssessmentData 
+                } = assessmentData;
+                
+                // Ensure planDuration exists on cleanAssessmentData
+                if (!cleanAssessmentData.planDuration) {
+                    cleanAssessmentData.planDuration = selectedPlan || "12-Week";
+                }
 
-                // Agar user ne photos upload ki hain
+                let permanentPhotoUrls = {}; 
+                let finalGoalImageUrl = null;
+
+                // ==========================================
+                // 2A. UPLOAD THE 3 BODY PHOTOS
+                // ==========================================
                 if (photoFiles) {
                     for (const key of [1, 2, 3]) {
                         const file = photoFiles[key];
                         if (file) {
                             const fileExt = file.name.split('.').pop();
-                            // File name like: user_id/photo_1_16234...jpg
                             const filePath = `${authData.user.id}/photo_${key}_${Date.now()}.${fileExt}`;
 
-                            // Upload to Supabase 'user_photos' bucket
                             const { error: uploadError } = await supabase.storage
                                 .from('user_photos')
-                                .upload(filePath, file, {
-                                    cacheControl: '3600',
-                                    upsert: true // Agar error aaye toh retry mein file overwrite kar dega
-                                });
+                                .upload(filePath, file, { cacheControl: '3600', upsert: true });
 
                             if (!uploadError) {
-                                // Get the permanent public URL
                                 const { data: urlData } = supabase.storage
                                     .from('user_photos')
                                     .getPublicUrl(filePath);
-
                                 permanentPhotoUrls[key] = urlData.publicUrl;
                             }
                         }
                     }
                 }
 
-                // Puraani temporary blob URLs ki jagah naye permanent URLs set karein
-                cleanAssessmentData.photos = permanentPhotoUrls;
+                // ==========================================
+                // 2B. UPLOAD THE DREAM PHYSIQUE GOAL PHOTO
+                // ==========================================
+                if (dreamPhysiqueFile) {
+                    const file = dreamPhysiqueFile;
+                    const fileExt = file.name.split('.').pop();
+                    const filePath = `${authData.user.id}/goal_${Date.now()}.${fileExt}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                        .from('user_photos') 
+                        .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+                    if (!uploadError) {
+                        const { data: urlData } = supabase.storage
+                            .from('user_photos')
+                            .getPublicUrl(filePath);
+                        finalGoalImageUrl = urlData.publicUrl;
+                    }
+                } else if (assessmentData.dreamPhysiqueImage && typeof assessmentData.dreamPhysiqueImage === 'string') {
+                    finalGoalImageUrl = assessmentData.dreamPhysiqueImage;
+                }
+
+                // ==========================================
+                // 3. PREPARE CLEAN DATA & SAVE TO DB
+                // ==========================================
+                cleanAssessmentData.photos = Object.keys(permanentPhotoUrls).length > 0 ? permanentPhotoUrls : null;
+                cleanAssessmentData.dreamPhysiqueImage = finalGoalImageUrl;
 
                 // Save everything to 'profiles' table
                 const { error: dbError } = await supabase
@@ -82,8 +113,12 @@ const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
                 if (dbError) {
                     console.error("Database save error:", dbError);
                 }
+
+                // 🔴 REMOVED: The AI fetch call from here. 
+                // The Dashboard will handle AI generation automatically with the loading screen!
             }
 
+            // Immediately show success!
             setIsSubmitting(false);
             setIsSuccess(true);
 
@@ -93,7 +128,6 @@ const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
             setIsSubmitting(false);
         }
     };
-
     return (
         <div className="min-h-screen bg-[#030303] flex items-center justify-center p-4 relative overflow-hidden">
 

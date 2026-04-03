@@ -210,19 +210,11 @@ const assessmentData = [
   { type: "social-proof" },
   { type: "scan-interstitial" },
   { type: "upload-3" },
-{
+  {
     phase: "AI SCAN",
     title: "WHAT'S YOUR DREAM PHYSIQUE?",
-    subtitle: "Choose a preset or upload a photo of your goal body",
+    subtitle: "Upload a photo of your goal body for AI analysis", // Updated subtitle
     type: "upload-goal",
-    options: [
-      { label: "Aesthetic V-Taper", img: "https://qdqlwfchjasdzyopcqby.supabase.co/storage/v1/object/public/preset-images/V-shape.jpg" },
-      { label: "Lean & Shredded", img: "https://qdqlwfchjasdzyopcqby.supabase.co/storage/v1/object/public/preset-images/Lean.jpg" },
-      { label: "Athletic Build", img: "https://qdqlwfchjasdzyopcqby.supabase.co/storage/v1/object/public/preset-images/Atheletic.jpg" },
-      { label: "Classic Bodybuilder", img: "https://qdqlwfchjasdzyopcqby.supabase.co/storage/v1/object/public/preset-images/Classic.jpg" },
-      { label: "Calisthenics", img: "https://qdqlwfchjasdzyopcqby.supabase.co/storage/v1/object/public/preset-images/Calisthenics.jpg" },
-      { label: "Big & Massive", img: "https://qdqlwfchjasdzyopcqby.supabase.co/storage/v1/object/public/preset-images/Big-massive.jpg" },
-    ],
   },
   {
     type: "Today-Future",
@@ -555,7 +547,7 @@ const AssessmentFlow = ({
   setFormData,
   onOpenUpgradedModal,
   onBack,
-  onComplete, 
+  onComplete,
   resumeAssessment,
   setResumeAssessment,
 }) => {
@@ -568,7 +560,7 @@ const AssessmentFlow = ({
   const cameraRef = useRef(null);
   const goalUploadRef = useRef(null);
 
- useEffect(() => {
+  useEffect(() => {
     if (resumeAssessment) {
       setDirection(-1); // Ulta animate karega
       setIsFinished(false); // Kill switch off
@@ -584,11 +576,11 @@ const AssessmentFlow = ({
     .slice(0, currentIndex + 1)
     .filter(isQuestionStep).length;
 
-const handleNext = () => {
+  const handleNext = () => {
     // Agar aakhri slide par hain, toh main funnel ko Step 6 (Paywall) par bhej dein
-    if (currentIndex >= assessmentData.length - 1) { 
+    if (currentIndex >= assessmentData.length - 1) {
       if (onComplete) onComplete(); // <--- YEH LINE CHANGE HUI HAI
-      return; 
+      return;
     }
 
     if (currentStep.type === 'sliders') {
@@ -598,7 +590,7 @@ const handleNext = () => {
       setFormData(prev => ({ ...prev, days: prev.days || 4, location: prev.location || "Commercial gym (full equipment)" }));
     }
 
-    setDirection(1); 
+    setDirection(1);
     setCurrentIndex(prev => Math.min(prev + 1, assessmentData.length - 1));
   };
 
@@ -607,7 +599,7 @@ const handleNext = () => {
       if (onBack) onBack();
       return;
     }
-    setDirection(-1); 
+    setDirection(-1);
     setCurrentIndex(prev => Math.max(prev - 1, 0));
   };
   const handleSelect = (optionLabel) => {
@@ -628,12 +620,12 @@ const handleNext = () => {
     const file = e.target.files[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      
+
       // Photos array for UI previews
       const currentPhotos = formData.photos || { 1: null, 2: null, 3: null };
       // photoFiles array for actual backend uploading
       const currentFiles = formData.photoFiles || { 1: null, 2: null, 3: null };
-      
+
       const newPhotos = { ...currentPhotos };
       const newFiles = { ...currentFiles };
 
@@ -648,29 +640,35 @@ const handleNext = () => {
         newFiles[3] = file;
       }
 
-      setFormData((prev) => ({ 
-        ...prev, 
-        photos: newPhotos, 
+      setFormData((prev) => ({
+        ...prev,
+        photos: newPhotos,
         photoFiles: newFiles // Asli files bhi state mein save ho gayin
       }));
     }
     e.target.value = null;
   };
 
-  const handleGoalPhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setFormData((prev) => ({
-        ...prev,
-        customGoalPhoto: url,
-        customGoalFile: file, 
-        goal: "Custom Upload",
-      }));
-      setTimeout(() => handleNext(), 400);
+ const handleGoalPhotoUpload = (event) => {
+  const file = event.target.files[0];
+  
+  if (file) {
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file.');
+      return;
     }
-    e.target.value = null;
-  };
+
+    // 1. Create temporary URL for UI
+    const previewUrl = URL.createObjectURL(file);
+
+    // 2. Save to formData
+    setFormData((prev) => ({
+      ...prev,
+      dreamPhysiquePreview: previewUrl, // Use this for <img> src
+      dreamPhysiqueFile: file          // Use this for your API Upload/FormData
+    }));
+  }
+};
 
   const slideVariants = {
     enter: (dir) => ({
@@ -781,98 +779,98 @@ const handleNext = () => {
               )}
 
               {/* --- EXACT REPLICA: BEFORE VS AFTER COMPARISON STEP --- */}
-            {currentStep.type === "before-after-comparison" && (
-              <div className="flex flex-col items-center w-full mt-2 h-full">
-                
-                {/* Floating Header Tags with Sleek SVG Arrow */}
-                <div className="w-full flex justify-between items-end px-6 md:px-10 mb-3 relative z-10">
-                  <div className="absolute left-1/2 -translate-x-1/2 mt-1 w-12 md:w-14 opacity-60">
-                    <svg viewBox="0 0 100 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto drop-shadow-sm">
-                      <path d="M10 30 Q 50 -10 90 30" stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-                      <path d="M75 28 L 90 30 L 85 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                    </svg>
-                  </div>
-                </div>
+              {currentStep.type === "before-after-comparison" && (
+                <div className="flex flex-col items-center w-full mt-2 h-full">
 
-                {/* Reduced gap and min-height for a tighter mobile view */}
-                <div className="flex w-full gap-2.5 md:gap-4 mb-6 stretch flex-1 min-h-[460px] md:min-h-[500px]">
-                  
-                  {/* --- BEFORE CARD --- */}
-                  <div className="flex-1 bg-[#1A1A1C] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-                    {/* Tighter padding */}
-                    <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
-                      <h3 className="text-gray-400 font-bold text-[12px] md:text-[14px] mb-3 md:mb-4 tracking-tight">
-                        {currentStep.before.title}
-                      </h3>
-                      {/* Tighter gaps between points */}
-                      <div className="flex flex-col gap-2.5 md:gap-3">
-                        {currentStep.before.points.map((point, i) => (
-                          <div key={i} className="flex items-start gap-2">
-                            {/* Raw icon, no border, no background, tight margin */}
-                            <X className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#E71B25] shrink-0 mt-[2px]" strokeWidth={2.5} />
-                            <span className="text-gray-300 text-[11.5px] md:text-[13px] font-medium leading-snug tracking-wide">
-                              {point}
-                            </span>
-                          </div>
-                        ))}
+                  {/* Floating Header Tags with Sleek SVG Arrow */}
+                  <div className="w-full flex justify-between items-end px-6 md:px-10 mb-3 relative z-10">
+                    <div className="absolute left-1/2 -translate-x-1/2 mt-1 w-12 md:w-14 opacity-60">
+                      <svg viewBox="0 0 100 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto drop-shadow-sm">
+                        <path d="M10 30 Q 50 -10 90 30" stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                        <path d="M75 28 L 90 30 L 85 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Reduced gap and min-height for a tighter mobile view */}
+                  <div className="flex w-full gap-2.5 md:gap-4 mb-6 stretch flex-1 min-h-[460px] md:min-h-[500px]">
+
+                    {/* --- BEFORE CARD --- */}
+                    <div className="flex-1 bg-[#1A1A1C] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                      {/* Tighter padding */}
+                      <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
+                        <h3 className="text-gray-400 font-bold text-[12px] md:text-[14px] mb-3 md:mb-4 tracking-tight">
+                          {currentStep.before.title}
+                        </h3>
+                        {/* Tighter gaps between points */}
+                        <div className="flex flex-col gap-2.5 md:gap-3">
+                          {currentStep.before.points.map((point, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              {/* Raw icon, no border, no background, tight margin */}
+                              <X className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#E71B25] shrink-0 mt-[2px]" strokeWidth={2.5} />
+                              <span className="text-gray-300 text-[11.5px] md:text-[13px] font-medium leading-snug tracking-wide">
+                                {point}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Raw Image, no overlay or dimming */}
+                      <div className="absolute bottom-0 left-0 right-0 h-[50%]">
+                        {/* Keeping only a tiny bottom gradient so the image blends into the bottom curve */}
+                        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#1A1A1C] to-transparent z-10" />
+                        <img
+                          src={currentStep.before.image}
+                          className="w-full h-full object-cover object-top"
+                          alt="Before"
+                        />
                       </div>
                     </div>
-                    {/* Raw Image, no overlay or dimming */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[50%]">
-                      {/* Keeping only a tiny bottom gradient so the image blends into the bottom curve */}
-                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#1A1A1C] to-transparent z-10" />
-                      <img
-                        src={currentStep.before.image}
-                        className="w-full h-full object-cover object-top"
-                        alt="Before"
-                      />
-                    </div>
-                  </div>
 
-                  {/* --- AFTER CARD --- */}
-                  <div className="flex-1 bg-gradient-to-b from-[#139E46] to-[#0A5A26] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(19,158,70,0.2)]">
-                    {/* Tighter padding */}
-                    <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
-                      <h3 className="text-white font-bold text-[12px] md:text-[14px] mb-3 md:mb-4 tracking-tight drop-shadow-sm">
-                        {currentStep.after.title}
-                      </h3>
-                      {/* Tighter gaps between points */}
-                      <div className="flex flex-col gap-2.5 md:gap-3">
-                        {currentStep.after.points.map((point, i) => (
-                          <div key={i} className="flex items-start gap-2">
-                            {/* Raw icon, no border, no background, tight margin */}
-                            <Check className="w-4 h-4 md:w-[18px] md:h-[18px] text-black shrink-0 mt-[2px]" strokeWidth={3.5} />
-                            <span className="text-white text-[11.5px] md:text-[13px] font-semibold leading-snug tracking-wide drop-shadow-sm">
-                              {point}
-                            </span>
-                          </div>
-                        ))}
+                    {/* --- AFTER CARD --- */}
+                    <div className="flex-1 bg-gradient-to-b from-[#139E46] to-[#0A5A26] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(19,158,70,0.2)]">
+                      {/* Tighter padding */}
+                      <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
+                        <h3 className="text-white font-bold text-[12px] md:text-[14px] mb-3 md:mb-4 tracking-tight drop-shadow-sm">
+                          {currentStep.after.title}
+                        </h3>
+                        {/* Tighter gaps between points */}
+                        <div className="flex flex-col gap-2.5 md:gap-3">
+                          {currentStep.after.points.map((point, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              {/* Raw icon, no border, no background, tight margin */}
+                              <Check className="w-4 h-4 md:w-[18px] md:h-[18px] text-black shrink-0 mt-[2px]" strokeWidth={3.5} />
+                              <span className="text-white text-[11.5px] md:text-[13px] font-semibold leading-snug tracking-wide drop-shadow-sm">
+                                {point}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Raw Image, no overlay or dimming */}
+                      <div className="absolute bottom-0 left-0 right-0 h-[50%]">
+                        {/* Keeping only a tiny bottom gradient so the image blends into the bottom curve */}
+                        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0A5A20] to-transparent z-10" />
+                        <img
+                          src={currentStep.after.image}
+                          className="w-full h-full object-cover object-top"
+                          alt="After"
+                        />
                       </div>
                     </div>
-                    {/* Raw Image, no overlay or dimming */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[50%]">
-                      {/* Keeping only a tiny bottom gradient so the image blends into the bottom curve */}
-                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0A5A20] to-transparent z-10" />
-                      <img
-                        src={currentStep.after.image}
-                        className="w-full h-full object-cover object-top"
-                        alt="After"
-                      />
-                    </div>
+
                   </div>
 
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="w-full flex justify-center mt-auto pb-2"
+                  >
+                    <MagneticButton text="Continue" onClick={handleNext} />
+                  </motion.div>
                 </div>
-
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="w-full flex justify-center mt-auto pb-2"
-                >
-                  <MagneticButton text="Continue" onClick={handleNext} />
-                </motion.div>
-              </div>
-            )}
+              )}
 
               {/* --- EXACT REPLICA: BEFORE VS AFTER COMPARISON STEP --- */}
               {currentStep.type === "Today-Future" && (
@@ -1202,32 +1200,32 @@ const handleNext = () => {
                 "before-after-comparison",
                 "results-projection",
               ].includes(currentStep.type) && (
-                <div className="mb-10 text-center md:text-left">
-                  {currentStep.phase && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 mb-4"
-                    >
-                      <div className="w-1.5 h-1.5 bg-[#E71B25] rounded-full animate-pulse shadow-[0_0_8px_#E71B25]" />
-                      <span className="text-[9px] font-black tracking-[0.2em] text-[#E71B25] uppercase">
-                        {currentStep.phase}
-                      </span>
-                    </motion.div>
-                  )}
-                  {currentStep.title && (
-                    <h1 className="text-3xl md:text-[2.75rem] font-black uppercase tracking-tighter leading-[1.1] mb-4 text-white text-balance drop-shadow-md">
-                      {currentStep.title}
-                    </h1>
-                  )}
-                  {currentStep.subtitle && (
-                    <p className="text-gray-400 text-sm md:text-base font-medium whitespace-pre-wrap text-balance leading-relaxed">
-                      {currentStep.subtitle}
-                    </p>
-                  )}
-                </div>
-              )}
+                  <div className="mb-10 text-center md:text-left">
+                    {currentStep.phase && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 mb-4"
+                      >
+                        <div className="w-1.5 h-1.5 bg-[#E71B25] rounded-full animate-pulse shadow-[0_0_8px_#E71B25]" />
+                        <span className="text-[9px] font-black tracking-[0.2em] text-[#E71B25] uppercase">
+                          {currentStep.phase}
+                        </span>
+                      </motion.div>
+                    )}
+                    {currentStep.title && (
+                      <h1 className="text-3xl md:text-[2.75rem] font-black uppercase tracking-tighter leading-[1.1] mb-4 text-white text-balance drop-shadow-md">
+                        {currentStep.title}
+                      </h1>
+                    )}
+                    {currentStep.subtitle && (
+                      <p className="text-gray-400 text-sm md:text-base font-medium whitespace-pre-wrap text-balance leading-relaxed">
+                        {currentStep.subtitle}
+                      </p>
+                    )}
+                  </div>
+                )}
 
               {/* --- ADVANCED CYBER-GLASS CARDS (SINGLE / MULTIPLE) --- */}
               {(currentStep.type === "single" ||
@@ -1238,8 +1236,8 @@ const handleNext = () => {
                       const isSelected =
                         currentStep.type === "multiple"
                           ? (formData[currentStep.id] || []).includes(
-                              option.label,
-                            )
+                            option.label,
+                          )
                           : formData[currentStep.id] === option.label;
                       return (
                         <motion.button
@@ -1247,11 +1245,10 @@ const handleNext = () => {
                           whileTap={{ scale: 0.98 }}
                           key={idx}
                           onClick={() => handleSelect(option.label)}
-                          className={`group relative flex items-center justify-between p-4 md:p-5 rounded-[1.25rem] transition-all duration-400 text-left overflow-hidden transform-gpu will-change-transform ${
-                            isSelected
+                          className={`group relative flex items-center justify-between p-4 md:p-5 rounded-[1.25rem] transition-all duration-400 text-left overflow-hidden transform-gpu will-change-transform ${isSelected
                               ? "border border-[#E71B25] shadow-[0_10px_30px_rgba(231,27,37,0.2),inset_0_1px_1px_rgba(255,255,255,0.1)] bg-[#110505]/80 backdrop-blur-xl"
                               : "border border-white/[0.04] bg-white/[0.02] backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] hover:bg-white/[0.04] hover:border-white/10 hover:shadow-lg"
-                          }`}
+                            }`}
                         >
                           <AnimatePresence>
                             {isSelected && (
@@ -1366,11 +1363,10 @@ const handleNext = () => {
                         whileTap={{ scale: 0.98 }}
                         key={idx}
                         onClick={() => handleSelect(option.label)}
-                        className={`${option.fullWidth ? "col-span-2 aspect-[21/9]" : "aspect-square"} relative group rounded-[1.25rem] transition-all duration-400 overflow-hidden transform-gpu will-change-transform border ${
-                          isSelected
+                        className={`${option.fullWidth ? "col-span-2 aspect-[21/9]" : "aspect-square"} relative group rounded-[1.25rem] transition-all duration-400 overflow-hidden transform-gpu will-change-transform border ${isSelected
                             ? "border-[#E71B25] shadow-[0_10px_30px_rgba(231,27,37,0.3)]"
                             : "border-white/[0.05] hover:border-white/20 hover:shadow-lg"
-                        }`}
+                          }`}
                       >
                         {/* The Image Background */}
                         <img
@@ -1430,11 +1426,10 @@ const handleNext = () => {
                           whileTap={{ scale: 0.98 }}
                           key={idx}
                           onClick={() => handleSelect(option.label)}
-                          className={`${option.fullWidth ? "col-span-2 flex items-center gap-4 p-5" : "flex flex-col items-center justify-center p-7 text-center"} relative group rounded-[1.25rem] transition-all duration-400 overflow-hidden transform-gpu will-change-transform ${
-                            isSelected
+                          className={`${option.fullWidth ? "col-span-2 flex items-center gap-4 p-5" : "flex flex-col items-center justify-center p-7 text-center"} relative group rounded-[1.25rem] transition-all duration-400 overflow-hidden transform-gpu will-change-transform ${isSelected
                               ? "border border-[#E71B25] shadow-[0_10px_30px_rgba(231,27,37,0.2),inset_0_1px_1px_rgba(255,255,255,0.1)] bg-[#110505]/80 backdrop-blur-xl"
                               : "border border-white/[0.04] bg-white/[0.02] backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] hover:bg-white/[0.04] hover:border-white/10 hover:shadow-lg"
-                          }`}
+                            }`}
                         >
                           <AnimatePresence>
                             {isSelected && (
@@ -1501,11 +1496,10 @@ const handleNext = () => {
                           whileTap={{ scale: 0.95 }}
                           key={idx}
                           onClick={() => handleSelect(option.label)}
-                          className={`flex flex-col items-center justify-center p-2 rounded-[1.25rem] transition-all duration-400 text-center h-24 md:h-28 relative overflow-hidden transform-gpu will-change-transform ${
-                            isSelected
+                          className={`flex flex-col items-center justify-center p-2 rounded-[1.25rem] transition-all duration-400 text-center h-24 md:h-28 relative overflow-hidden transform-gpu will-change-transform ${isSelected
                               ? "border border-[#E71B25] shadow-[0_8px_15px_rgba(231,27,37,0.2)] bg-[#E71B25]/10"
                               : "border border-white/[0.04] bg-white/[0.02] backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] hover:bg-white/[0.05] hover:border-white/10 hover:shadow-lg"
-                          }`}
+                            }`}
                         >
                           <motion.div
                             animate={{
@@ -1615,11 +1609,10 @@ const handleNext = () => {
                         onClick={() =>
                           setFormData((prev) => ({ ...prev, location: opt.l }))
                         }
-                        className={`group relative flex items-center gap-4 p-4 md:p-5 rounded-[1.25rem] transition-all duration-400 overflow-hidden transform-gpu will-change-transform ${
-                          formData.location === opt.l
+                        className={`group relative flex items-center gap-4 p-4 md:p-5 rounded-[1.25rem] transition-all duration-400 overflow-hidden transform-gpu will-change-transform ${formData.location === opt.l
                             ? "border border-[#E71B25] shadow-[0_10px_30px_rgba(231,27,37,0.2),inset_0_1px_1px_rgba(255,255,255,0.1)] bg-[#110505]/80 backdrop-blur-xl"
                             : "border border-white/[0.04] bg-white/[0.02] backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] hover:bg-white/[0.04] hover:border-white/10 hover:shadow-lg"
-                        }`}
+                          }`}
                       >
                         <motion.div
                           animate={{
@@ -1692,7 +1685,7 @@ const handleNext = () => {
                               .split(/(exactly what to fix\.)/gi)
                               .map((part, j) =>
                                 part.toLowerCase() ===
-                                "exactly what to fix." ? (
+                                  "exactly what to fix." ? (
                                   <span
                                     key={j}
                                     className="text-transparent bg-clip-text bg-gradient-to-r from-[#E71B25] to-[#ff4747] font-black tracking-wide drop-shadow-[0_0_8px_rgba(231,27,37,0.3)]"
@@ -2185,152 +2178,99 @@ const handleNext = () => {
                     !Object.values(formData.photos).some(
                       (v) => v !== null,
                     )) && (
-                    <button
-                      onClick={handleNext}
-                      className="text-gray-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors pb-0.5 border-b border-transparent hover:border-white"
-                    >
-                      Use demo (skip for now)
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* --- FINAL UPLOAD GOAL STEP --- */}
-              {currentStep.type === "upload-goal" && (
-                <div className="flex flex-col gap-4 mt-2">
-                  <div className="grid grid-cols-2 gap-3.5 mb-5">
-                    {currentStep.options.map((opt, i) => {
-                      const isSelected = formData.goal === opt.label;
-                      return (
-                        <motion.button
-                          whileHover={{ scale: 1.025, y: -3 }}
-                          whileTap={{ scale: 0.98 }}
-                          key={i}
-                        onClick={() => {
-                            setFormData((prev) => ({
-                              ...prev,
-                              goal: opt.label,
-                              dreamPhysiqueImage: opt.img // 🔴 NAYA: Dream physique ki image bhi save kar rahe hain
-                            }));
-                            setTimeout(() => handleNext(), 350);
-                          }}
-                          className={`aspect-square relative group rounded-[1.25rem] transition-all duration-400 overflow-hidden transform-gpu will-change-transform border ${
-                            isSelected
-                              ? "border-[#E71B25] shadow-[0_10px_30px_rgba(231,27,37,0.3)]"
-                              : "border-white/[0.05] hover:border-white/20 hover:shadow-lg"
-                          }`}
-                        >
-                          {/* The Image Background */}
-                          <img
-                            src={opt.img}
-                            alt={opt.label}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-
-                          {/* Deep Gradient Overlay */}
-                          <div
-                            className={`absolute inset-0 transition-opacity duration-300 ${isSelected ? "bg-gradient-to-t from-[#E71B25]/80 via-[#110505]/40 to-transparent" : "bg-gradient-to-t from-[#050505]/90 via-[#050505]/30 to-transparent group-hover:from-[#050505]/70"}`}
-                          />
-
-                          {/* Select Checkmark */}
-                          <AnimatePresence>
-                            {isSelected && (
-                              <motion.div
-                                initial={{ scale: 0, rotate: 45 }}
-                                animate={{ scale: 1, rotate: 0 }}
-                                exit={{ scale: 0 }}
-                                transition={{ type: "spring", bounce: 0.5 }}
-                                className="absolute top-3 right-3 bg-green-500 rounded-full p-1 shadow-[0_0_15px_rgba(34,197,94,0.6)] z-20"
-                              >
-                                <Check
-                                  className="w-4 h-4 text-black"
-                                  strokeWidth={4}
-                                />
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-
-                          {/* Label Text at Bottom */}
-                          <div className="absolute bottom-4 left-0 right-0 px-3 flex justify-center z-10">
-                            <span
-                              className={`font-bold leading-tight text-center transition-colors duration-300 text-[13px] md:text-[14px] ${isSelected ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" : "text-gray-200 group-hover:text-white"}`}
-                            >
-                              {opt.label}
-                            </span>
-                          </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex items-center justify-center gap-4 text-[10px] font-black text-gray-600 mb-3 uppercase tracking-[0.4em]">
-                    <div className="w-12 h-px bg-gray-800"></div> OR{" "}
-                    <div className="w-12 h-px bg-gray-800"></div>
-                  </div>
-
-                  {/* Clickable Custom Upload Box */}
-                  <input
-                    type="file"
-                    accept="image/png, image/jpeg, image/webp"
-                    ref={goalUploadRef}
-                    onChange={handleGoalPhotoUpload}
-                    className="hidden"
-                  />
-
-                  <motion.button
-                    whileHover={{ scale: 1.015 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => goalUploadRef.current.click()}
-                    className="flex flex-col items-center justify-center py-10 border-[1.5px] border-dashed border-[#E71B25]/40 bg-[#E71B25]/5 rounded-[1.5rem] hover:border-[#E71B25] transition-colors mb-10 group relative overflow-hidden"
-                  >
-                    <Upload
-                      className="w-8 h-8 text-[#E71B25] mb-4 group-hover:-translate-y-2 transition-transform duration-400 drop-shadow-[0_0_10px_rgba(231,27,37,0.5)]"
-                      strokeWidth={2.5}
-                    />
-                    <span className="text-[15px] font-black text-white uppercase tracking-widest mb-1.5 drop-shadow-md">
-                      Upload Goal Photo
-                    </span>
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                      Favourite athlete or influencer
-                    </span>
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {formData.goal && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, height: "auto", scale: 1 }}
-                        className="w-full flex justify-center mb-6"
+                      <button
+                        onClick={handleNext}
+                        className="text-gray-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors pb-0.5 border-b border-transparent hover:border-white"
                       >
-                        <MagneticButton
-                          text="Compare to My Body →"
-                          onClick={handleNext}
-                        />
-                      </motion.div>
+                        Use demo (skip for now)
+                      </button>
                     )}
-                  </AnimatePresence>
                 </div>
               )}
+
+            {/* --- FINAL UPLOAD GOAL STEP --- */}
+{currentStep.type === "upload-goal" && (
+  <div className="flex flex-col gap-4 mt-2">
+    
+    {/* Hidden File Input */}
+    <input
+      type="file"
+      accept="image/png, image/jpeg, image/webp"
+      ref={goalUploadRef}
+      onChange={handleGoalPhotoUpload} 
+      className="hidden"
+    />
+
+    <AnimatePresence mode="wait">
+      {formData.dreamPhysiquePreview ? (
+        /* --- PREVIEW MODE (UPDATED FOR TALLER IMAGE) --- */
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          // Added max-w-md and mx-auto to keep it looking sharp on wide screens
+          className="relative group rounded-[2rem] overflow-hidden border-2 border-[#E71B25] shadow-[0_0_40px_rgba(231,27,37,0.2)] mb-8 w-full max-w-md mx-auto"
+        >
+          <img 
+            src={formData.dreamPhysiquePreview} 
+            alt="Goal Preview" 
+            // CHANGED HERE: Removed aspect-video, added explicit tall heights and object-top
+            className="w-full h-[400px] md:h-[500px] object-cover object-top"
+          />
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => goalUploadRef.current.click()}
+              className="bg-white text-black px-6 py-2 rounded-full font-black uppercase text-xs tracking-widest flex items-center gap-2 shadow-xl"
+            >
+              <Upload className="w-4 h-4" /> Change Photo
+            </motion.button>
+          </div>
+        </motion.div>
+      ) : (
+        /* --- UPLOAD MODE --- */
+        <motion.button
+          onClick={() => goalUploadRef.current.click()}
+          className="flex flex-col items-center justify-center py-16 border-[1.5px] border-dashed border-[#E71B25]/40 bg-[#E71B25]/5 hover:bg-[#E71B25]/10 rounded-[2rem] transition-all mb-8 group relative overflow-hidden"
+        >
+          <Upload className="w-8 h-8 text-[#E71B25] mb-3" />
+          <span className="text-white font-bold tracking-wide">Tap to Upload Goal Image</span>
+          <span className="text-gray-500 text-xs mt-1">PNG, JPG, WEBP</span>
+        </motion.button>
+      )}
+    </AnimatePresence>
+
+    {/* Navigation Button */}
+    {formData.dreamPhysiquePreview && (
+      <motion.button
+        onClick={() => handleNext()}
+        className="w-full py-5 bg-[#E71B25] hover:bg-[#C6161F] transition-colors text-white font-black uppercase tracking-widest rounded-xl shadow-lg"
+      >
+        Confirm Goal
+      </motion.button>
+    )}
+  </div>
+)}
             </motion.div>
           </AnimatePresence>
         </div>
       )}
 
-     {/* ==========================================
+      {/* ==========================================
           THE PREMIUM PAYWALL OVERLAY
           ========================================== */}
       <PaywallModal
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
-        // 🔴 Yahan humne 'plan' receive kiya aur formData mein daal diya
         onCheckout={(plan) => {
           setFormData((prev) => ({ ...prev, planDuration: plan }));
-          
-          setIsFinished(true); 
+
+          setIsFinished(true);
           setShowPaywall(false);
-          
-          // Next step par bhej dein (Success Page)
-          if (onComplete) onComplete(); 
+
+          // 🔴 FIX: Pass the plan directly into onComplete!
+          if (onComplete) onComplete(plan);
           else if (onOpenUpgradedModal) onOpenUpgradedModal();
         }}
       />
