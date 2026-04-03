@@ -46,7 +46,9 @@ app.post('/api/generate-protocol', async (req, res) => {
 
     console.log(`[AI ENGINE] Processing Ultra-Smart Protocol for user: ${userId}`);
 
+    // Extract dynamic variables
     const workoutDays = assessmentData.days ? parseInt(assessmentData.days) : 4;
+    const planDuration = assessmentData.planDuration || "12-Week"; // Default to 12-Week if missing
     
     let completeUserProfile = "";
     for (const [key, value] of Object.entries(assessmentData)) {
@@ -72,6 +74,10 @@ app.post('/api/generate-protocol', async (req, res) => {
       3. ATHLETIC SCORING: Generate a "Body Score" (1-100). This is NOT a fixed number. Calculate it by weighing their current metrics against their "Dream Physique" difficulty.
       4. VECTORS: Assign values (1-100) for Upper, Lower, Core, and Symmetry based on their specific "mainStruggle" and "painPoints".
       5. PSYCHOLOGY: In the "executive_summary", address their "motivationLevel" and "self-perception" (e.g., if they feel "disappointed", be firm but encouraging).
+      6. EQUIPMENT MATCHING: Read the user's "location" (training environment) from the raw data. 
+         - If "Home gym (limited equipment)", STRICTLY limit exercises to bodyweight, dumbbells, and resistance bands. NO heavy machines or cables.
+         - If "Commercial gym (full equipment)", fully utilize machines, cables, barbells, and complex equipment.
+         - If "Both gym and home", provide a hybrid mix of free weights and accessible machine work.
 
       MANDATORY JSON FORMAT (Strictly dynamic values only - NO PLACEHOLDERS):
       {
@@ -104,9 +110,9 @@ app.post('/api/generate-protocol', async (req, res) => {
           ]
         },
         "roadmap": [
-          { "phase": "Phase 1: Priming", "description": "[How their body will react in weeks 1-4]" },
-          { "phase": "Phase 2: Recomposition", "description": "[Specific changes expected in weeks 5-8]" },
-          { "phase": "Phase 3: Integration", "description": "[Final outcome for weeks 9-12]" }
+          { "phase": "[Phase 1 Name & Timeframe based on ${planDuration}]", "description": "[Biological adaptations happening in this specific timeframe]" },
+          { "phase": "[Phase 2 Name & Timeframe based on ${planDuration}]", "description": "[Visual and strength changes happening in this specific timeframe]" },
+          { "phase": "[Phase 3 Name & Timeframe based on ${planDuration}]", "description": "[Final outcome for this specific plan duration]" }
         ],
         "workouts": [
           { 
@@ -114,7 +120,7 @@ app.post('/api/generate-protocol', async (req, res) => {
             "targets": ["[Target 1]", "[Target 2]"], 
             "intensity": "[1-10]", 
             "exercises": [ 
-              { "name": "[Exercise]", "sets": 0, "reps": "[Range]", "rest": "[Seconds]", "notes": "[Form cue]" } 
+              { "name": "[Exercise Name matched to equipment]", "sets": 0, "reps": "[Range]", "rest": "[Seconds]", "notes": "[Form cue]" } 
             ] 
           }
         ]
@@ -123,7 +129,8 @@ app.post('/api/generate-protocol', async (req, res) => {
       CRITICAL CONSTRAINTS:
       - Return EXACTLY ${workoutDays} workout objects.
       - If "sleep" is "Less than 5 hours", your nutrition strategy MUST prioritize recovery.
-      - Use the user's specific "age" to determine recovery time in exercise notes.
+      - The roadmap MUST strictly align with a ${planDuration} timeline. Do not output a 12-week timeline if the user selected a 1-Week or 4-Week plan. 
+      - Adjust phase titles accordingly (e.g., 'Days 1-2', 'Week 1', etc., based on the plan).
       - Do NOT use the numbers 65, 1850, or 2450 unless they happen to be the actual calculated result.
     `;
 
@@ -144,7 +151,6 @@ app.post('/api/generate-protocol', async (req, res) => {
 
     let completion;
     try {
-      // Correct implementation of timeout in options object
       completion = await openai.chat.completions.create({
         model: "gpt-4o",
         response_format: { type: "json_object" },
@@ -205,10 +211,13 @@ app.post('/api/generate-protocol', async (req, res) => {
 
   } catch (error) {
     console.error("[SERVER ERROR]:", error);
-    // Send the specific error message back to the frontend for easier debugging
     res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 BodyMax Smart Server running on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`🚀 BodyMax Smart Server running on port ${PORT}`));
+
+// Safari "Load failed" fix: Tell Safari to wait longer and not drop the connection
+server.keepAliveTimeout = 120000; // 120 seconds
+server.headersTimeout = 120000; // 120 seconds (Should be >= keepAliveTimeout)
