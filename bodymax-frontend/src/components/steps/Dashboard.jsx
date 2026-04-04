@@ -340,28 +340,72 @@ const Dashboard = () => {
   };
 
 
-  if (isLoading || isAIGenerating) {
+if (isLoading || isAIGenerating) {
+    // Progress calculation for the loading bar
+    const progressPercentage = Math.round(((aiLogIndex + 1) / aiLogs.length) * 100);
+
     return (
-      <div className="min-h-[100dvh] bg-[#030303] flex items-center justify-center p-4">
-        <div className="w-full max-w-[340px] bg-[#0a0a0a] border border-white/[0.05] rounded-xl p-5 shadow-2xl font-mono">
-          <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-3">
-            <Cpu className="w-3.5 h-3.5 text-[#E71B25] animate-pulse" />
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest">BodyMax Engine v5.0</span>
+      <div className="min-h-[100dvh] bg-[#030303] flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Background Subtle Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#E71B25] opacity-[0.03] blur-[100px] rounded-full pointer-events-none" />
+
+        <div className="w-full max-w-[360px] bg-[#0a0a0a] border border-white/[0.05] rounded-2xl p-6 md:p-8 shadow-2xl font-mono relative z-10 overflow-hidden">
+          
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6 border-b border-white/[0.05] pb-4">
+            <div className="flex items-center gap-3">
+              <Cpu className="w-4 h-4 text-[#E71B25] animate-pulse" />
+              <span className="text-[10px] md:text-[11px] text-white font-bold uppercase tracking-[0.2em]">BodyMax Engine</span>
+            </div>
+            <span className="text-[10px] text-[#E71B25] font-black">{progressPercentage}%</span>
           </div>
-          <div className="space-y-2 h-[100px] flex flex-col justify-end text-[11px]">
+
+          {/* AI Logs Container with Fade Mask */}
+          {/* [mask-image:...] top se logs ko smoothly fade out karta hai */}
+          <div className="space-y-3 h-[120px] flex flex-col justify-end overflow-hidden [mask-image:linear-gradient(to_bottom,transparent_0%,black_30%,black_100%)] pb-1">
             <AnimatePresence mode="popLayout">
-              {aiLogs.slice(0, aiLogIndex + 1).map((log, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className={`${i === aiLogIndex ? "text-white" : "text-gray-600"}`}>
-                  {log}
-                </motion.div>
-              ))}
+              {aiLogs.slice(0, aiLogIndex + 1).map((log, i) => {
+                const isActive = i === aiLogIndex;
+                return (
+                  <motion.div 
+                    layout // Yeh auto-shift karega jab naya log aayega
+                    key={i} 
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }} 
+                    animate={{ opacity: isActive ? 1 : 0.3, y: 0, scale: 1 }} 
+                    className="flex items-start gap-2"
+                  >
+                    <span className={`text-[11px] font-bold mt-[1px] ${isActive ? "text-[#E71B25]" : "text-gray-700"}`}>›</span>
+                    <div className={`text-[11px] md:text-[12px] leading-relaxed tracking-wide ${isActive ? "text-white" : "text-gray-500"}`}>
+                      {log}
+                      {/* Blinking Cursor for active log */}
+                      {isActive && (
+                        <motion.span
+                          animate={{ opacity: [1, 0] }}
+                          transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                          className="inline-block w-1.5 h-3 bg-[#E71B25] ml-1.5 align-middle"
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
+
+          {/* Bottom Progress Bar */}
+          <div className="mt-6 h-1 w-full bg-white/[0.05] rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-gradient-to-r from-[#E71B25]/50 to-[#E71B25] shadow-[0_0_10px_#E71B25]"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercentage}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            />
+          </div>
+
         </div>
       </div>
     );
   }
-
   const analysis = safeProtocol.body_analysis || { score: 0, classification: "Evaluating...", estimated_bf: "--", bmr: 0, tdee: 0, strengths: [], weaknesses: [], vectors: {}, executive_summary: "" };
   const macros = safeProtocol.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 };
   const nutrition = safeProtocol.nutrition || { strategy: "Mapping...", meals: [] };
