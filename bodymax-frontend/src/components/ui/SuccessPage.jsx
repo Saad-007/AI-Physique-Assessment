@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, User, Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-
-// Yahan props mein assessmentData receive karein
-const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
+import InstallPrompt from '../InstallPrompt';
+const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
     const [formData, setFormData] = useState({ name: '', email: '', password: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const [isSuccess, setIsSuccess] = useState(false);
+    
+    // 🔴 PWA DETECTION STATE
+    const [isStandalone, setIsStandalone] = useState(false);
 
- const handleSubmit = async (e) => {
+    useEffect(() => {
+        // Check if the user is using the installed PWA (Standalone mode)
+        const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+        setIsStandalone(checkStandalone);
+
+        if (!checkStandalone) {
+            // Agar browser mein hai, toh yaad rakhein ke isko app install karne ke baad account banana hai
+            localStorage.setItem('pendingAccountCreation', 'true');
+        }
+    }, []);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         setErrorMsg('');
@@ -40,7 +53,7 @@ const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
                 
                 // Ensure planDuration exists on cleanAssessmentData
                 if (!cleanAssessmentData.planDuration) {
-                    cleanAssessmentData.planDuration = selectedPlan || "12-Week";
+                    cleanAssessmentData.planDuration = "12-Week";
                 }
 
                 let permanentPhotoUrls = {}; 
@@ -113,11 +126,11 @@ const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
                 if (dbError) {
                     console.error("Database save error:", dbError);
                 }
-
-                // 🔴 REMOVED: The AI fetch call from here. 
-                // The Dashboard will handle AI generation automatically with the loading screen!
             }
 
+            // 🔴 MAGIC: Account ban gaya, toh localStorage flag delete kar dein
+            localStorage.removeItem('pendingAccountCreation');
+            
             // Immediately show success!
             setIsSubmitting(false);
             setIsSuccess(true);
@@ -128,9 +141,52 @@ const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
             setIsSubmitting(false);
         }
     };
+
+    // =========================================================================
+    // 🔴 VIEW 1: BROWSER VIEW (FORCE PWA INSTALL AFTER PAYMENT)
+    // =========================================================================
+    if (!isStandalone) {
+        return (
+            <div className="min-h-screen bg-[#030303] flex items-center justify-center p-4 relative overflow-hidden">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#E71B25] mix-blend-screen filter blur-[150px] opacity-10 rounded-full pointer-events-none" />
+
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.96, y: 15 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="w-full max-w-[400px] bg-[#0c0c0c] border border-white/[0.08] rounded-[1.5rem] p-6 md:p-8 relative z-10 shadow-2xl flex flex-col items-center text-center"
+                >
+                    <div className="w-16 h-16 bg-green-500/10 border-[2px] border-green-500/20 rounded-full flex items-center justify-center mb-5">
+                        <CheckCircle2 className="w-8 h-8 text-green-500" strokeWidth={2.5} />
+                    </div>
+
+                    <h1 className="text-2xl font-black text-white mb-2 tracking-tight uppercase">Payment Confirmed</h1>
+                    <p className="text-[#888] text-[13px] leading-relaxed mb-8 px-2">
+                        Your payment was successful. To generate your AI protocol and create your account, please install the Native App.
+                    </p>
+
+                    {/* INSTALL BUTTON COMPONENT */}
+                    <div className="w-full flex justify-center mb-6">
+                        <InstallPrompt />
+                    </div>
+
+                    {/* Fallback button if user insists on using browser */}
+                    <button 
+                        onClick={() => setIsStandalone(true)} 
+                        className="text-[10px] font-bold text-gray-600 hover:text-gray-400 underline tracking-widest transition-colors"
+                    >
+                        Continue in browser instead (Not Recommended)
+                    </button>
+                </motion.div>
+            </div>
+        );
+    }
+
+    // =========================================================================
+    // 🔴 VIEW 2: PWA VIEW (CREATE ACCOUNT FORM)
+    // =========================================================================
     return (
         <div className="min-h-screen bg-[#030303] flex items-center justify-center p-4 relative overflow-hidden">
-
             {/* Background Glow Effect */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#E71B25] mix-blend-screen filter blur-[150px] opacity-10 rounded-full pointer-events-none" />
 
@@ -142,9 +198,6 @@ const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
             >
                 <AnimatePresence mode="wait">
                     {!isSuccess ? (
-                        /* ==========================================
-                           ACCOUNT CREATION FORM
-                           ========================================== */
                         <motion.div
                             key="form-view"
                             initial={{ opacity: 0, x: -20 }}
@@ -156,12 +209,12 @@ const SuccessPage = ({ assessmentData = {},onGoToDashboard }) => {
                                     initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.15, type: "spring", bounce: 0.5 }}
                                     className="w-14 h-14 bg-[#E71B25]/10 rounded-full flex items-center justify-center mb-4"
                                 >
-                                    <CheckCircle2 className="w-7 h-7 text-[#E71B25]" strokeWidth={2.5} />
+                                    <User className="w-6 h-6 text-[#E71B25]" strokeWidth={2.5} />
                                 </motion.div>
 
-                                <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">Payment Confirmed</h1>
+                                <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">Create Your Profile</h1>
                                 <p className="text-[#888] text-[13px] leading-relaxed px-2">
-                                    Your journey begins here. Create an account to access your personalized AI protocol.
+                                    Secure your account to access your personalized AI protocol.
                                 </p>
                             </div>
 
