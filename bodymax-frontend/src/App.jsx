@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import LandingStep from './components/steps/LandingStep';
 import MissionStep from './components/steps/MissionStep';
@@ -8,11 +8,34 @@ import AssessmentFlow from './components/steps/AssessmentFlow';
 import PaywallModal from './components/ui/PaywalModal';
 import SuccessPage from './components/ui/SuccessPage';
 import Dashboard from './components/steps/Dashboard';
-// import LandingStep from './components/steps/LandingStep';
 import LoginPage from './components/ui/Login';
+
 const BodyMaxFunnel = () => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
+  const [isInitializing, setIsInitializing] = useState(true); // To prevent flashing Step 1
+
+  // 🔴 PWA MAGIC ROUTING LOGIC
+  useEffect(() => {
+    // 1. Check if the app is opened from the Home Screen (Standalone mode)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    
+    // 2. Check if there's a pending account creation flag saved
+    const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
+
+    if (isStandalone && needsAccount) {
+      // Restore the assessment data from local storage
+      const savedData = localStorage.getItem('savedAssessmentData');
+      if (savedData) {
+        setFormData(JSON.parse(savedData));
+      }
+      
+      // Jump directly to SuccessPage (Create Account form)
+      setStep(7);
+    }
+    
+    setIsInitializing(false);
+  }, []);
 
   // Smooth universal transition for page turns
   const pageTransition = {
@@ -21,6 +44,9 @@ const BodyMaxFunnel = () => {
     exit: { opacity: 0, y: -20, filter: "blur(5px)" },
     transition: { duration: 0.4, ease: "easeOut" }
   };
+
+  // Prevent rendering until we check if we need to redirect the PWA
+  if (isInitializing) return <div className="min-h-screen bg-[#030303]"></div>;
 
   return (
     <div
@@ -68,47 +94,58 @@ const BodyMaxFunnel = () => {
                 formData={formData}
                 setFormData={setFormData}
                 onBack={() => setStep(4)}
-                onComplete={() => setStep(6)} // <--- 🔴 YEH LINE ADD KAREIN
+                onComplete={() => setStep(6)}
               />
             </motion.div>
           )}
-         {/* === STEP 6: DIRECT PAYWALL / CHECKOUT === */}
+          
+          {/* === STEP 6: DIRECT PAYWALL / CHECKOUT === */}
           {step === 6 && (
             <motion.div key="s6" {...pageTransition} className="w-full min-h-screen flex items-center justify-center">
               <PaywallModal
                 isOpen={true}
                 onClose={() => setStep(5)}
-                // 🔴 CRITICAL FIX: Accept the 'plan' variable and save it to formData before moving to step 7
                 onSuccess={(plan) => {
                   console.log("Paywall selected plan:", plan);
-                  setFormData(prev => ({ ...prev, planDuration: plan }));
+                  const updatedFormData = { ...formData, planDuration: plan };
+                  setFormData(updatedFormData);
+                  
+                  // 🔴 CRITICAL PWA FIX: Save state so the newly installed App can pick it up!
+                  localStorage.setItem('pendingAccountCreation', 'true');
+                  localStorage.setItem('savedAssessmentData', JSON.stringify(updatedFormData));
+                  
                   setStep(7);
                 }} 
               />
             </motion.div>
           )}
 
-          {/* === NAYA STEP 7: DIRECT SUCCESS PAGE TEST === */}
+          {/* === STEP 7: DIRECT SUCCESS PAGE TEST === */}
           {step === 7 && (
             <motion.div key="s7" {...pageTransition} className="w-full min-h-screen">
               <SuccessPage 
                 assessmentData={formData}
-                // 🔴 CRITICAL FIX: Pass the newly saved plan down to the SuccessPage
                 selectedPlan={formData.planDuration}
-                onGoToDashboard={() => setStep(9)}
+                onGoToDashboard={() => {
+                   // Dashboard jane se pehle fallback safai
+                   localStorage.removeItem('pendingAccountCreation');
+                   localStorage.removeItem('savedAssessmentData');
+                   setStep(9);
+                }}
               />
             </motion.div>
           )}
 
-          {/* === NAYA STEP 8: LOGIN PAGE === */}
+          {/* === STEP 8: LOGIN PAGE === */}
           {step === 8 && (
             <motion.div key="s8" {...pageTransition} className="w-full min-h-screen">
               <LoginPage 
-                onGoToDashboard={() => setStep(9)} // <--- YEH PROP ZAROOR PASS KAREIN
+                onGoToDashboard={() => setStep(9)} 
               />
             </motion.div>
           )}
-          {/* === NAYA STEP 9: PREMIUM DASHBOARD === */}
+          
+          {/* === STEP 9: PREMIUM DASHBOARD === */}
           {step === 9 && (
             <motion.div key="s9" {...pageTransition} className="w-full min-h-screen">
               <Dashboard />
