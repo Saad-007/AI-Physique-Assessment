@@ -11,7 +11,7 @@ import Dashboard from './components/steps/Dashboard';
 import LoginPage from './components/ui/Login';
 
 const BodyMaxFunnel = () => {
-  const [step, setStep] = useState(6); // 🔴 Testing ke liye 6 hai, live karne se pehle 1 kar dijiyega
+  const [step, setStep] = useState(1); // 🔴 Testing ke liye 6 hai, live karne se pehle 1 kar dijiyega
   const [formData, setFormData] = useState({});
   const [isInitializing, setIsInitializing] = useState(true);
 

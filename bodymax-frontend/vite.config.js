@@ -12,8 +12,8 @@ export default defineConfig({
       // Include static assets that aren't in the manifest but should be cached
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'My App',
-        short_name: 'App',
+        name: 'Body Max',
+        short_name: 'Body Max',
         description: 'My awesome PWA app',
         start_url: '/',
         display: 'standalone', // Keeps it looking like a native app (hides browser UI)
