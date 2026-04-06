@@ -70,7 +70,12 @@ app.post('/api/generate-protocol', async (req, res) => {
       ===========================
 
       INSTRUCTIONS:
-      1. BIOMETRICS: Calculate BMR and TDEE based on profile. Generate a dynamic "Body Score" (1-100).
+      1. BIOMETRICS & SCORING (DYNAMIC): 
+         - Calculate BMR and TDEE based on profile. 
+         - Generate a dynamic "Body Score" (1-100) representing their current state.
+         - POTENTIAL: Calculate the user's genetic limit or goal potential (usually 90-98) based on their height and overall goal.
+         - DELTAS: Since this is the initial scan, simulate a realistic 'Progression Shift' (e.g., small positive or negative changes like 2.4, -1.2, 4.0) representing the immediate metabolic or postural adjustments they will experience when starting.
+      
       2. EQUIPMENT: Strictly match exercises to the user's available equipment (Home vs Commercial Gym).
 
       3. WORKOUT STRUCTURE RULES (STRICT STRICT STRICT):
@@ -116,14 +121,20 @@ app.post('/api/generate-protocol', async (req, res) => {
       MANDATORY JSON FORMAT (Strictly dynamic values only - NO PLACEHOLDERS):
       {
         "body_analysis": {
-          "score": [1-100],
+          "score": [Integer 1-100],
+          "potential": [Integer 90-98],
           "classification": "[e.g., Athletic Beginner, Endomorph aiming for Fat Loss, etc.]",
           "estimated_bf": "[Estimated % range]",
           "bmr": [Integer],
           "tdee": [Integer],
           "strengths": ["[Simple strength 1]", "[Simple strength 2]"],
           "weaknesses": ["[Simple area to improve 1]", "[Simple area to improve 2]"],
-          "vectors": { "upper_body": [1-100], "lower_body": [1-100], "core": [1-100], "symmetry": [1-100] },
+          "vectors": { 
+             "upper_body": [Integer 1-100], "upper_delta": "[e.g., +2.1 or -1.5]",
+             "lower_body": [Integer 1-100], "lower_delta": "[e.g., +3.0]",
+             "core": [Integer 1-100], "core_delta": "[e.g., +1.8]",
+             "symmetry": [Integer 1-100], "symmetry_delta": "[e.g., +2.5]"
+          },
           "executive_summary": "[A 4-sentence friendly, encouraging, and very easy-to-understand summary explaining where their body is right now and how this exact plan will help them reach their goal.]"
         },
         "macros": { "calories": [Target], "protein": [Target], "carbs": [Balance], "fats": [Balance] },

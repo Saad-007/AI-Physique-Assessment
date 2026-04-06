@@ -11,9 +11,9 @@ import Dashboard from './components/steps/Dashboard';
 import LoginPage from './components/ui/Login';
 
 const BodyMaxFunnel = () => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(6); // 🔴 Testing ke liye 6 hai, live karne se pehle 1 kar dijiyega
   const [formData, setFormData] = useState({});
-  const [isInitializing, setIsInitializing] = useState(true); // To prevent flashing Step 1
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // 🔴 PWA MAGIC ROUTING LOGIC
   useEffect(() => {
@@ -30,7 +30,7 @@ const BodyMaxFunnel = () => {
         setFormData(JSON.parse(savedData));
       }
       
-      // Jump directly to SuccessPage (Create Account form)
+      // Jump directly to SuccessPage (Kyunke app mein hai, toh seedha Form khulega)
       setStep(7);
     }
     
@@ -45,7 +45,6 @@ const BodyMaxFunnel = () => {
     transition: { duration: 0.4, ease: "easeOut" }
   };
 
-  // Prevent rendering until we check if we need to redirect the PWA
   if (isInitializing) return <div className="min-h-screen bg-[#030303]"></div>;
 
   return (
@@ -53,7 +52,6 @@ const BodyMaxFunnel = () => {
       className={`relative min-h-[100dvh] bg-[#030303] flex flex-col items-center justify-center overflow-x-hidden font-sans selection:bg-[#E71B25] selection:text-white ${step >= 5 ? 'py-0' : 'py-12 md:py-20'
         }`}
     >
-
       {/* Background Gradients & Textures */}
       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none bg-[radial-gradient(#333_1px,transparent_1px)] [background-size:24px_24px]"></div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#E71B25] rounded-full mix-blend-screen filter blur-[250px] opacity-[0.04] pointer-events-none z-0"></div>
@@ -64,9 +62,7 @@ const BodyMaxFunnel = () => {
 
           {step === 1 && (
             <motion.div key="s1" {...pageTransition} className="w-full">
-              <LandingStep onNext={() => setStep(2)} 
-                onLoginClick={() => setStep(8)}
-                />
+              <LandingStep onNext={() => setStep(2)} onLoginClick={() => setStep(8)} />
             </motion.div>
           )}
 
@@ -106,28 +102,28 @@ const BodyMaxFunnel = () => {
                 isOpen={true}
                 onClose={() => setStep(5)}
                 onSuccess={(plan) => {
-                  console.log("Paywall selected plan:", plan);
                   const updatedFormData = { ...formData, planDuration: plan };
                   setFormData(updatedFormData);
                   
-                  // 🔴 CRITICAL PWA FIX: Save state so the newly installed App can pick it up!
+                  // Save state for PWA
                   localStorage.setItem('pendingAccountCreation', 'true');
                   localStorage.setItem('savedAssessmentData', JSON.stringify(updatedFormData));
                   
+                  // Go directly to Step 7. SuccessPage.jsx will automatically decide 
+                  // whether to show the "Install App" UI or the "Create Account" Form!
                   setStep(7);
                 }} 
               />
             </motion.div>
           )}
 
-          {/* === STEP 7: DIRECT SUCCESS PAGE TEST === */}
+          {/* === STEP 7: SUCCESS PAGE / PWA INSTALL PAGE === */}
           {step === 7 && (
             <motion.div key="s7" {...pageTransition} className="w-full min-h-screen">
               <SuccessPage 
                 assessmentData={formData}
                 selectedPlan={formData.planDuration}
                 onGoToDashboard={() => {
-                   // Dashboard jane se pehle fallback safai
                    localStorage.removeItem('pendingAccountCreation');
                    localStorage.removeItem('savedAssessmentData');
                    setStep(9);
@@ -139,9 +135,7 @@ const BodyMaxFunnel = () => {
           {/* === STEP 8: LOGIN PAGE === */}
           {step === 8 && (
             <motion.div key="s8" {...pageTransition} className="w-full min-h-screen">
-              <LoginPage 
-                onGoToDashboard={() => setStep(9)} 
-              />
+              <LoginPage onGoToDashboard={() => setStep(9)} />
             </motion.div>
           )}
           
@@ -153,7 +147,6 @@ const BodyMaxFunnel = () => {
           )}
         </AnimatePresence>
       </div>
-
     </div>
   );
 };

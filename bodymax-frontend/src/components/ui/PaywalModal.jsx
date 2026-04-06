@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, CreditCard, X, Lock, Sparkles, Zap } from 'lucide-react';
+import { Check, CreditCard, X, Lock, Sparkles, Zap, Target } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 // WHOP KA OFFICIAL PACKAGE
 import { WhopCheckoutEmbed } from "@whop/checkout/react";
@@ -106,14 +106,12 @@ const pricingPlans = [
 // ==========================================
 const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
   const [timeLeft, setTimeLeft] = useState(7 * 60 + 47);
-  // Hum pehlay se false rakhein gay. Jaise hi user koi plan dbayega yeh true ho jayega.
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null); // Initally null rakhein taake user khud select kare
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
-  // Smart Handle Click
   const handlePlanClick = (planId) => {
     setSelectedPlan(planId);
-    setIsCheckoutOpen(true); // Foran Embed khol do!
+    setIsCheckoutOpen(true); 
   };
 
   useEffect(() => {
@@ -155,12 +153,74 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
             >
 
               {/* ==========================================
-                  SECTION 1: ARROW-SHAPED PRICING CARDS
+                  SECTION 1: TOP HOOK & OFFER
                   ========================================== */}
-              <div className="flex flex-col items-center text-center w-full mb-6">
-                <h1 className="text-[28px] md:text-[34px] font-bold text-white leading-[1.1] tracking-tight mb-8 drop-shadow-md">
-                  Get Started with <br />Special Pricing
+              <div className="w-full flex flex-col items-center mb-10 px-1">
+                
+                {/* Top Badge */}
+                <div className="bg-[#f05c4a] text-white text-[10px] md:text-[11px] font-black uppercase tracking-wider py-1.5 px-4 rounded-full mb-6">
+                  BodyMax Analysis Complete
+                </div>
+
+                {/* Headlines */}
+                <h1 className="text-[24px] md:text-[28px] font-black text-white text-center leading-[1.1] tracking-tight mb-4 px-2">
+                  BodyMax Analyzed Your Body, Your Dream Physique & Built a Personalized Plan Just for You
                 </h1>
+                <p className="text-[12px] md:text-[14px] text-[#a1a1aa] text-center leading-relaxed mb-6 px-3 font-medium">
+                  Stop guessing in the gym. See your body score & report, discover exactly what's holding your body back, and how to reach your dream physique fast.
+                </p>
+
+                {/* Split Image Comparison (Screenshot Replica) */}
+                <div className="w-full flex rounded-[1.5rem] overflow-hidden mb-6 shadow-[0_15px_40px_rgba(0,0,0,0.4)] h-[320px] md:h-[380px]">
+                  {/* Left: Before (Red Theme) */}
+                  <div className="flex-1 relative bg-gradient-to-b from-[#6b1e25] to-[#3d1015] border-r border-black/50">
+                    <img src="/Today.png" alt="Before" className="absolute inset-0 w-full h-full object-cover object-top opacity-90 mix-blend-luminosity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent"></div>
+                    <span className="absolute bottom-4 left-0 w-full text-center text-white text-[13px] md:text-[14px] font-semibold tracking-wide z-10">Before BodyMax</span>
+                  </div>
+                  
+                  {/* Right: After (Green Theme) */}
+                  <div className="flex-1 relative bg-gradient-to-b from-[#2e7d32] to-[#1b5e20]">
+                    <img src="/Future.png" alt="After" className="absolute inset-0 w-full h-full object-cover object-top opacity-90 mix-blend-luminosity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent"></div>
+                    <span className="absolute bottom-4 left-0 w-full text-center text-white text-[13px] md:text-[14px] font-semibold tracking-wide z-10">After BodyMax</span>
+                  </div>
+                </div>
+
+                {/* Try BodyMax Box (Updated with Real Price) */}
+                <div className="w-full bg-[#111] border border-white/5 rounded-[1.5rem] p-6 md:p-7 flex flex-col items-center shadow-lg">
+                  <h2 className="text-[20px] md:text-[22px] font-black text-white mb-5 tracking-tight">Start Your Journey Today</h2>
+                  
+                  <div className="w-full flex flex-col gap-3.5 mb-6">
+                    {[
+                      "Get your complete Full-Body Score & detailed report.",
+                      "Discover exactly what's holding you back.",
+                      "Unlock your personalized BodyMax plan made just for YOU.",
+                      "Crush your goals and finally achieve your dream physique."
+                    ].map((text, i) => (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-[#22c55e] shrink-0 mt-0.5" strokeWidth={3.5} />
+                        <span className="text-[#a1a1aa] text-[13px] md:text-[14px] leading-snug font-medium">{text}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Real Price Display (Replaced Promo Code) */}
+                  <div className="w-full flex justify-between items-center pt-5 border-t border-white/10 mt-2">
+                     <span className="text-[14px] md:text-[16px] font-medium text-gray-300">Plans starting from</span>
+                     <span className="text-[22px] md:text-[26px] font-black text-white leading-none">$6.99</span>
+                  </div>
+                </div>
+              </div>
+
+
+              {/* ==========================================
+                  SECTION 2: PRICING CARDS & WHOP CHECKOUT
+                  ========================================== */}
+              <div className="flex flex-col items-center text-center w-full mb-12">
+                <h2 className="text-[20px] md:text-[24px] font-bold text-white leading-[1.1] tracking-tight mb-6">
+                  Select Your Plan to Continue
+                </h2>
 
                 <div className="w-full flex flex-col gap-5">
                   {pricingPlans.map((plan) => {
@@ -168,7 +228,6 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                     return (
                       <div
                         key={plan.id}
-                        // YAHAN CLICK HONE PAR SMART FUNCTION RUN HOGA
                         onClick={() => handlePlanClick(plan.id)}
                         className={`relative w-full rounded-2xl cursor-pointer transition-all duration-200 border-[1.5px] overflow-visible flex h-[105px] md:h-[115px] ${isSelected
                             ? 'border-[#E71B25] bg-[#120a09] shadow-[0_0_20px_rgba(231,27,37,0.15)]'
@@ -227,19 +286,15 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                 </div>
               </div>
 
-              {/* ==========================================
-                  SMART CHECKOUT ACTION & WHOP EMBED SDK
-                  ========================================== */}
+              {/* SMART CHECKOUT ACTION & WHOP EMBED SDK */}
               <div className="w-full flex flex-col items-center mb-12">
 
-                {/* Agar plan select nahi hua toh "Select Plan" button dikhao */}
                 {!isCheckoutOpen && !selectedPlan && (
                   <div className="w-full max-w-[420px] bg-[#1c1c1e] text-gray-400 py-4 rounded-2xl font-bold text-[15px] uppercase tracking-widest flex items-center justify-center border border-white/5 opacity-70">
                     Select a Plan Above
                   </div>
                 )}
 
-                {/* Jaise hi plan select hoga, form automatically Animate hokay khul jayega */}
                 <AnimatePresence mode="wait">
                   {isCheckoutOpen && selectedPlan && (
                     <motion.div
@@ -249,9 +304,8 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                       exit={{ opacity: 0, height: 0 }}
                       className="w-full max-w-[420px] rounded-[1.5rem] overflow-hidden shadow-[0_0_40px_rgba(231,27,37,0.3)] border border-white/10"
                     >
-                      {/* Remount embed to ensure new plan is loaded properly when switched */}
                       <WhopCheckoutEmbed
-                        key={selectedPlan} // Ensures the iframe refreshes when a new plan is clicked
+                        key={selectedPlan}
                         planId={pricingPlans.find(plan => plan.id === selectedPlan)?.planId}
                         theme="dark"
                         hidePrice={false}
@@ -267,49 +321,32 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                   <Lock className="w-3 h-3" />
                   <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
                 </div>
-                {/* ==========================================
-    SMART CHECKOUT ACTION & WHOP EMBED SDK
-    ========================================== */}
-                <div className="w-full flex flex-col items-center mb-12">
 
-                  {/* Aapka baqi button / iframe ka code yahan hoga... */}
+                {/* 🛠 DEVELOPER HACK: BYPASS PAYMENT FOR TESTING */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const rawPlan = selectedPlan || "12-weeks";
+                    let formattedPlan = "12-Week";
+                    if (rawPlan === '1-week') formattedPlan = "1-Week";
+                    if (rawPlan === '4-weeks') formattedPlan = "4-Week";
+                    
+                    console.log("Developer Bypass Triggered. Sending Plan:", formattedPlan);
 
-                  <div className="mt-4 flex items-center gap-1.5 text-gray-500">
-                    <Lock className="w-3 h-3" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
-                  </div>
-{/* 🛠 DEVELOPER HACK: BYPASS PAYMENT FOR TESTING */}
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault(); // Prevent any form submission side effects
-
-                      // 1. Determine which plan is selected, default to 12-weeks if null
-                      const rawPlan = selectedPlan || "12-weeks";
-                      
-                      // 2. Format the plan ID strictly to what the backend expects
-                      let formattedPlan = "12-Week";
-                      if (rawPlan === '1-week') formattedPlan = "1-Week";
-                      if (rawPlan === '4-weeks') formattedPlan = "4-Week";
-                      
-                      console.log("Developer Bypass Triggered. Sending Plan:", formattedPlan);
-
-                      // 3. Pass the clean string back to the parent component
-                      if (onCheckout) {
-                        onCheckout(formattedPlan);
-                      } else if (onSuccess) {
-                        onSuccess(formattedPlan);
-                      }
-                    }}
-                    className="mt-6 text-[10px] text-gray-500 uppercase tracking-[0.2em] border-b border-transparent hover:text-white hover:border-white transition-all z-50 cursor-pointer relative"
-                  >
-                    🛠 Dev: Bypass Payment & Proceed
-                  </button>
-
-                </div>
+                    if (onCheckout) {
+                      onCheckout(formattedPlan);
+                    } else if (onSuccess) {
+                      onSuccess(formattedPlan);
+                    }
+                  }}
+                  className="mt-6 text-[10px] text-gray-500 uppercase tracking-[0.2em] border-b border-transparent hover:text-white hover:border-white transition-all z-50 cursor-pointer relative"
+                >
+                  🛠 Dev: Bypass Payment & Proceed
+                </button>
               </div>
 
               {/* ==========================================
-                  SECTION 3: UPGRADED BODY COMPARISON
+                  SECTION 3: UPGRADED BODY COMPARISON (RESTORED)
                   ========================================== */}
               <div className="w-full flex flex-col items-center text-center mb-12">
                 <h2 className="text-white text-[26px] font-bold tracking-tight leading-[1.1] mb-3">Your Body, Upgraded.</h2>
@@ -358,6 +395,7 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                   </div>
                 </div>
               </div>
+
 
               {/* ==========================================
                   SECTION 4: TRUST & COMMUNITY

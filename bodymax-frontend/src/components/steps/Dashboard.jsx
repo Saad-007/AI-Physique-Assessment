@@ -5,7 +5,7 @@ import {
   Cpu, Camera, ChevronRight, Zap, ScanLine, XCircle, Utensils,
   Timer, CheckCircle, Apple, Coffee, Moon, TrendingUp, Star, BicepsFlexed, Clock, X,
   Crosshair, Focus, MessageCircle, Droplets, Footprints, Send, PlayCircle, LayoutGrid,
-  Flame, Lock, Pause,ZapOff, BarChart2, ShieldCheck, Hexagon, Award, BarChart
+  Flame, Lock, Pause, ZapOff, BarChart2, ShieldCheck, Hexagon, Award, BarChart
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { updateDailyStreak } from '../../utils/streakUtils';
@@ -49,6 +49,30 @@ const MacroRing = ({ label, value, max, color, hex, icon: Icon }) => {
     </div>
   );
 };
+
+// --- Mini Component: Scan Results Stat Block ---
+const ScanStatBlock = ({ label, value, delta, isNegative, progress }) => (
+  <div className="flex flex-col mb-6">
+    <div className="flex items-center gap-1.5 mb-0.5">
+      <span className="text-[10px] md:text-[11px] font-medium text-[#a1a1aa] uppercase tracking-wider">{label}</span>
+      <div className="w-3.5 h-3.5 rounded-full border border-[#3f3f46] flex items-center justify-center text-[7px] text-[#a1a1aa]">?</div>
+    </div>
+    <div className="flex items-baseline gap-1.5 mb-2">
+      <span className={`text-[36px] md:text-[42px] font-bold leading-none ${isNegative ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>{value}</span>
+      <span className={`text-[14px] md:text-[16px] font-bold ${isNegative ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
+        {isNegative ? '' : '+'}{delta}
+      </span>
+    </div>
+    <div className="w-full h-1.5 bg-[#27272a] rounded-full overflow-hidden">
+      <motion.div 
+        initial={{ width: 0 }} 
+        animate={{ width: `${progress}%` }} 
+        transition={{ duration: 1.5, ease: "easeOut" }} 
+        className={`h-full rounded-full ${isNegative ? 'bg-[#ef4444]' : 'bg-[#22c55e]'}`} 
+      />
+    </div>
+  </div>
+);
 
 const Dashboard = () => {
   const [session, setSession] = useState(null);
@@ -340,18 +364,14 @@ const Dashboard = () => {
   };
 
 
-if (isLoading || isAIGenerating) {
-    // Progress calculation for the loading bar
+  if (isLoading || isAIGenerating) {
     const progressPercentage = Math.round(((aiLogIndex + 1) / aiLogs.length) * 100);
 
     return (
       <div className="min-h-[100dvh] bg-[#030303] flex items-center justify-center p-4 relative overflow-hidden">
-        {/* Background Subtle Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#E71B25] opacity-[0.03] blur-[100px] rounded-full pointer-events-none" />
 
         <div className="w-full max-w-[360px] bg-[#0a0a0a] border border-white/[0.05] rounded-2xl p-6 md:p-8 shadow-2xl font-mono relative z-10 overflow-hidden">
-          
-          {/* Header */}
           <div className="flex items-center justify-between mb-6 border-b border-white/[0.05] pb-4">
             <div className="flex items-center gap-3">
               <Cpu className="w-4 h-4 text-[#E71B25] animate-pulse" />
@@ -360,15 +380,13 @@ if (isLoading || isAIGenerating) {
             <span className="text-[10px] text-[#E71B25] font-black">{progressPercentage}%</span>
           </div>
 
-          {/* AI Logs Container with Fade Mask */}
-          {/* [mask-image:...] top se logs ko smoothly fade out karta hai */}
           <div className="space-y-3 h-[120px] flex flex-col justify-end overflow-hidden [mask-image:linear-gradient(to_bottom,transparent_0%,black_30%,black_100%)] pb-1">
             <AnimatePresence mode="popLayout">
               {aiLogs.slice(0, aiLogIndex + 1).map((log, i) => {
                 const isActive = i === aiLogIndex;
                 return (
                   <motion.div 
-                    layout // Yeh auto-shift karega jab naya log aayega
+                    layout 
                     key={i} 
                     initial={{ opacity: 0, y: 15, scale: 0.95 }} 
                     animate={{ opacity: isActive ? 1 : 0.3, y: 0, scale: 1 }} 
@@ -377,7 +395,6 @@ if (isLoading || isAIGenerating) {
                     <span className={`text-[11px] font-bold mt-[1px] ${isActive ? "text-[#E71B25]" : "text-gray-700"}`}>›</span>
                     <div className={`text-[11px] md:text-[12px] leading-relaxed tracking-wide ${isActive ? "text-white" : "text-gray-500"}`}>
                       {log}
-                      {/* Blinking Cursor for active log */}
                       {isActive && (
                         <motion.span
                           animate={{ opacity: [1, 0] }}
@@ -392,7 +409,6 @@ if (isLoading || isAIGenerating) {
             </AnimatePresence>
           </div>
 
-          {/* Bottom Progress Bar */}
           <div className="mt-6 h-1 w-full bg-white/[0.05] rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-[#E71B25]/50 to-[#E71B25] shadow-[0_0_10px_#E71B25]"
@@ -401,11 +417,11 @@ if (isLoading || isAIGenerating) {
               transition={{ duration: 0.5, ease: "easeOut" }}
             />
           </div>
-
         </div>
       </div>
     );
   }
+
   const analysis = safeProtocol.body_analysis || { score: 0, classification: "Evaluating...", estimated_bf: "--", bmr: 0, tdee: 0, strengths: [], weaknesses: [], vectors: {}, executive_summary: "" };
   const macros = safeProtocol.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 };
   const nutrition = safeProtocol.nutrition || { strategy: "Mapping...", meals: [] };
@@ -414,7 +430,6 @@ if (isLoading || isAIGenerating) {
   const dreamImage = assessment.dreamPhysiqueImage || assessment.customGoalPhoto || null;
   const planDurationTitle = planDurationText.replace('-', ' ').toUpperCase(); 
 
-  // 🔴 ADDED BACK ROADMAP LOGIC
   const getDefaultRoadmap = (duration) => {
     if (duration === "1-Week") {
       return [
@@ -652,57 +667,126 @@ if (isLoading || isAIGenerating) {
               </motion.div>
             )}
 
-            {/* TAB 2: AI SCANS */}
+            {/* 🔴 TAB 2: AI SCANS (STRICTLY SIDE-BY-SIDE) */}
             {activeTab === 'photos' && (
-              <motion.div key="photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 md:p-6 shadow-lg">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-5 gap-2">
-                    <div>
-                      <h2 className="text-[14px] md:text-[16px] font-bold text-white">Comparative Matrix Scans</h2>
-                      <p className="text-[10px] font-medium text-gray-500 mt-0.5 uppercase tracking-widest">GPT-4o Gap Analysis</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                    {[
-                      { id: 'front', label: 'Front Map', img: assessment?.photos?.[1], isTarget: false },
-                      { id: 'side', label: 'Side Map', img: assessment?.photos?.[2], isTarget: false },
-                      { id: 'back', label: 'Back Map', img: assessment?.photos?.[3], isTarget: false },
-                      { id: 'target', label: `Target: ${userGoal}`, img: dreamImage, isTarget: true }
-                    ].map((card, i) => (
-                      <div key={i} className={`group relative aspect-[3/4] bg-[#050505] rounded-2xl overflow-hidden shadow-lg border ${card.isTarget ? "border-green-500/40 shadow-[0_0_20px_rgba(34,197,94,0.1)]" : "border-white/[0.05]"}`}>
-                        {card.img ? (
-                          <>
-                            {!card.isTarget ? (
-                              <>
-                                <motion.div animate={{ top: ['-10%', '110%', '-10%'] }} transition={{ duration: 4, repeat: Infinity, ease: "linear", delay: i * 0.5 }} className="absolute left-0 right-0 h-[1px] bg-[#E71B25] shadow-[0_0_10px_#E71B25] z-20 pointer-events-none" />
-                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay z-10 pointer-events-none"></div>
-                                <div className="absolute top-2 left-2 z-20">
-                                  <span className="bg-black/80 text-[#E71B25] text-[7px] font-mono px-1.5 py-0.5 rounded-sm border border-[#E71B25]/30">SCAN: OK</span>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 mix-blend-overlay z-10 pointer-events-none"></div>
-                                <div className="absolute top-2 right-2 z-20">
-                                  <span className="bg-green-500/20 text-green-400 text-[7px] font-mono font-bold px-1.5 py-0.5 rounded-sm border border-green-500/50 flex items-center gap-1"><CheckCircle className="w-2 h-2" /> GOAL</span>
-                                </div>
-                              </>
-                            )}
-                            <img src={card.img} alt={card.label} className={`w-full h-full object-cover transition-all duration-700 ${card.isTarget ? "opacity-90 group-hover:scale-105" : "opacity-60 group-hover:opacity-100 filter grayscale-[20%] contrast-125"}`} />
-                          </>
-                        ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600 bg-[#0a0a0a]">
-                            <Camera className="w-5 h-5 mb-2 opacity-30" strokeWidth={1.5} />
-                            <span className="text-[8px] font-bold tracking-wide uppercase text-center px-2">No Visual Data</span>
+              <motion.div key="photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col items-center w-full max-w-4xl mx-auto pt-2 md:pt-4 pb-20 px-2 md:px-8">
+                 
+                 {/* Top Header */}
+                 <div className="w-full flex flex-col items-center justify-center mb-8 relative text-center">
+                    <h2 className="text-[18px] md:text-[22px] font-black text-white tracking-tight uppercase">Physique Matrix</h2>
+                    <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">Current vs Target Morphology</p>
+                 </div>
+
+                 {/* Images Container (STRICTLY SIDE-BY-SIDE GRID) */}
+                 <div className="grid grid-cols-2 gap-4 md:gap-10 mb-10 w-full">
+                    
+                    {/* User Image (Current) */}
+                    <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-2xl md:rounded-3xl border-[2px] md:border-[3px] border-[#a855f7]/80 shadow-[0_0_30px_rgba(168,85,247,0.15)] overflow-hidden bg-[#0a0a0a] relative group">
+                       <img src={assessment?.photos?.[1] || '/placeholder.jpg'} className="w-full h-full object-cover" alt="Current Physique" />
+                       
+                       {/* Sleek bottom gradient for label readability */}
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
+                       
+                       {/* Premium floating label */}
+                       <div className="absolute bottom-4 w-full flex justify-center">
+                          <div className="bg-[#a855f7]/20 backdrop-blur-md border border-[#a855f7]/50 px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                             <div className="w-1.5 h-1.5 rounded-full bg-[#c084fc] animate-pulse"></div>
+                             <span className="text-[9px] md:text-[11px] font-black text-white tracking-widest uppercase">Current</span>
                           </div>
-                        )}
-                        <div className={`absolute bottom-2 left-2 bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[8px] font-bold tracking-widest border z-20 uppercase truncate max-w-[90%] ${card.isTarget ? "text-green-400 border-green-500/30" : "text-gray-300 border-white/10"}`}>
-                          {card.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                       </div>
+                    </div>
+                    
+                    {/* Goal Image */}
+                    <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-2xl md:rounded-3xl border-[2px] md:border-[3px] border-[#3b82f6]/80 shadow-[0_0_30px_rgba(59,130,246,0.15)] overflow-hidden bg-[#0a0a0a] relative group">
+                       <img src={dreamImage || '/placeholder.jpg'} className="w-full h-full object-cover filter grayscale-[10%]" alt="Goal Physique" />
+                       
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
+                       
+                       <div className="absolute bottom-4 w-full flex justify-center">
+                          <div className="bg-[#3b82f6]/20 backdrop-blur-md border border-[#3b82f6]/50 px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
+                             <Target className="w-2.5 h-2.5 text-[#93c5fd]" />
+                             <span className="text-[9px] md:text-[11px] font-black text-white tracking-widest uppercase">Target</span>
+                          </div>
+                       </div>
+                    </div>
+
+                 </div>
+
+          {/* Stats Grid (Fully Dynamic with AI Data) */}
+                 <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full px-4 mb-10 max-w-2xl">
+                    <ScanStatBlock 
+                      label="OVERALL" 
+                      value={analysis.score || 82} 
+                      delta="INIT" // Initial scan indicator
+                      progress={analysis.score || 82} 
+                    />
+                    <ScanStatBlock 
+                      label="POTENTIAL" 
+                      value={analysis.potential || 95} 
+                      delta="MAX" // Target genetic limit
+                      progress={analysis.potential || 95} 
+                    />
+                    
+                    <ScanStatBlock 
+                      label="UPPER BODY" 
+                      value={analysis.vectors.upper_body || 76} 
+                      delta={analysis.vectors.upper_delta?.replace(/[+-]/g, '') || "2.1"} 
+                      isNegative={analysis.vectors.upper_delta?.includes('-')} 
+                      progress={analysis.vectors.upper_body || 76} 
+                    />
+                    <ScanStatBlock 
+                      label="LOWER BODY" 
+                      value={analysis.vectors.lower_body || 80} 
+                      delta={analysis.vectors.lower_delta?.replace(/[+-]/g, '') || "3.0"} 
+                      isNegative={analysis.vectors.lower_delta?.includes('-')} 
+                      progress={analysis.vectors.lower_body || 80} 
+                    />
+                    
+                    <ScanStatBlock 
+                      label="CORE" 
+                      value={analysis.vectors.core || 78} 
+                      delta={analysis.vectors.core_delta?.replace(/[+-]/g, '') || "1.8"} 
+                      isNegative={analysis.vectors.core_delta?.includes('-')} 
+                      progress={analysis.vectors.core || 78} 
+                    />
+                    <ScanStatBlock 
+                      label="SYMMETRY" 
+                      value={analysis.vectors.symmetry || 81} 
+                      delta={analysis.vectors.symmetry_delta?.replace(/[+-]/g, '') || "2.5"} 
+                      isNegative={analysis.vectors.symmetry_delta?.includes('-')} 
+                      progress={analysis.vectors.symmetry || 81} 
+                    />
+                 </div>
+
+               {/* Share Button (Upgraded Theme & Animations) */}
+                 <div className="w-full px-4 mt-auto max-w-2xl pb-4">
+                   <motion.div 
+                     initial={{ opacity: 0, y: 20 }} 
+                     animate={{ opacity: 1, y: 0 }} 
+                     transition={{ delay: 0.3 }}
+                     className="relative mt-4 w-full flex justify-center group transform-gpu will-change-[opacity,transform]"
+                   >
+                     {/* Glowing Background Blur */}
+                     <div className="absolute inset-0 bg-[#E71B25] rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 transform-gpu will-change-opacity"></div>
+                     
+                     <motion.button
+                       whileHover={{ scale: 1.02 }}
+                       whileTap={{ scale: 0.98 }}
+                       className="relative overflow-hidden w-full py-4 md:py-4 bg-[#E71B25] hover:bg-[#C6161F] text-white font-black text-[15px] md:text-lg uppercase tracking-wide rounded-2xl shadow-[0_10px_30px_rgba(231,27,37,0.3)] transition-colors duration-300 transform-gpu will-change-transform"
+                     >
+                       <span className="relative z-10 flex items-center justify-center gap-2">
+                         Share Comparison 
+                         <motion.span 
+                           animate={{ x: [0, 5, 0] }} 
+                           transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                           className="transform-gpu will-change-transform inline-block"
+                         >
+                           →
+                         </motion.span>
+                       </span>
+                     </motion.button>
+                   </motion.div>
+                 </div>
               </motion.div>
             )}
 
@@ -1094,7 +1178,7 @@ if (isLoading || isAIGenerating) {
         )}
       </AnimatePresence>
 
-      {/* 🔴 RESTYLED EXECUTION HUD MODAL (SLIM & TACTICAL) */}
+      {/* EXECUTION HUD MODAL */}
       <AnimatePresence>
         {selectedWorkout && (
           <>
