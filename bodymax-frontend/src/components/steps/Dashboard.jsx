@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity, Dumbbell, Target, User, LogOut,
@@ -10,6 +10,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { updateDailyStreak } from '../../utils/streakUtils';
 import { toBlob } from 'html-to-image';
+
 // --- Mini Component: Premium Progress Bar ---
 const ProgressBar = ({ label, value, color, showPercentage = true }) => (
   <div className="mb-4">
@@ -83,8 +84,9 @@ const Dashboard = () => {
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [isAIGenerating, setIsAIGenerating] = useState(false);
   const [aiLogIndex, setAiLogIndex] = useState(0);
-  const scanRef = useRef(null); // Container ko select karne ke liye
-  const [isSharing, setIsSharing] = useState(false); // Loading state ke liye
+  const scanRef = useRef(null); 
+  const [isSharing, setIsSharing] = useState(false); 
+  
   // GAMIFICATION & PROGRESS STATES
   const [streak, setStreak] = useState(0); 
   const [completedWorkouts, setCompletedWorkouts] = useState(0);
@@ -92,19 +94,22 @@ const Dashboard = () => {
   const [toastMessage, setToastMessage] = useState(null);
   const [isLevelUp, setIsLevelUp] = useState(false);
 
+  // 🔴 1. State for Week Accordion
+  const [expandedWeek, setExpandedWeek] = useState(1);
+
   // EXERCISE TIMER STATES
   const [activeTimerEx, setActiveTimerEx] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [timerTotal, setTimerTotal] = useState(60);
-
+  
   // AI Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([
     { role: 'ai', text: 'Protocol initialized. Do you have any questions about your plan or macros today?' }
   ]);
-
+  
   const aiLogs = [
     "INIT > Establishing secure connection to OpenAI...",
     "FETCH > Retrieving biometric data & dream physique target...",
@@ -114,6 +119,25 @@ const Dashboard = () => {
     "BUILD > Generating targeted exercise vectors...",
     "DONE > Compiling Personalized BodyMax Protocol..."
   ];
+
+  // 🔴 2. Dynamic Variables for Workout Logic
+  const assessment = profile?.assessment_data || {};
+  const safeProtocol = protocol || {};
+  const workoutsList = safeProtocol.workouts || [];
+  const planDurationText = assessment.planDuration || "4-Week";
+  const maxWeeks = parseInt(planDurationText.split('-')[0]) || 4; 
+  const workoutsPerWeek = workoutsList.length || 1;
+  const programTotalWorkouts = maxWeeks * workoutsPerWeek; 
+
+  let currentWeek = Math.floor(completedWorkouts / workoutsPerWeek) + 1;
+  let doneThisWeek = completedWorkouts % workoutsPerWeek;
+  if (currentWeek > maxWeeks) { currentWeek = maxWeeks; doneThisWeek = workoutsPerWeek; }
+
+  // 🔴 3. Sync state with currentWeek AFTER it is calculated
+  useEffect(() => {
+    setExpandedWeek(currentWeek);
+  }, [currentWeek]);
+
 
   useEffect(() => {
     if (isAIGenerating) {
@@ -183,28 +207,18 @@ const Dashboard = () => {
     setIsTimerActive(false);
     setTimeLeft(0);
   };
-// ==========================================
-  // VIRAL SHARE FUNCTION
+
   // ==========================================
-  // ==========================================
-  // VIRAL SHARE FUNCTION (FULL DETAILED STATS)
-  // ==========================================
-// ==========================================
-  // VIRAL SHARE FUNCTION (FIXED WITH HTML-TO-IMAGE)
-  // ==========================================
-// ==========================================
   // VIRAL SHARE FUNCTION (IMAGE + TEXT + LINK)
   // ==========================================
   const handleShare = async () => {
     if (!scanRef.current) return;
     setIsSharing(true);
 
-    // 1. Current Scores nikal rahe hain text ke liye
     const currentScore = analysis.overall_rating || analysis.score || 82;
     const potentialScore = analysis.potential_rating || analysis.potential || 95;
     const bodyFat = analysis.body_fat_percentage || "18%";
     
-    // 2. Viral Caption ban raha hai (Sath mein website link bhi)
     const shareText = `🤖 BodyMax AI Physique Scan 🤖\n\n` +
       `📊 OVERALL SCORE: ${currentScore}/100\n` +
       `🔥 GENETIC POTENTIAL: ${potentialScore}/100\n` +
@@ -213,7 +227,6 @@ const Dashboard = () => {
       `🔗 https://ai-physique-assessment.vercel.app`;
 
     try {
-      // 3. UI ki HD Picture ban rahi hai
       const blob = await toBlob(scanRef.current, {
         quality: 0.95,
         backgroundColor: '#030303', 
@@ -223,24 +236,19 @@ const Dashboard = () => {
       if (!blob) throw new Error("Image generation failed");
       const file = new File([blob], 'BodyMax-Scan.png', { type: 'image/png' });
 
-      // 4. Mobile: Native Share (Image + Text Caption)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: 'My BodyMax Scan',
-          text: shareText, // <--- Yahan text attach ho raha hai
-          files: [file]    // <--- Yahan Image attach ho rahi hai
+          text: shareText,
+          files: [file]    
         });
       } else {
-        // 5. PC Fallback: Image Download + Text Auto-Copy
-        
-        // Pehle Text Copy karo
         try {
           await navigator.clipboard.writeText(shareText);
         } catch (clipErr) {
           console.log("Clipboard copy failed", clipErr);
         }
 
-        // Phir Image Download karo
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -260,7 +268,8 @@ const Dashboard = () => {
       setToastMessage('Failed to generate share image.');
     }
   };
-    const fetchUserDataAndProtocol = async () => {
+
+  const fetchUserDataAndProtocol = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { window.location.href = '/login'; return; }
@@ -319,19 +328,6 @@ const Dashboard = () => {
       setChatHistory(prev => [...prev, { role: 'ai', text: "I'm analyzing your request against your target vectors. Stay tuned!" }]);
     }, 1000);
   };
-
-  // DYNAMIC WEEK LOGIC
-  const assessment = profile?.assessment_data || {};
-  const safeProtocol = protocol || {};
-  const workoutsList = safeProtocol.workouts || [];
-  const planDurationText = assessment.planDuration || "4-Week";
-  const maxWeeks = parseInt(planDurationText.split('-')[0]) || 4; 
-  const workoutsPerWeek = workoutsList.length || 1;
-  const programTotalWorkouts = maxWeeks * workoutsPerWeek; 
-
-  let currentWeek = Math.floor(completedWorkouts / workoutsPerWeek) + 1;
-  let doneThisWeek = completedWorkouts % workoutsPerWeek;
-  if (currentWeek > maxWeeks) { currentWeek = maxWeeks; doneThisWeek = workoutsPerWeek; }
 
   // RPG XP & LEVELING SYSTEM
   const xpPerWorkout = 250;
@@ -714,7 +710,6 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* 🔴 OVERVIEW TAB VECTOR FIX */}
                   <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5">
                     <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-2.5">
                       <Focus className="w-3.5 h-3.5 text-orange-400" />
@@ -746,20 +741,16 @@ const Dashboard = () => {
               </motion.div>
             )}
 
-            {/* 🔴 TAB 2: AI SCANS (WITH IMAGE EXPORT) */}
+            {/* TAB 2: AI SCANS (WITH IMAGE EXPORT) */}
             {activeTab === 'photos' && (
-              // YAHAN ref={scanRef} ADD KIYA HAI PUREY DESIGN KO CAPTURE KARNE KE LIYE
               <motion.div ref={scanRef} key="photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col items-center w-full max-w-4xl mx-auto pt-2 md:pt-4 pb-20 px-2 md:px-8 bg-[#030303]">
                  
-                 {/* Top Header */}
                  <div className="w-full flex flex-col items-center justify-center mb-8 relative text-center pt-4">
                     <h2 className="text-[18px] md:text-[22px] font-black text-white tracking-tight uppercase">Physique Matrix</h2>
                     <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">Current vs Target Morphology</p>
                  </div>
 
-                 {/* Images Container (STRICTLY SIDE-BY-SIDE GRID) */}
                  <div className="grid grid-cols-2 gap-4 md:gap-10 mb-10 w-full">
-                    {/* User Image (Current) */}
                     <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-2xl md:rounded-3xl border-[2px] md:border-[3px] border-[#a855f7]/80 shadow-[0_0_30px_rgba(168,85,247,0.15)] overflow-hidden bg-[#0a0a0a] relative group">
                        <img src={assessment?.photos?.[1] || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover" alt="Current Physique" />
                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
@@ -771,7 +762,6 @@ const Dashboard = () => {
                        </div>
                     </div>
                     
-                    {/* Goal Image */}
                     <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-2xl md:rounded-3xl border-[2px] md:border-[3px] border-[#3b82f6]/80 shadow-[0_0_30px_rgba(59,130,246,0.15)] overflow-hidden bg-[#0a0a0a] relative group">
                        <img src={dreamImage || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover filter grayscale-[10%]" alt="Goal Physique" />
                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
@@ -784,23 +774,17 @@ const Dashboard = () => {
                     </div>
                  </div>
 
-               {/* Top Highlight Stats (Fixed Text Truncation) */}
                  <div className="w-full flex justify-between px-2 md:px-6 mb-8 border-b border-white/[0.05] pb-6 max-w-2xl">
                     <div className="flex flex-col items-center flex-1">
                        <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Body Fat</span>
                        <span className="text-[18px] md:text-[24px] font-black text-white leading-tight">{analysis.body_fat_percentage || "18%"}</span>
                     </div>
-                    
                     <div className="w-px bg-white/[0.05] mx-1 md:mx-2"></div>
-                    
                     <div className="flex flex-col items-center flex-1">
                        <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Dream Body</span>
                        <span className="text-[18px] md:text-[24px] font-black text-green-400 leading-tight">{analysis.dream_body_chances || "95%"}</span>
                     </div>
-                    
                     <div className="w-px bg-white/[0.05] mx-1 md:mx-2"></div>
-                    
-                    {/* Fixed: Removed truncate and adjusted max-width so text can wrap if needed */}
                     <div className="flex flex-col items-center flex-1 w-full max-w-[120px] md:max-w-[150px]">
                        <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Best Trait</span>
                        <span className="text-[14px] md:text-[18px] font-black text-blue-400 text-center leading-[1.1] md:leading-tight break-words line-clamp-2">
@@ -809,81 +793,21 @@ const Dashboard = () => {
                     </div>
                  </div>
 
-                 {/* Detailed Muscle Stats Grid */}
                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full px-4 mb-10 max-w-2xl">
-                    <ScanStatBlock 
-                      label="OVERALL RATING" 
-                      value={analysis.overall_rating || analysis.score || 82} 
-                      delta="INIT" 
-                      progress={analysis.overall_rating || analysis.score || 82} 
-                      isNegative={(analysis.overall_rating || analysis.score || 82) < 60}
-                    />
-                    <ScanStatBlock 
-                      label="POTENTIAL RATING" 
-                      value={analysis.potential_rating || analysis.potential || 95} 
-                      delta="MAX" 
-                      progress={analysis.potential_rating || analysis.potential || 95} 
-                      isNegative={(analysis.potential_rating || analysis.potential || 95) < 60}
-                    />
-                    <ScanStatBlock 
-                      label="CHEST" 
-                      value={analysis.chest_score || analysis.vectors?.upper_body || 76} 
-                      delta={analysis.chest_delta?.replace(/[+-]/g, '') || "2.1"} 
-                      isNegative={(analysis.chest_score || analysis.vectors?.upper_body || 76) < 60} 
-                      progress={analysis.chest_score || analysis.vectors?.upper_body || 76} 
-                    />
-                    <ScanStatBlock 
-                      label="SHOULDERS" 
-                      value={analysis.shoulders_score || analysis.vectors?.upper_body || 80} 
-                      delta={analysis.shoulders_delta?.replace(/[+-]/g, '') || "3.0"} 
-                      isNegative={(analysis.shoulders_score || analysis.vectors?.upper_body || 80) < 60} 
-                      progress={analysis.shoulders_score || analysis.vectors?.upper_body || 80} 
-                    />
-                    <ScanStatBlock 
-                      label="BACK" 
-                      value={analysis.back_score || analysis.vectors?.symmetry || 78} 
-                      delta={analysis.back_delta?.replace(/[+-]/g, '') || "1.8"} 
-                      isNegative={(analysis.back_score || analysis.vectors?.symmetry || 78) < 60} 
-                      progress={analysis.back_score || analysis.vectors?.symmetry || 78} 
-                    />
-                    <ScanStatBlock 
-                      label="ABS & CORE" 
-                      value={analysis.abs_score || analysis.vectors?.core || 81} 
-                      delta={analysis.abs_delta?.replace(/[+-]/g, '') || "2.5"} 
-                      isNegative={(analysis.abs_score || analysis.vectors?.core || 81) < 60} 
-                      progress={analysis.abs_score || analysis.vectors?.core || 81} 
-                    />
-                    <ScanStatBlock 
-                      label="LEGS" 
-                      value={analysis.legs_score || analysis.vectors?.lower_body || 75} 
-                      delta={analysis.legs_delta?.replace(/[+-]/g, '') || "1.5"} 
-                      isNegative={(analysis.legs_score || analysis.vectors?.lower_body || 75) < 60} 
-                      progress={analysis.legs_score || analysis.vectors?.lower_body || 75} 
-                    />
-                    <ScanStatBlock 
-                      label="ARMS" 
-                      value={analysis.arms_score || analysis.vectors?.upper_body || 79} 
-                      delta={analysis.arms_delta?.replace(/[+-]/g, '') || "2.2"} 
-                      isNegative={(analysis.arms_score || analysis.vectors?.upper_body || 79) < 60} 
-                      progress={analysis.arms_score || analysis.vectors?.upper_body || 79} 
-                    />
+                    <ScanStatBlock label="OVERALL RATING" value={analysis.overall_rating || analysis.score || 82} delta="INIT" progress={analysis.overall_rating || analysis.score || 82} isNegative={(analysis.overall_rating || analysis.score || 82) < 60} />
+                    <ScanStatBlock label="POTENTIAL RATING" value={analysis.potential_rating || analysis.potential || 95} delta="MAX" progress={analysis.potential_rating || analysis.potential || 95} isNegative={(analysis.potential_rating || analysis.potential || 95) < 60} />
+                    <ScanStatBlock label="CHEST" value={analysis.chest_score || analysis.vectors?.upper_body || 76} delta={analysis.chest_delta?.replace(/[+-]/g, '') || "2.1"} isNegative={(analysis.chest_score || analysis.vectors?.upper_body || 76) < 60} progress={analysis.chest_score || analysis.vectors?.upper_body || 76} />
+                    <ScanStatBlock label="SHOULDERS" value={analysis.shoulders_score || analysis.vectors?.upper_body || 80} delta={analysis.shoulders_delta?.replace(/[+-]/g, '') || "3.0"} isNegative={(analysis.shoulders_score || analysis.vectors?.upper_body || 80) < 60} progress={analysis.shoulders_score || analysis.vectors?.upper_body || 80} />
+                    <ScanStatBlock label="BACK" value={analysis.back_score || analysis.vectors?.symmetry || 78} delta={analysis.back_delta?.replace(/[+-]/g, '') || "1.8"} isNegative={(analysis.back_score || analysis.vectors?.symmetry || 78) < 60} progress={analysis.back_score || analysis.vectors?.symmetry || 78} />
+                    <ScanStatBlock label="ABS & CORE" value={analysis.abs_score || analysis.vectors?.core || 81} delta={analysis.abs_delta?.replace(/[+-]/g, '') || "2.5"} isNegative={(analysis.abs_score || analysis.vectors?.core || 81) < 60} progress={analysis.abs_score || analysis.vectors?.core || 81} />
+                    <ScanStatBlock label="LEGS" value={analysis.legs_score || analysis.vectors?.lower_body || 75} delta={analysis.legs_delta?.replace(/[+-]/g, '') || "1.5"} isNegative={(analysis.legs_score || analysis.vectors?.lower_body || 75) < 60} progress={analysis.legs_score || analysis.vectors?.lower_body || 75} />
+                    <ScanStatBlock label="ARMS" value={analysis.arms_score || analysis.vectors?.upper_body || 79} delta={analysis.arms_delta?.replace(/[+-]/g, '') || "2.2"} isNegative={(analysis.arms_score || analysis.vectors?.upper_body || 79) < 60} progress={analysis.arms_score || analysis.vectors?.upper_body || 79} />
                  </div>
 
-                 {/* Share Button */}
                  <div className="w-full px-4 mt-auto max-w-2xl pb-4">
-                   <motion.div 
-                     initial={{ opacity: 0, y: 20 }} 
-                     animate={{ opacity: 1, y: 0 }} 
-                     transition={{ delay: 0.3 }}
-                     className="relative mt-4 w-full flex justify-center group transform-gpu will-change-[opacity,transform]"
-                   >
+                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="relative mt-4 w-full flex justify-center group transform-gpu will-change-[opacity,transform]">
                      <div className="absolute inset-0 bg-[#E71B25] rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 transform-gpu will-change-opacity"></div>
-                     
-                     <button
-                       onClick={handleShare} 
-                       disabled={isSharing}
-                       className={`relative overflow-hidden w-full py-4 md:py-4 bg-[#E71B25] hover:bg-[#C6161F] text-white font-black text-[15px] md:text-lg uppercase tracking-wide rounded-2xl shadow-[0_10px_30px_rgba(231,27,37,0.3)] transition-colors duration-300 ${isSharing ? 'opacity-70 cursor-wait' : ''}`}
-                     >
+                     <button onClick={handleShare} disabled={isSharing} className={`relative overflow-hidden w-full py-4 md:py-4 bg-[#E71B25] hover:bg-[#C6161F] text-white font-black text-[15px] md:text-lg uppercase tracking-wide rounded-2xl shadow-[0_10px_30px_rgba(231,27,37,0.3)] transition-colors duration-300 ${isSharing ? 'opacity-70 cursor-wait' : ''}`}>
                        <span className="relative z-10 flex items-center justify-center gap-2">
                          {isSharing ? 'Extracting Neural Data...' : 'Share Comparison'}
                          {!isSharing && <span className="inline-block">→</span>}
@@ -891,13 +815,14 @@ const Dashboard = () => {
                      </button>
                    </motion.div>
                  </div>
-                  </motion.div>
+              </motion.div>
             )}
-             
+              
 
-            {/* TAB 3: WORKOUTS */}
+            {/* TAB 3: WORKOUTS (UPGRADED WEEKS ACCORDION) */}
             {activeTab === 'protocol' && (
               <motion.div key="protocol" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-5">
+                
                 <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
@@ -920,102 +845,149 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                  {workoutsList.map((workout, idx) => {
-                    const estTime = (workout.exercises?.length || 0) * 8 + 5;
-                    const isCompleted = idx < doneThisWeek || completedWorkouts >= programTotalWorkouts;
-                    const isLocked = idx > doneThisWeek && completedWorkouts < programTotalWorkouts;
-                    const isActive = idx === doneThisWeek && completedWorkouts < programTotalWorkouts;
+                <div className="w-full flex flex-col gap-3">
+                  {Array.from({ length: maxWeeks }).map((_, weekIdx) => {
+                    const weekNum = weekIdx + 1;
+                    const isExpanded = expandedWeek === weekNum;
+                    const isWeekLocked = weekNum > currentWeek;
+                    const isWeekCompleted = weekNum < currentWeek;
+                    const isWeekActive = weekNum === currentWeek;
+                    
+                    const weekRoadmap = roadmap[weekIdx] || roadmap[roadmap.length - 1];
+                    const phaseTitle = weekRoadmap?.phase?.includes(':') ? weekRoadmap.phase.split(':')[1].trim() : "Execution Phase";
 
                     return (
-                      <motion.div
-                        whileHover={!isLocked ? { y: -2, scale: 1.01 } : {}}
-                        key={idx}
-                        className={`group relative overflow-hidden transition-all duration-300 flex flex-col rounded-3xl border
-                          ${isLocked ? 'bg-[#050505] border-white/[0.02] grayscale opacity-50 cursor-not-allowed' : ''}
-                          ${isCompleted ? 'bg-[#0a0a0a] border-green-500/20 hover:border-green-500/30' : ''}
-                          ${isActive ? 'bg-gradient-to-br from-[#111] to-[#050505] border-[#E71B25]/30 shadow-[0_5px_20px_rgba(231,27,37,0.1)] ring-1 ring-[#E71B25]/10' : ''}
-                        `}
-                      >
-                         {isActive && <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#E71B25] to-[#E71B25]/20 shadow-[0_0_10px_#E71B25]" />}
-                         {isCompleted && <div className="absolute top-0 left-0 w-1 h-full bg-green-500/50" />}
-
-                         <div className="p-4 md:p-5 flex flex-col h-full z-10 pl-6"> 
-                            <div className="flex justify-between items-start mb-3">
-                               <div className="flex flex-col">
-                                  <span className={`text-[8px] md:text-[9px] font-mono font-bold uppercase tracking-[0.2em] mb-1
-                                    ${isActive ? 'text-[#E71B25]' : isCompleted ? 'text-green-500' : 'text-gray-500'}
-                                  `}>
-                                    Module 0{idx + 1} {isCompleted && '✓'}
-                                  </span>
-                                  <h3 className={`text-[14px] md:text-[16px] font-black uppercase tracking-tight leading-none
-                                    ${isLocked ? 'text-gray-600' : 'text-white'}
-                                  `}>{workout.title}</h3>
+                      <div key={weekNum} className={`flex flex-col rounded-3xl border overflow-hidden transition-all duration-300 ${isWeekActive ? 'border-[#E71B25]/30 bg-[#0a0a0a] shadow-[0_5px_20px_rgba(231,27,37,0.05)]' : 'border-white/[0.04] bg-[#050505]'}`}>
+                         
+                         <button 
+                           onClick={() => !isWeekLocked && setExpandedWeek(isExpanded ? null : weekNum)}
+                           className={`w-full p-4 md:p-5 flex items-center justify-between text-left transition-colors ${isWeekLocked ? 'cursor-not-allowed opacity-50 grayscale' : 'cursor-pointer hover:bg-white/[0.02]'}`}
+                         >
+                            <div className="flex items-center gap-4">
+                               <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 ${isWeekCompleted ? 'bg-green-500/10 border-green-500/20 text-green-500' : isWeekActive ? 'bg-[#E71B25]/10 border-[#E71B25]/30 text-[#E71B25]' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                                  {isWeekCompleted ? <CheckCircle className="w-5 h-5" /> : isWeekLocked ? <Lock className="w-4 h-4" /> : <Zap className="w-5 h-5" />}
                                </div>
-
-                               {!isLocked && (
-                                 <div className="flex items-center gap-1 bg-black/50 px-2 py-1 rounded-md border border-white/[0.05] shrink-0">
-                                   <div className={`w-1 h-1 rounded-full ${workout.intensity === 'Low' ? 'bg-blue-500' : workout.intensity === 'High' ? 'bg-orange-500' : 'bg-[#E71B25]'}`}></div>
-                                   <span className="text-[7px] font-bold uppercase tracking-widest text-gray-400">{workout.intensity}</span>
-                                 </div>
-                               )}
-                            </div>
-
-                            <div className="mb-4">
-                               <span className="text-[7px] text-gray-500 uppercase tracking-widest font-bold block mb-1.5">Primary Vectors</span>
-                               <div className="flex flex-wrap gap-1.5">
-                                  {workout.targets?.map((t, i) => (
-                                    <span key={i} className={`text-[7px] md:text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border
-                                      ${isLocked ? 'border-white/[0.02] text-gray-600 bg-transparent' :
-                                        isActive ? 'border-[#E71B25]/30 text-[#E71B25] bg-[#E71B25]/5' :
-                                        'border-white/[0.05] text-gray-400 bg-white/[0.02]'}
-                                    `}>{t}</span>
-                                  ))}
+                               <div>
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                     <h3 className={`text-[14px] md:text-[16px] font-black uppercase tracking-widest leading-none ${isWeekLocked ? 'text-gray-500' : 'text-white'}`}>Week {weekNum < 10 ? `0${weekNum}` : weekNum}</h3>
+                                     {isWeekActive && <span className="text-[8px] bg-[#E71B25] text-white px-1.5 py-0.5 rounded uppercase font-bold tracking-widest">Active</span>}
+                                  </div>
+                                  <p className="text-[10px] md:text-[11px] text-gray-400 font-medium truncate">{phaseTitle}</p>
                                </div>
                             </div>
+                            {!isWeekLocked && (
+                               <ChevronRight className={`w-5 h-5 shrink-0 text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
+                            )}
+                         </button>
 
-                            <div className="w-full h-px bg-white/[0.05] my-auto"></div>
-
-                            <div className="pt-4 flex flex-col md:flex-row md:items-center justify-between gap-3 mt-auto">
-                               <div className="flex gap-3">
-                                  <div className="flex flex-col">
-                                    <span className="text-[7px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Duration</span>
-                                    <div className={`flex items-center gap-1 text-[9px] md:text-[10px] font-mono font-bold ${isLocked ? 'text-gray-600' : 'text-white'}`}>
-                                      <Clock className="w-2.5 h-2.5" /> {estTime} MIN
-                                    </div>
-                                  </div>
-                                  <div className="w-px h-6 bg-white/[0.05]"></div>
-                                  <div className="flex flex-col">
-                                    <span className="text-[7px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Volume</span>
-                                    <div className={`flex items-center gap-1 text-[9px] md:text-[10px] font-mono font-bold ${isLocked ? 'text-gray-600' : 'text-white'}`}>
-                                      <Activity className="w-2.5 h-2.5" /> {workout.exercises?.length || 0} EXS
-                                    </div>
-                                  </div>
-                               </div>
-
-                               <button
-                                 onClick={() => !isLocked && setSelectedWorkout(workout)}
-                                 disabled={isLocked}
-                                 className={`relative overflow-hidden group/btn px-4 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all w-full md:w-auto
-                                   ${isLocked ? 'bg-white/5 text-gray-600 cursor-not-allowed' :
-                                     isCompleted ? 'bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white border border-green-500/20' :
-                                     'bg-[#E71B25] text-white hover:bg-[#C6161F] hover:shadow-[0_0_15px_rgba(231,27,37,0.3)]'}
-                                 `}
+                         <AnimatePresence>
+                            {isExpanded && !isWeekLocked && (
+                               <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="border-t border-white/[0.04]"
                                >
-                                  <div className="flex items-center justify-center gap-1.5 relative z-10">
-                                    {isLocked ? (
-                                      <>LOCKED <Lock className="w-2.5 h-2.5" /></>
-                                    ) : isCompleted ? (
-                                      <>REPLAY <PlayCircle className="w-2.5 h-2.5" /></>
-                                    ) : (
-                                      <>INITIATE <PlayCircle className="w-3 h-3" fill="currentColor" /></>
-                                    )}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 p-4 md:p-5 bg-gradient-to-b from-transparent to-[#030303]/50">
+                                     {workoutsList.map((workout, dayIdx) => {
+                                        const absoluteIndex = weekIdx * workoutsPerWeek + dayIdx;
+                                        const estTime = (workout.exercises?.length || 0) * 8 + 5;
+                                        const isCardCompleted = absoluteIndex < completedWorkouts;
+                                        const isCardLocked = absoluteIndex > completedWorkouts;
+                                        const isCardActive = absoluteIndex === completedWorkouts;
+
+                                        return (
+                                          <motion.div
+                                            whileHover={!isCardLocked ? { y: -2, scale: 1.01 } : {}}
+                                            key={dayIdx}
+                                            className={`group relative overflow-hidden transition-all duration-300 flex flex-col rounded-2xl border
+                                              ${isCardLocked ? 'bg-[#050505] border-white/[0.02] grayscale opacity-50 cursor-not-allowed' : ''}
+                                              ${isCardCompleted ? 'bg-[#0a0a0a] border-green-500/20 hover:border-green-500/30' : ''}
+                                              ${isCardActive ? 'bg-gradient-to-br from-[#111] to-[#050505] border-[#E71B25]/30 shadow-[0_5px_20px_rgba(231,27,37,0.1)] ring-1 ring-[#E71B25]/10' : ''}
+                                            `}
+                                          >
+                                            {isCardActive && <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#E71B25] to-[#E71B25]/20 shadow-[0_0_10px_#E71B25]" />}
+                                            {isCardCompleted && <div className="absolute top-0 left-0 w-1 h-full bg-green-500/50" />}
+
+                                            <div className="p-4 flex flex-col h-full z-10 pl-5"> 
+                                                <div className="flex justify-between items-start mb-3">
+                                                   <div className="flex flex-col">
+                                                      <span className={`text-[8px] md:text-[9px] font-mono font-bold uppercase tracking-[0.2em] mb-1
+                                                        ${isCardActive ? 'text-[#E71B25]' : isCardCompleted ? 'text-green-500' : 'text-gray-500'}
+                                                      `}>
+                                                        Day 0{dayIdx + 1} {isCardCompleted && '✓'}
+                                                      </span>
+                                                      <h3 className={`text-[13px] md:text-[15px] font-black uppercase tracking-tight leading-none
+                                                        ${isCardLocked ? 'text-gray-600' : 'text-white'}
+                                                      `}>{workout.title}</h3>
+                                                   </div>
+
+                                                   {!isCardLocked && (
+                                                     <div className="flex items-center gap-1 bg-black/50 px-2 py-1 rounded-md border border-white/[0.05] shrink-0">
+                                                       <div className={`w-1 h-1 rounded-full ${workout.intensity === 'Low' ? 'bg-blue-500' : workout.intensity === 'High' ? 'bg-orange-500' : 'bg-[#E71B25]'}`}></div>
+                                                       <span className="text-[7px] font-bold uppercase tracking-widest text-gray-400">{workout.intensity}</span>
+                                                     </div>
+                                                   )}
+                                                </div>
+
+                                                <div className="mb-4">
+                                                   <div className="flex flex-wrap gap-1.5">
+                                                      {workout.targets?.map((t, i) => (
+                                                        <span key={i} className={`text-[7px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border
+                                                          ${isCardLocked ? 'border-white/[0.02] text-gray-600 bg-transparent' :
+                                                            isCardActive ? 'border-[#E71B25]/30 text-[#E71B25] bg-[#E71B25]/5' :
+                                                            'border-white/[0.05] text-gray-400 bg-white/[0.02]'}
+                                                        `}>{t}</span>
+                                                      ))}
+                                                   </div>
+                                                </div>
+
+                                                <div className="w-full h-px bg-white/[0.05] my-auto"></div>
+
+                                                <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto">
+                                                   <div className="flex gap-3">
+                                                      <div className="flex flex-col">
+                                                        <div className={`flex items-center gap-1 text-[9px] font-mono font-bold ${isCardLocked ? 'text-gray-600' : 'text-white'}`}>
+                                                          <Clock className="w-2.5 h-2.5 text-gray-500" /> {estTime} MIN
+                                                        </div>
+                                                      </div>
+                                                      <div className="w-px h-4 bg-white/[0.05]"></div>
+                                                      <div className="flex flex-col">
+                                                        <div className={`flex items-center gap-1 text-[9px] font-mono font-bold ${isCardLocked ? 'text-gray-600' : 'text-white'}`}>
+                                                          <Activity className="w-2.5 h-2.5 text-gray-500" /> {workout.exercises?.length || 0} EXS
+                                                        </div>
+                                                      </div>
+                                                   </div>
+
+                                                   <button
+                                                     onClick={() => !isCardLocked && setSelectedWorkout(workout)}
+                                                     disabled={isCardLocked}
+                                                     className={`relative overflow-hidden group/btn px-3 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest transition-all w-full sm:w-auto
+                                                       ${isCardLocked ? 'bg-white/5 text-gray-600 cursor-not-allowed' :
+                                                         isCardCompleted ? 'bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white border border-green-500/20' :
+                                                         'bg-[#E71B25] text-white hover:bg-[#C6161F] hover:shadow-[0_0_15px_rgba(231,27,37,0.3)]'}
+                                                     `}
+                                                   >
+                                                      <div className="flex items-center justify-center gap-1.5 relative z-10">
+                                                        {isCardLocked ? (
+                                                          <>LOCKED <Lock className="w-2 h-2" /></>
+                                                        ) : isCardCompleted ? (
+                                                          <>REPLAY <PlayCircle className="w-2.5 h-2.5" /></>
+                                                        ) : (
+                                                          <>INITIATE <PlayCircle className="w-2.5 h-2.5" fill="currentColor" /></>
+                                                        )}
+                                                      </div>
+                                                   </button>
+                                                </div>
+                                            </div>
+                                          </motion.div>
+                                        );
+                                     })}
                                   </div>
-                                  {isActive && <div className="absolute inset-0 -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>}
-                               </button>
-                            </div>
-                         </div>
-                      </motion.div>
+                               </motion.div>
+                            )}
+                         </AnimatePresence>
+                      </div>
                     );
                   })}
                 </div>
@@ -1026,13 +998,9 @@ const Dashboard = () => {
             {activeTab === 'analytics' && (
               <motion.div key="analytics" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
                 
-                {/* ROW 1: RANK & QUICK STATS (BENTO) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  
-                  {/* Rank Card - Span 2 */}
                   <div className="md:col-span-2 bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 relative overflow-hidden group">
                      <div className="absolute right-0 top-0 w-64 h-64 bg-[#E71B25]/5 rounded-full blur-[80px] pointer-events-none group-hover:bg-[#E71B25]/10 transition-colors duration-700"></div>
-                     
                      <div className="relative z-10 flex items-center gap-5">
                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-[3px] border-[#E71B25] flex items-center justify-center bg-black shadow-[0_0_20px_rgba(231,27,37,0.2)] shrink-0">
                          <span className="text-2xl md:text-3xl font-black text-white">{currentLevel}</span>
@@ -1062,7 +1030,6 @@ const Dashboard = () => {
                      </div>
                   </div>
 
-                  {/* Quick Stats - Span 1 */}
                   <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 flex flex-col justify-center gap-3">
                      <div className="bg-white/[0.01] border border-white/[0.03] rounded-2xl p-3 flex items-center gap-3 hover:bg-white/[0.03] transition-colors">
                        <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
@@ -1086,10 +1053,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* ROW 2: CHART & MUSCLE DISTRIBUTION (BENTO) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  
-                  {/* Weekly Trajectory */}
                   <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 flex flex-col">
                     <div className="flex items-center justify-between mb-5 border-b border-white/[0.05] pb-2.5">
                       <div className="flex items-center gap-1.5">
@@ -1110,8 +1074,6 @@ const Dashboard = () => {
                              <span className="absolute -top-5 text-[8px] font-mono text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity bg-[#111] px-1.5 py-0.5 rounded border border-white/10 z-10 whitespace-nowrap">
                                {data.done}/{data.max}
                              </span>
-                             
-                             {/* Thinner, sleeker bars */}
                              <div className="w-full max-w-[16px] bg-white/[0.02] rounded-full h-full relative flex items-end justify-center border border-white/[0.02] group-hover:bg-white/[0.05] transition-colors overflow-hidden">
                                 <motion.div
                                   initial={{ height: 0 }} 
@@ -1124,7 +1086,6 @@ const Dashboard = () => {
                                   `}
                                 />
                              </div>
-                             
                              <span className={`text-[7px] md:text-[8px] mt-1.5 font-bold uppercase tracking-wider transition-colors ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-gray-400'}`}>
                                W{data.week}
                              </span>
@@ -1134,7 +1095,6 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* 🔴 ANALYTICS TAB VECTOR FIX */}
                   <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5">
                     <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-2.5">
                       <Focus className="w-3.5 h-3.5 text-orange-400" />

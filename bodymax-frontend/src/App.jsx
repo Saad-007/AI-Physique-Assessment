@@ -11,7 +11,7 @@ import Dashboard from './components/steps/Dashboard';
 import LoginPage from './components/ui/Login';
 
 const BodyMaxFunnel = () => {
-  const [step, setStep] = useState(1); 
+  const [step, setStep] = useState(6); 
   const [formData, setFormData] = useState({});
   const [isInitializing, setIsInitializing] = useState(true);
 

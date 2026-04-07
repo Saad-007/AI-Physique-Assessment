@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, CreditCard, X, Lock, Sparkles, Zap, Target } from 'lucide-react';
+import { Check, CreditCard, X, Lock, Sparkles, Zap, Target, Timer, Star, User } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 // WHOP KA OFFICIAL PACKAGE
 import { WhopCheckoutEmbed } from "@whop/checkout/react";
@@ -59,6 +59,25 @@ const GuaranteeSeal = () => (
   </svg>
 );
 
+// --- MODIFIED STAT BLOCK FOR PAYWALL BLUR EFFECT ---
+const BlurredScanStatBlock = ({ label, value, delta, isNegative, progress }) => (
+  <div className="flex flex-col mb-6">
+    <div className="flex items-center gap-1.5 mb-0.5">
+      <span className="text-[10px] md:text-[11px] font-medium text-[#a1a1aa] uppercase tracking-wider">{label}</span>
+      <div className="w-3.5 h-3.5 rounded-full border border-[#3f3f46] flex items-center justify-center text-[7px] text-[#a1a1aa]">?</div>
+    </div>
+    <div className="flex items-baseline gap-1.5 mb-2 filter blur-[6px] select-none opacity-80">
+      <span className={`text-[30px] md:text-[36px] font-bold leading-none ${isNegative ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>{value}</span>
+      <span className={`text-[12px] md:text-[14px] font-bold ${isNegative ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
+        {isNegative ? '' : '+'}{delta}
+      </span>
+    </div>
+    <div className="w-full h-1.5 bg-[#27272a] rounded-full overflow-hidden filter blur-[2px]">
+      <div className={`h-full rounded-full ${isNegative ? 'bg-[#ef4444]' : 'bg-[#22c55e]'}`} style={{ width: `${progress}%` }} />
+    </div>
+  </div>
+);
+
 // ==========================================
 // PIXEL-PERFECT PRICING DATA 
 // ==========================================
@@ -72,7 +91,7 @@ const pricingPlans = [
     newTotal: '$6.99',
     oldDaily: '$2.00',
     newDaily: '$0.99',
-    planId: 'plan_Ria8do63uXIu3', // WAHI ID, WAQAS REAL (plan_) WALY DE GA 
+    planId: 'plan_Ria8do63uXIu3',
     badge: null
   },
   {
@@ -84,7 +103,7 @@ const pricingPlans = [
     newTotal: '$29.99',
     oldDaily: '$2.14',
     newDaily: '$1.07',
-    planId: 'plan_IKQC0xVZiDswT', // WAHI ID, WAQAS REAL (plan_) WALY DE GA
+    planId: 'plan_IKQC0xVZiDswT',
     badge: { text: 'MOST POPULAR', style: 'bg-[#E71B25] text-white left-0 -top-3.5 rounded-lg rounded-bl-none px-3 py-1' }
   },
   {
@@ -96,7 +115,7 @@ const pricingPlans = [
     newTotal: '$44.99',
     oldDaily: '',
     newDaily: '$0.53',
-    planId: 'plan_kflTr1LhnYkps', // WAHI ID, WAQAS REAL (plan_) WALY DE GA
+    planId: 'plan_kflTr1LhnYkps',
     badge: { text: 'BEST VALUE', style: 'bg-gradient-to-r from-[#FCE18D] to-[#F1C40F] text-black right-4 md:right-6 -top-3.5 rounded-md px-3 py-1 shadow-[0_0_10px_rgba(241,196,15,0.4)]' }
   }
 ];
@@ -105,7 +124,7 @@ const pricingPlans = [
 // MAIN COMPONENT
 // ==========================================
 const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
-  const [timeLeft, setTimeLeft] = useState(7 * 60 + 47);
+  const [timeLeft, setTimeLeft] = useState(2 * 3600 + 15 * 60 + 47);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
@@ -122,9 +141,10 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  const minutes = Math.floor(timeLeft / 60);
+  const hours = Math.floor(timeLeft / 3600);
+  const minutes = Math.floor((timeLeft % 3600) / 60);
   const seconds = timeLeft % 60;
-  const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  const formattedTime = `${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
   return (
     <AnimatePresence>
@@ -136,17 +156,40 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
             .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
           `}} />
 
+          {/* URGENCY BAR */}
+          <motion.div 
+            initial={{ x: 50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 50, opacity: 0 }}
+            transition={{ delay: 0.5, type: "spring" }}
+            className="fixed right-0 top-1/2 -translate-y-1/2 z-[1000] bg-gradient-to-b from-[#E71B25] to-[#9e0f16] border-y border-l border-white/20 px-2 py-4 rounded-l-xl shadow-[0_0_25px_rgba(231,27,37,0.5)] flex flex-col items-center pointer-events-none"
+          >
+            <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300 animate-pulse mb-3" />
+            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] [writing-mode:vertical-rl] rotate-180 mb-3 drop-shadow-md">
+              50% OFF ENDS IN
+            </span>
+            <span className="text-[12px] font-mono font-black text-yellow-300 border-t border-white/20 pt-3 [writing-mode:vertical-rl] rotate-180">
+              {formattedTime}
+            </span>
+          </motion.div>
+
+          {/* CLOSE BUTTON */}
+          <button
+            onClick={onClose}
+            className="fixed top-5 right-5 p-2 bg-[#050505]/50 backdrop-blur-md hover:bg-white/15 rounded-full transition-colors border border-white/10 z-[1000] text-gray-400 hover:text-white shadow-lg"
+          >
+            <X className="w-5 h-5" strokeWidth={2.5} />
+          </button>
+
+
+          {/* ==========================================
+              SCROLLING MAIN CONTENT
+              ========================================== */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
             className="fixed inset-0 z-[999] flex items-start justify-center bg-[#050505]/95 backdrop-blur-xl overflow-y-auto hide-scrollbar px-4 py-8 md:py-12"
           >
-            <button
-              onClick={onClose}
-              className="fixed top-5 right-5 p-2 bg-white/5 hover:bg-white/15 rounded-full transition-colors border border-white/5 z-50 text-gray-400 hover:text-white"
-            >
-              <X className="w-5 h-5" strokeWidth={2.5} />
-            </button>
-
+            
             <motion.div
               initial={{ opacity: 0, y: 30, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.96 }} transition={{ type: "spring", stiffness: 350, damping: 25 }}
               className="w-full max-w-[440px] flex flex-col items-center mt-2 mb-12"
@@ -157,12 +200,10 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                   ========================================== */}
               <div className="w-full flex flex-col items-center mb-10 px-1">
                 
-                {/* Top Badge */}
                 <div className="bg-[#f05c4a] text-white text-[10px] md:text-[11px] font-black uppercase tracking-wider py-1.5 px-4 rounded-full mb-6">
                   BodyMax Analysis Complete
                 </div>
 
-                {/* Headlines */}
                 <h1 className="text-[24px] md:text-[28px] font-black text-white text-center leading-[1.1] tracking-tight mb-4 px-2">
                   BodyMax Analyzed Your Body, Your Dream Physique & Built a Personalized Plan Just for You
                 </h1>
@@ -170,28 +211,24 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                   Stop guessing in the gym. See your body score & report, discover exactly what's holding your body back, and how to reach your dream physique fast.
                 </p>
 
-                {/* Split Image Comparison (Screenshot Replica) */}
                 <div className="w-full flex rounded-[1.5rem] overflow-hidden mb-6 shadow-[0_15px_40px_rgba(0,0,0,0.4)] h-[320px] md:h-[380px]">
-                  {/* Left: Before (Red Theme) */}
                   <div className="flex-1 relative bg-gradient-to-b from-[#6b1e25] to-[#3d1015] border-r border-black/50">
-                    <img src="/Today.png" alt="Before" className="absolute inset-0 w-full h-full object-cover object-top opacity-90 mix-blend-luminosity" />
+                    <img src="/Today3.png" alt="Before" className="absolute inset-0 w-full h-full object-cover object-top opacity-90 mix-blend-luminosity" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent"></div>
                     <span className="absolute bottom-4 left-0 w-full text-center text-white text-[13px] md:text-[14px] font-semibold tracking-wide z-10">Before BodyMax</span>
                   </div>
                   
-                  {/* Right: After (Green Theme) */}
                   <div className="flex-1 relative bg-gradient-to-b from-[#2e7d32] to-[#1b5e20]">
-                    <img src="/Future.png" alt="After" className="absolute inset-0 w-full h-full object-cover object-top opacity-90 mix-blend-luminosity" />
+                    <img src="/Future1.png" alt="After" className="absolute inset-0 w-full h-full object-cover object-top opacity-90 mix-blend-luminosity" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent"></div>
                     <span className="absolute bottom-4 left-0 w-full text-center text-white text-[13px] md:text-[14px] font-semibold tracking-wide z-10">After BodyMax</span>
                   </div>
                 </div>
 
-                {/* Try BodyMax Box (Updated with Real Price) */}
                 <div className="w-full bg-[#111] border border-white/5 rounded-[1.5rem] p-6 md:p-7 flex flex-col items-center shadow-lg">
                   <h2 className="text-[20px] md:text-[22px] font-black text-white mb-5 tracking-tight">Start Your Journey Today</h2>
                   
-                  <div className="w-full flex flex-col gap-3.5 mb-6">
+                  <div className="w-full flex flex-col gap-3.5 mb-2">
                     {[
                       "Get your complete Full-Body Score & detailed report.",
                       "Discover exactly what's holding you back.",
@@ -204,12 +241,45 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
 
-                  {/* Real Price Display (Replaced Promo Code) */}
-                  <div className="w-full flex justify-between items-center pt-5 border-t border-white/10 mt-2">
-                     <span className="text-[14px] md:text-[16px] font-medium text-gray-300">Plans starting from</span>
-                     <span className="text-[22px] md:text-[26px] font-black text-white leading-none">$6.99</span>
+
+              {/* ==========================================
+                  NEW: BLURRED CURIOSITY WIDGET
+                  ========================================== */}
+              <div className="w-full relative mb-12 rounded-[1.5rem] overflow-hidden border border-white/5 bg-[#0a0a0a] shadow-2xl pt-6">
+                
+                {/* Top Highlight Stats (Blurred Values) */}
+                <div className="w-full flex justify-between px-2 md:px-6 mb-8 border-b border-white/[0.05] pb-6 max-w-2xl">
+                  <div className="flex flex-col items-center flex-1">
+                    <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Body Fat</span>
+                    <span className="text-[18px] md:text-[24px] font-black text-white leading-tight filter blur-[6px] select-none opacity-80">22%</span>
                   </div>
+                  <div className="w-px bg-white/[0.05] mx-1 md:mx-2"></div>
+                  <div className="flex flex-col items-center flex-1">
+                    <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Dream Body</span>
+                    <span className="text-[18px] md:text-[24px] font-black text-green-400 leading-tight filter blur-[6px] select-none opacity-80">89%</span>
+                  </div>
+                  <div className="w-px bg-white/[0.05] mx-1 md:mx-2"></div>
+                  <div className="flex flex-col items-center flex-1 w-full max-w-[120px] md:max-w-[150px]">
+                    <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Best Trait</span>
+                    <span className="text-[14px] md:text-[18px] font-black text-blue-400 text-center leading-[1.1] md:leading-tight break-words line-clamp-2 filter blur-[6px] select-none opacity-80">
+                      Shoulders
+                    </span>
+                  </div>
+                </div>
+
+                {/* Detailed Muscle Stats Grid (Using Blurred Component) */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full px-4 mb-6 max-w-2xl">
+                  <BlurredScanStatBlock label="OVERALL RATING" value={72} delta="INIT" progress={72} isNegative={false} />
+                  <BlurredScanStatBlock label="POTENTIAL RATING" value={95} delta="MAX" progress={95} isNegative={false} />
+                  <BlurredScanStatBlock label="CHEST" value={54} delta="2.8" progress={54} isNegative={true} />
+                  <BlurredScanStatBlock label="SHOULDERS" value={81} delta="1.5" progress={81} isNegative={false} />
+                  <BlurredScanStatBlock label="BACK" value={68} delta="2.0" progress={68} isNegative={false} />
+                  <BlurredScanStatBlock label="ABS & CORE" value={48} delta="3.2" progress={48} isNegative={true} />
+                  <BlurredScanStatBlock label="LEGS" value={70} delta="1.8" progress={70} isNegative={false} />
+                  <BlurredScanStatBlock label="ARMS" value={75} delta="2.1" progress={75} isNegative={false} />
                 </div>
               </div>
 
@@ -234,14 +304,12 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                             : 'border-[#2C2C2E] bg-[#161618] hover:border-[#3C3C3E]'
                           }`}
                       >
-                        {/* FLOATING BADGE */}
                         {plan.badge && (
                           <div className={`absolute text-[10px] font-bold tracking-wider z-30 ${plan.badge.style}`}>
                             {plan.badge.text}
                           </div>
                         )}
 
-                        {/* LEFT CONTENT */}
                         <div className="flex flex-1 items-center pl-4 pr-1 py-3 h-full z-20">
                           <div className={`w-6 h-6 rounded-full border-[2px] flex items-center justify-center shrink-0 mr-3 md:mr-4 transition-colors ${isSelected ? 'border-[#E71B25]' : 'border-[#4A4A4C]'}`}>
                             {isSelected && <div className="w-3 h-3 bg-[#E71B25] rounded-full" />}
@@ -259,7 +327,6 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                           </div>
                         </div>
 
-                        {/* RIGHT PANEL (ARROW SHAPE WITH MARGIN) */}
                         <div className="absolute right-[4px] top-[4px] bottom-[4px] w-[110px] md:w-[130px] overflow-hidden rounded-[0.8rem] z-10 pointer-events-none">
                           <div
                             className={`absolute inset-0 transition-colors duration-300 ${isSelected ? 'bg-[#E71B25]' : 'bg-[#222224]'}`}
@@ -346,18 +413,13 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
               </div>
 
               {/* ==========================================
-                  SECTION 3: UPGRADED BODY COMPARISON (RESTORED)
+                  SECTION 3: UPGRADED BODY COMPARISON
                   ========================================== */}
               <div className="w-full flex flex-col items-center text-center mb-12">
                 <h2 className="text-white text-[26px] font-bold tracking-tight leading-[1.1] mb-3">Your Body, Upgraded.</h2>
                 <p className="text-gray-400 text-[13px] font-normal leading-relaxed px-2 mb-6">See how small improvements and following a clear, proven plan add up to a massive transformation.</p>
 
-                <div className="bg-[#8A53C6] w-full py-2.5 rounded-xl shadow-[0_4px_20px_rgba(138,83,198,0.2)] flex justify-center items-center gap-2 mb-6">
-                  <Sparkles className="w-3.5 h-3.5 text-white/60" />
-                  <span className="text-white text-[11px] font-semibold uppercase tracking-widest">
-                    Discount Reserved For {formattedTime}
-                  </span>
-                </div>
+                
 
                 <div className="w-full h-[540px] rounded-[1.5rem] overflow-hidden flex shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-black relative">
                   <div className="flex-1 relative flex flex-col">
@@ -396,6 +458,78 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout}) => {
                 </div>
               </div>
 
+
+             {/* ==========================================
+                  NEW SECTION 3.5: SUCCESS STORY (SINGLE IMAGE)
+                  ========================================== */}
+              <div className="w-full mb-12 flex flex-col items-center">
+                
+                {/* Nayi Heading */}
+                <div className="flex items-center gap-2 mb-4">
+                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  <h2 className="text-white text-[16px] md:text-[18px] font-black uppercase tracking-wide">
+                    A 5 Star Review About BodyMax
+                  </h2>
+                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                </div>
+
+                <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl shadow-2xl relative overflow-hidden group flex flex-col w-full">
+                  
+                  {/* Decorative background glow */}
+                  <div className="absolute top-1/2 right-0 w-48 h-48 bg-yellow-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+                  {/* Single Premium Image */}
+                  <div className="w-full aspect-[4/3] md:aspect-[16/10] relative overflow-hidden bg-black border-b border-white/[0.05]">
+                    <img src="/R1.jpg" alt="Success Story" className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" />
+                    
+                    {/* Dark gradient from bottom so text is readable */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/20 to-transparent"></div>
+                    
+                    {/* Floating Badge */}
+                    <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg z-10">
+                       <Check className="w-3 h-3 text-[#4CA75B]" strokeWidth={3} />
+                       <span className="text-white text-[9px] font-bold uppercase tracking-widest mt-[1px]">Verified Result</span>
+                    </div>
+                  </div>
+
+                  {/* Review Content */}
+                  <div className="p-6 md:p-8 relative z-10 bg-[#0a0a0a]">
+                    {/* Stars */}
+                    <div className="flex items-center gap-1 mb-4">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.4)]" />
+                      ))}
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-white font-black text-[18px] md:text-[22px] tracking-tight mb-3 leading-snug drop-shadow-md">
+                      BodyMax completely rewired my approach to fitness.
+                    </h3>
+
+                    {/* Review Text */}
+                    <p className="text-gray-400 text-[12px] md:text-[13px] leading-relaxed font-medium mb-6 drop-shadow-sm">
+                      I used to struggle with consistency and felt completely stuck. The AI gave me a clear, step-by-step neural roadmap that actually worked for my genetics. The results speak for themselves—I've never felt stronger, leaner, or more confident.
+                    </p>
+                    
+                    {/* User Info & Line (NAME REMOVED, CHANGED TO ATHLETE) */}
+                    <div className="flex items-center justify-between border-t border-white/[0.05] pt-5 mt-auto">
+                       <div className="flex items-center gap-3">
+                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-800 to-black flex items-center justify-center border border-white/10 shadow-inner shrink-0">
+                           <User className="w-4 h-4 text-gray-400" />
+                         </div>
+                         <div className="flex flex-col">
+                           <span className="text-[13px] font-bold text-white tracking-wide leading-none mb-1">BodyMax Athlete</span>
+                           <span className="text-[9px] text-[#4CA75B] font-bold uppercase tracking-widest leading-none">Verified</span>
+                         </div>
+                       </div>
+                       <div className="text-right">
+                         <span className="block text-[14px] font-black text-white leading-none mb-1">-14 lbs</span>
+                         <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-none">Body Fat Dropped</span>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* ==========================================
                   SECTION 4: TRUST & COMMUNITY
