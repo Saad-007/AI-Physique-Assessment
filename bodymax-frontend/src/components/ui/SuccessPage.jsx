@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, User, Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import InstallPrompt from '../InstallPrompt';
+
 const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
     const [formData, setFormData] = useState({ name: '', email: '', password: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,6 +30,8 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
         setErrorMsg('');
 
         try {
+            console.log("1. Starting Signup for:", formData.email);
+            
             // 1. CREATE USER ACCOUNT
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
@@ -36,12 +39,15 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
             });
 
             if (authError) {
+                console.error("Auth Error:", authError);
                 setErrorMsg(authError.message);
                 setIsSubmitting(false);
                 return;
             }
 
             if (authData.user) {
+                console.log("2. Auth Success! User ID:", authData.user.id);
+                
                 // Destructure to separate actual files from the rest of the JSON data
                 const { 
                   photos, 
@@ -59,52 +65,70 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
                 let permanentPhotoUrls = {}; 
                 let finalGoalImageUrl = null;
 
+                console.log("3. Starting Photo Uploads...");
                 // ==========================================
-                // 2A. UPLOAD THE 3 BODY PHOTOS
+                // 2A. UPLOAD THE 3 BODY PHOTOS (WITH SAFETY CHECKS)
                 // ==========================================
                 if (photoFiles) {
                     for (const key of [1, 2, 3]) {
                         const file = photoFiles[key];
-                        if (file) {
-                            const fileExt = file.name.split('.').pop();
-                            const filePath = `${authData.user.id}/photo_${key}_${Date.now()}.${fileExt}`;
+                        // 🔴 SAFETY FIX: Check if file is a valid File object before calling .name
+                        if (file && file.name) {
+                            try {
+                                const fileExt = file.name.split('.').pop();
+                                const filePath = `${authData.user.id}/photo_${key}_${Date.now()}.${fileExt}`;
 
-                            const { error: uploadError } = await supabase.storage
-                                .from('user_photos')
-                                .upload(filePath, file, { cacheControl: '3600', upsert: true });
-
-                            if (!uploadError) {
-                                const { data: urlData } = supabase.storage
+                                const { error: uploadError } = await supabase.storage
                                     .from('user_photos')
-                                    .getPublicUrl(filePath);
-                                permanentPhotoUrls[key] = urlData.publicUrl;
+                                    .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+                                if (!uploadError) {
+                                    const { data: urlData } = supabase.storage
+                                        .from('user_photos')
+                                        .getPublicUrl(filePath);
+                                    permanentPhotoUrls[key] = urlData.publicUrl;
+                                    console.log(`Photo ${key} uploaded successfully`);
+                                } else {
+                                    console.error(`Error uploading photo ${key}:`, uploadError);
+                                }
+                            } catch (photoErr) {
+                                console.error(`Crash while uploading photo ${key}:`, photoErr);
                             }
                         }
                     }
                 }
 
                 // ==========================================
-                // 2B. UPLOAD THE DREAM PHYSIQUE GOAL PHOTO
+                // 2B. UPLOAD THE DREAM PHYSIQUE GOAL PHOTO (WITH SAFETY CHECKS)
                 // ==========================================
-                if (dreamPhysiqueFile) {
-                    const file = dreamPhysiqueFile;
-                    const fileExt = file.name.split('.').pop();
-                    const filePath = `${authData.user.id}/goal_${Date.now()}.${fileExt}`;
-                    
-                    const { error: uploadError } = await supabase.storage
-                        .from('user_photos') 
-                        .upload(filePath, file, { cacheControl: '3600', upsert: true });
+                if (dreamPhysiqueFile && dreamPhysiqueFile.name) {
+                    try {
+                        const file = dreamPhysiqueFile;
+                        const fileExt = file.name.split('.').pop();
+                        const filePath = `${authData.user.id}/goal_${Date.now()}.${fileExt}`;
+                        
+                        const { error: uploadError } = await supabase.storage
+                            .from('user_photos') 
+                            .upload(filePath, file, { cacheControl: '3600', upsert: true });
 
-                    if (!uploadError) {
-                        const { data: urlData } = supabase.storage
-                            .from('user_photos')
-                            .getPublicUrl(filePath);
-                        finalGoalImageUrl = urlData.publicUrl;
+                        if (!uploadError) {
+                            const { data: urlData } = supabase.storage
+                                .from('user_photos')
+                                .getPublicUrl(filePath);
+                            finalGoalImageUrl = urlData.publicUrl;
+                            console.log("Dream photo uploaded successfully");
+                        } else {
+                            console.error("Error uploading dream photo:", uploadError);
+                        }
+                    } catch (dreamErr) {
+                        console.error("Crash while uploading dream photo:", dreamErr);
                     }
                 } else if (assessmentData.dreamPhysiqueImage && typeof assessmentData.dreamPhysiqueImage === 'string') {
                     finalGoalImageUrl = assessmentData.dreamPhysiqueImage;
+                    console.log("Using existing dream image URL");
                 }
 
+                console.log("4. Preparing Database Insert...");
                 // ==========================================
                 // 3. PREPARE CLEAN DATA & SAVE TO DB
                 // ==========================================
@@ -125,7 +149,11 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
 
                 if (dbError) {
                     console.error("Database save error:", dbError);
+                    // RLS Errors yahan trigger hote hain (Policy issues)
+                    throw new Error("Failed to save profile data. " + dbError.message); 
                 }
+                
+                console.log("5. Database Insert Successful!");
             }
 
             // 🔴 MAGIC: Account ban gaya, toh localStorage flag delete kar dein
@@ -136,8 +164,9 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
             setIsSuccess(true);
 
         } catch (err) {
-            console.error(err);
-            setErrorMsg("An unexpected error occurred. Please try again.");
+            console.error("CRITICAL SIGNUP ERROR:", err);
+            // 🔴 Asli error message screen par show karenge
+            setErrorMsg(err.message || "An unexpected error occurred. Please try again.");
             setIsSubmitting(false);
         }
     };

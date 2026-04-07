@@ -811,17 +811,65 @@ const Dashboard = () => {
 
                  {/* Detailed Muscle Stats Grid */}
                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full px-4 mb-10 max-w-2xl">
-                    <ScanStatBlock label="OVERALL RATING" value={analysis.overall_rating || analysis.score || 82} delta="INIT" progress={analysis.overall_rating || analysis.score || 82} />
-                    <ScanStatBlock label="POTENTIAL RATING" value={analysis.potential_rating || analysis.potential || 95} delta="MAX" progress={analysis.potential_rating || analysis.potential || 95} />
-                    <ScanStatBlock label="CHEST" value={analysis.chest_score || analysis.vectors?.upper_body || 76} delta={analysis.chest_delta?.replace(/[+-]/g, '') || "2.1"} isNegative={analysis.chest_delta?.includes('-')} progress={analysis.chest_score || analysis.vectors?.upper_body || 76} />
-                    <ScanStatBlock label="SHOULDERS" value={analysis.shoulders_score || analysis.vectors?.upper_body || 80} delta={analysis.shoulders_delta?.replace(/[+-]/g, '') || "3.0"} isNegative={analysis.shoulders_delta?.includes('-')} progress={analysis.shoulders_score || analysis.vectors?.upper_body || 80} />
-                    <ScanStatBlock label="BACK" value={analysis.back_score || analysis.vectors?.symmetry || 78} delta={analysis.back_delta?.replace(/[+-]/g, '') || "1.8"} isNegative={analysis.back_delta?.includes('-')} progress={analysis.back_score || analysis.vectors?.symmetry || 78} />
-                    <ScanStatBlock label="ABS & CORE" value={analysis.abs_score || analysis.vectors?.core || 81} delta={analysis.abs_delta?.replace(/[+-]/g, '') || "2.5"} isNegative={analysis.abs_delta?.includes('-')} progress={analysis.abs_score || analysis.vectors?.core || 81} />
-                    <ScanStatBlock label="LEGS" value={analysis.legs_score || analysis.vectors?.lower_body || 75} delta={analysis.legs_delta?.replace(/[+-]/g, '') || "1.5"} isNegative={analysis.legs_delta?.includes('-')} progress={analysis.legs_score || analysis.vectors?.lower_body || 75} />
-                    <ScanStatBlock label="ARMS" value={analysis.arms_score || analysis.vectors?.upper_body || 79} delta={analysis.arms_delta?.replace(/[+-]/g, '') || "2.2"} isNegative={analysis.arms_delta?.includes('-')} progress={analysis.arms_score || analysis.vectors?.upper_body || 79} />
+                    <ScanStatBlock 
+                      label="OVERALL RATING" 
+                      value={analysis.overall_rating || analysis.score || 82} 
+                      delta="INIT" 
+                      progress={analysis.overall_rating || analysis.score || 82} 
+                      isNegative={(analysis.overall_rating || analysis.score || 82) < 60}
+                    />
+                    <ScanStatBlock 
+                      label="POTENTIAL RATING" 
+                      value={analysis.potential_rating || analysis.potential || 95} 
+                      delta="MAX" 
+                      progress={analysis.potential_rating || analysis.potential || 95} 
+                      isNegative={(analysis.potential_rating || analysis.potential || 95) < 60}
+                    />
+                    <ScanStatBlock 
+                      label="CHEST" 
+                      value={analysis.chest_score || analysis.vectors?.upper_body || 76} 
+                      delta={analysis.chest_delta?.replace(/[+-]/g, '') || "2.1"} 
+                      isNegative={(analysis.chest_score || analysis.vectors?.upper_body || 76) < 60} 
+                      progress={analysis.chest_score || analysis.vectors?.upper_body || 76} 
+                    />
+                    <ScanStatBlock 
+                      label="SHOULDERS" 
+                      value={analysis.shoulders_score || analysis.vectors?.upper_body || 80} 
+                      delta={analysis.shoulders_delta?.replace(/[+-]/g, '') || "3.0"} 
+                      isNegative={(analysis.shoulders_score || analysis.vectors?.upper_body || 80) < 60} 
+                      progress={analysis.shoulders_score || analysis.vectors?.upper_body || 80} 
+                    />
+                    <ScanStatBlock 
+                      label="BACK" 
+                      value={analysis.back_score || analysis.vectors?.symmetry || 78} 
+                      delta={analysis.back_delta?.replace(/[+-]/g, '') || "1.8"} 
+                      isNegative={(analysis.back_score || analysis.vectors?.symmetry || 78) < 60} 
+                      progress={analysis.back_score || analysis.vectors?.symmetry || 78} 
+                    />
+                    <ScanStatBlock 
+                      label="ABS & CORE" 
+                      value={analysis.abs_score || analysis.vectors?.core || 81} 
+                      delta={analysis.abs_delta?.replace(/[+-]/g, '') || "2.5"} 
+                      isNegative={(analysis.abs_score || analysis.vectors?.core || 81) < 60} 
+                      progress={analysis.abs_score || analysis.vectors?.core || 81} 
+                    />
+                    <ScanStatBlock 
+                      label="LEGS" 
+                      value={analysis.legs_score || analysis.vectors?.lower_body || 75} 
+                      delta={analysis.legs_delta?.replace(/[+-]/g, '') || "1.5"} 
+                      isNegative={(analysis.legs_score || analysis.vectors?.lower_body || 75) < 60} 
+                      progress={analysis.legs_score || analysis.vectors?.lower_body || 75} 
+                    />
+                    <ScanStatBlock 
+                      label="ARMS" 
+                      value={analysis.arms_score || analysis.vectors?.upper_body || 79} 
+                      delta={analysis.arms_delta?.replace(/[+-]/g, '') || "2.2"} 
+                      isNegative={(analysis.arms_score || analysis.vectors?.upper_body || 79) < 60} 
+                      progress={analysis.arms_score || analysis.vectors?.upper_body || 79} 
+                    />
                  </div>
 
-                 {/* Share Button (Hidden from screenshot via data-html2canvas-ignore if needed, but keeping it visible looks like an app export) */}
+                 {/* Share Button */}
                  <div className="w-full px-4 mt-auto max-w-2xl pb-4">
                    <motion.div 
                      initial={{ opacity: 0, y: 20 }} 
@@ -837,13 +885,13 @@ const Dashboard = () => {
                        className={`relative overflow-hidden w-full py-4 md:py-4 bg-[#E71B25] hover:bg-[#C6161F] text-white font-black text-[15px] md:text-lg uppercase tracking-wide rounded-2xl shadow-[0_10px_30px_rgba(231,27,37,0.3)] transition-colors duration-300 ${isSharing ? 'opacity-70 cursor-wait' : ''}`}
                      >
                        <span className="relative z-10 flex items-center justify-center gap-2">
-                         {isSharing ? 'Processing...' : 'Share Comparison'}
+                         {isSharing ? 'Extracting Neural Data...' : 'Share Comparison'}
                          {!isSharing && <span className="inline-block">→</span>}
                        </span>
                      </button>
                    </motion.div>
                  </div>
-              </motion.div>
+                  </motion.div>
             )}
              
 

@@ -11,50 +11,47 @@ import Dashboard from './components/steps/Dashboard';
 import LoginPage from './components/ui/Login';
 
 const BodyMaxFunnel = () => {
-  const [step, setStep] = useState(1); // 🔴 Testing ke liye 6 hai, live karne se pehle 1 kar dijiyega
+  const [step, setStep] = useState(1); 
   const [formData, setFormData] = useState({});
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // 🔴 PWA MAGIC ROUTING LOGIC
+  // PWA MAGIC ROUTING LOGIC
   useEffect(() => {
-    // 1. Check if the app is opened from the Home Screen (Standalone mode)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    
-    // 2. Check if there's a pending account creation flag saved
     const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
 
     if (isStandalone && needsAccount) {
-      // Restore the assessment data from local storage
       const savedData = localStorage.getItem('savedAssessmentData');
       if (savedData) {
         setFormData(JSON.parse(savedData));
       }
-      
-      // Jump directly to SuccessPage (Kyunke app mein hai, toh seedha Form khulega)
       setStep(7);
     }
     
     setIsInitializing(false);
   }, []);
 
-  // Smooth universal transition for page turns
+  // 🚀 PERFORMANCE FIX 1: Removed heavy blur filter on exit. 
+  // Added slight speed boost for a snappier, native-app feel on mobile.
   const pageTransition = {
-    initial: { opacity: 0, y: 20 },
+    initial: { opacity: 0, y: 15 },
     animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20, filter: "blur(5px)" },
-    transition: { duration: 0.4, ease: "easeOut" }
+    exit: { opacity: 0, y: -15 }, // BLUR REMOVED FROM HERE
+    transition: { duration: 0.35, ease: "easeOut" }
   };
 
   if (isInitializing) return <div className="min-h-screen bg-[#030303]"></div>;
 
   return (
     <div
-      className={`relative min-h-[100dvh] bg-[#030303] flex flex-col items-center justify-center overflow-x-hidden font-sans selection:bg-[#E71B25] selection:text-white ${step >= 5 ? 'py-0' : 'py-12 md:py-20'
-        }`}
+      className={`relative min-h-[100dvh] bg-[#030303] flex flex-col items-center justify-center overflow-x-hidden font-sans selection:bg-[#E71B25] selection:text-white ${step >= 5 ? 'py-0' : 'py-12 md:py-20'}`}
     >
       {/* Background Gradients & Textures */}
       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none bg-[radial-gradient(#333_1px,transparent_1px)] [background-size:24px_24px]"></div>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#E71B25] rounded-full mix-blend-screen filter blur-[250px] opacity-[0.04] pointer-events-none z-0"></div>
+      
+      {/* 🚀 PERFORMANCE FIX 2: Optimized Background Glow for iOS Safari */}
+      {/* Removed mix-blend-screen, reduced blur size, added GPU acceleration tags */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] h-[100vw] max-w-[600px] max-h-[600px] bg-[#E71B25] rounded-full opacity-[0.04] pointer-events-none z-0 blur-[100px] md:blur-[150px] transform-gpu will-change-transform"></div>
 
       {/* Main Content Area */}
       <div className="w-full flex-1 flex flex-col items-center justify-center relative z-10">
@@ -95,7 +92,6 @@ const BodyMaxFunnel = () => {
             </motion.div>
           )}
           
-          {/* === STEP 6: DIRECT PAYWALL / CHECKOUT === */}
           {step === 6 && (
             <motion.div key="s6" {...pageTransition} className="w-full min-h-screen flex items-center justify-center">
               <PaywallModal
@@ -105,19 +101,15 @@ const BodyMaxFunnel = () => {
                   const updatedFormData = { ...formData, planDuration: plan };
                   setFormData(updatedFormData);
                   
-                  // Save state for PWA
                   localStorage.setItem('pendingAccountCreation', 'true');
                   localStorage.setItem('savedAssessmentData', JSON.stringify(updatedFormData));
                   
-                  // Go directly to Step 7. SuccessPage.jsx will automatically decide 
-                  // whether to show the "Install App" UI or the "Create Account" Form!
                   setStep(7);
                 }} 
               />
             </motion.div>
           )}
 
-          {/* === STEP 7: SUCCESS PAGE / PWA INSTALL PAGE === */}
           {step === 7 && (
             <motion.div key="s7" {...pageTransition} className="w-full min-h-screen">
               <SuccessPage 
@@ -132,14 +124,12 @@ const BodyMaxFunnel = () => {
             </motion.div>
           )}
 
-          {/* === STEP 8: LOGIN PAGE === */}
           {step === 8 && (
             <motion.div key="s8" {...pageTransition} className="w-full min-h-screen">
               <LoginPage onGoToDashboard={() => setStep(9)} />
             </motion.div>
           )}
           
-          {/* === STEP 9: PREMIUM DASHBOARD === */}
           {step === 9 && (
             <motion.div key="s9" {...pageTransition} className="w-full min-h-screen">
               <Dashboard />
