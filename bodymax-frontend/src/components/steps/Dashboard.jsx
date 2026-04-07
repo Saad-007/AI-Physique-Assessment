@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity, Dumbbell, Target, User, LogOut,
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { updateDailyStreak } from '../../utils/streakUtils';
-
+import { toBlob } from 'html-to-image';
 // --- Mini Component: Premium Progress Bar ---
 const ProgressBar = ({ label, value, color, showPercentage = true }) => (
   <div className="mb-4">
@@ -83,7 +83,8 @@ const Dashboard = () => {
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [isAIGenerating, setIsAIGenerating] = useState(false);
   const [aiLogIndex, setAiLogIndex] = useState(0);
-  
+  const scanRef = useRef(null); // Container ko select karne ke liye
+  const [isSharing, setIsSharing] = useState(false); // Loading state ke liye
   // GAMIFICATION & PROGRESS STATES
   const [streak, setStreak] = useState(0); 
   const [completedWorkouts, setCompletedWorkouts] = useState(0);
@@ -182,8 +183,84 @@ const Dashboard = () => {
     setIsTimerActive(false);
     setTimeLeft(0);
   };
+// ==========================================
+  // VIRAL SHARE FUNCTION
+  // ==========================================
+  // ==========================================
+  // VIRAL SHARE FUNCTION (FULL DETAILED STATS)
+  // ==========================================
+// ==========================================
+  // VIRAL SHARE FUNCTION (FIXED WITH HTML-TO-IMAGE)
+  // ==========================================
+// ==========================================
+  // VIRAL SHARE FUNCTION (IMAGE + TEXT + LINK)
+  // ==========================================
+  const handleShare = async () => {
+    if (!scanRef.current) return;
+    setIsSharing(true);
 
-  const fetchUserDataAndProtocol = async () => {
+    // 1. Current Scores nikal rahe hain text ke liye
+    const currentScore = analysis.overall_rating || analysis.score || 82;
+    const potentialScore = analysis.potential_rating || analysis.potential || 95;
+    const bodyFat = analysis.body_fat_percentage || "18%";
+    
+    // 2. Viral Caption ban raha hai (Sath mein website link bhi)
+    const shareText = `🤖 BodyMax AI Physique Scan 🤖\n\n` +
+      `📊 OVERALL SCORE: ${currentScore}/100\n` +
+      `🔥 GENETIC POTENTIAL: ${potentialScore}/100\n` +
+      `💧 BODY FAT: ${bodyFat}\n\n` +
+      `Think you can beat my genetics? Get your AI scan here:\n` +
+      `🔗 https://ai-physique-assessment.vercel.app`;
+
+    try {
+      // 3. UI ki HD Picture ban rahi hai
+      const blob = await toBlob(scanRef.current, {
+        quality: 0.95,
+        backgroundColor: '#030303', 
+        pixelRatio: 2 
+      });
+
+      if (!blob) throw new Error("Image generation failed");
+      const file = new File([blob], 'BodyMax-Scan.png', { type: 'image/png' });
+
+      // 4. Mobile: Native Share (Image + Text Caption)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: 'My BodyMax Scan',
+          text: shareText, // <--- Yahan text attach ho raha hai
+          files: [file]    // <--- Yahan Image attach ho rahi hai
+        });
+      } else {
+        // 5. PC Fallback: Image Download + Text Auto-Copy
+        
+        // Pehle Text Copy karo
+        try {
+          await navigator.clipboard.writeText(shareText);
+        } catch (clipErr) {
+          console.log("Clipboard copy failed", clipErr);
+        }
+
+        // Phir Image Download karo
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'BodyMax-Scan.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        setToastMessage('📸 Image Saved & Text Copied! Just Paste (Ctrl+V) anywhere.');
+        setTimeout(() => setToastMessage(null), 4000);
+      }
+      setIsSharing(false);
+    } catch (err) {
+      console.error('Sharing failed', err);
+      setIsSharing(false);
+      setToastMessage('Failed to generate share image.');
+    }
+  };
+    const fetchUserDataAndProtocol = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { window.location.href = '/login'; return; }
@@ -422,7 +499,8 @@ const Dashboard = () => {
     );
   }
 
-  const analysis = safeProtocol.body_analysis || { score: 0, classification: "Evaluating...", estimated_bf: "--", bmr: 0, tdee: 0, strengths: [], weaknesses: [], vectors: {}, executive_summary: "" };
+  // 🔴 SAFE FALLBACK DEFAULTS
+  const analysis = safeProtocol.body_analysis || { score: 0, overall_rating: 0, classification: "Evaluating...", estimated_bf: "--", bmr: 0, tdee: 0, strengths: [], weaknesses: [], executive_summary: "" };
   const macros = safeProtocol.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 };
   const nutrition = safeProtocol.nutrition || { strategy: "Mapping...", meals: [] };
   const userName = profile?.full_name?.split(' ')[0] || 'Athlete';
@@ -591,12 +669,12 @@ const Dashboard = () => {
                       <circle cx="50%" cy="50%" r="45%" fill="transparent" stroke="#222" strokeWidth="6" />
                       <motion.circle
                         cx="50%" cy="50%" r="45%" fill="transparent" stroke="#E71B25" strokeWidth="6" strokeLinecap="round"
-                        strokeDasharray="283" strokeDashoffset={283 - (283 * analysis.score) / 100}
-                        initial={{ strokeDashoffset: 283 }} animate={{ strokeDashoffset: 283 - (283 * analysis.score) / 100 }} transition={{ duration: 2 }}
+                        strokeDasharray="283" strokeDashoffset={283 - (283 * (analysis.overall_rating || analysis.score || 80)) / 100}
+                        initial={{ strokeDashoffset: 283 }} animate={{ strokeDashoffset: 283 - (283 * (analysis.overall_rating || analysis.score || 80)) / 100 }} transition={{ duration: 2 }}
                       />
                     </svg>
                     <div className="absolute flex flex-col items-center mt-1">
-                      <span className="text-2xl md:text-4xl font-black text-white">{analysis.score}</span>
+                      <span className="text-2xl md:text-4xl font-black text-white">{analysis.overall_rating || analysis.score || 80}</span>
                       <span className="text-[7px] md:text-[8px] text-gray-500 uppercase tracking-widest font-bold mt-[-2px]">Physique</span>
                     </div>
                   </div>
@@ -620,7 +698,7 @@ const Dashboard = () => {
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div className="bg-[#111] p-3 rounded-2xl border border-white/[0.02]">
                         <span className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-widest block mb-1">Est. Body Fat</span>
-                        <span className="text-lg md:text-xl font-black text-white">{analysis.estimated_bf}</span>
+                        <span className="text-lg md:text-xl font-black text-white">{analysis.body_fat_percentage || analysis.estimated_bf || "18%"}</span>
                       </div>
                       <div className="bg-[#111] p-3 rounded-2xl border border-white/[0.02]">
                         <span className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-widest block mb-1">Base Burn (BMR)</span>
@@ -636,15 +714,16 @@ const Dashboard = () => {
                     </div>
                   </div>
 
+                  {/* 🔴 OVERVIEW TAB VECTOR FIX */}
                   <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5">
                     <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-2.5">
                       <Focus className="w-3.5 h-3.5 text-orange-400" />
-                      <h3 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-widest">Vector Alignment</h3>
+                      <h3 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-widest">Target Alignment</h3>
                     </div>
-                    <ProgressBar label="Upper Body Dev." value={analysis.vectors.upper_body || 0} color="bg-blue-500" />
-                    <ProgressBar label="Lower Body Dev." value={analysis.vectors.lower_body || 0} color="bg-orange-500" />
-                    <ProgressBar label="Core & Posture" value={analysis.vectors.core || 0} color="bg-yellow-500" />
-                    <ProgressBar label="Overall Symmetry" value={analysis.vectors.symmetry || 0} color="bg-[#E71B25]" />
+                    <ProgressBar label="Chest & Shoulders" value={analysis.chest_score || analysis.vectors?.upper_body || 76} color="bg-blue-500" />
+                    <ProgressBar label="Lower Body Dev." value={analysis.legs_score || analysis.vectors?.lower_body || 75} color="bg-orange-500" />
+                    <ProgressBar label="Core & Posture" value={analysis.abs_score || analysis.vectors?.core || 81} color="bg-yellow-500" />
+                    <ProgressBar label="Back & Symmetry" value={analysis.back_score || analysis.vectors?.symmetry || 78} color="bg-[#E71B25]" />
                   </div>
                 </div>
 
@@ -667,30 +746,26 @@ const Dashboard = () => {
               </motion.div>
             )}
 
-            {/* 🔴 TAB 2: AI SCANS (STRICTLY SIDE-BY-SIDE) */}
+            {/* 🔴 TAB 2: AI SCANS (WITH IMAGE EXPORT) */}
             {activeTab === 'photos' && (
-              <motion.div key="photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col items-center w-full max-w-4xl mx-auto pt-2 md:pt-4 pb-20 px-2 md:px-8">
+              // YAHAN ref={scanRef} ADD KIYA HAI PUREY DESIGN KO CAPTURE KARNE KE LIYE
+              <motion.div ref={scanRef} key="photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col items-center w-full max-w-4xl mx-auto pt-2 md:pt-4 pb-20 px-2 md:px-8 bg-[#030303]">
                  
                  {/* Top Header */}
-                 <div className="w-full flex flex-col items-center justify-center mb-8 relative text-center">
+                 <div className="w-full flex flex-col items-center justify-center mb-8 relative text-center pt-4">
                     <h2 className="text-[18px] md:text-[22px] font-black text-white tracking-tight uppercase">Physique Matrix</h2>
                     <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">Current vs Target Morphology</p>
                  </div>
 
                  {/* Images Container (STRICTLY SIDE-BY-SIDE GRID) */}
                  <div className="grid grid-cols-2 gap-4 md:gap-10 mb-10 w-full">
-                    
                     {/* User Image (Current) */}
                     <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-2xl md:rounded-3xl border-[2px] md:border-[3px] border-[#a855f7]/80 shadow-[0_0_30px_rgba(168,85,247,0.15)] overflow-hidden bg-[#0a0a0a] relative group">
-                       <img src={assessment?.photos?.[1] || '/placeholder.jpg'} className="w-full h-full object-cover" alt="Current Physique" />
-                       
-                       {/* Sleek bottom gradient for label readability */}
+                       <img src={assessment?.photos?.[1] || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover" alt="Current Physique" />
                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
-                       
-                       {/* Premium floating label */}
                        <div className="absolute bottom-4 w-full flex justify-center">
                           <div className="bg-[#a855f7]/20 backdrop-blur-md border border-[#a855f7]/50 px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-                             <div className="w-1.5 h-1.5 rounded-full bg-[#c084fc] animate-pulse"></div>
+                             <div className="w-1.5 h-1.5 rounded-full bg-[#c084fc]"></div>
                              <span className="text-[9px] md:text-[11px] font-black text-white tracking-widest uppercase">Current</span>
                           </div>
                        </div>
@@ -698,10 +773,8 @@ const Dashboard = () => {
                     
                     {/* Goal Image */}
                     <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-2xl md:rounded-3xl border-[2px] md:border-[3px] border-[#3b82f6]/80 shadow-[0_0_30px_rgba(59,130,246,0.15)] overflow-hidden bg-[#0a0a0a] relative group">
-                       <img src={dreamImage || '/placeholder.jpg'} className="w-full h-full object-cover filter grayscale-[10%]" alt="Goal Physique" />
-                       
+                       <img src={dreamImage || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover filter grayscale-[10%]" alt="Goal Physique" />
                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
-                       
                        <div className="absolute bottom-4 w-full flex justify-center">
                           <div className="bg-[#3b82f6]/20 backdrop-blur-md border border-[#3b82f6]/50 px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
                              <Target className="w-2.5 h-2.5 text-[#93c5fd]" />
@@ -709,56 +782,46 @@ const Dashboard = () => {
                           </div>
                        </div>
                     </div>
-
                  </div>
 
-          {/* Stats Grid (Fully Dynamic with AI Data) */}
+               {/* Top Highlight Stats (Fixed Text Truncation) */}
+                 <div className="w-full flex justify-between px-2 md:px-6 mb-8 border-b border-white/[0.05] pb-6 max-w-2xl">
+                    <div className="flex flex-col items-center flex-1">
+                       <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Body Fat</span>
+                       <span className="text-[18px] md:text-[24px] font-black text-white leading-tight">{analysis.body_fat_percentage || "18%"}</span>
+                    </div>
+                    
+                    <div className="w-px bg-white/[0.05] mx-1 md:mx-2"></div>
+                    
+                    <div className="flex flex-col items-center flex-1">
+                       <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Dream Body</span>
+                       <span className="text-[18px] md:text-[24px] font-black text-green-400 leading-tight">{analysis.dream_body_chances || "95%"}</span>
+                    </div>
+                    
+                    <div className="w-px bg-white/[0.05] mx-1 md:mx-2"></div>
+                    
+                    {/* Fixed: Removed truncate and adjusted max-width so text can wrap if needed */}
+                    <div className="flex flex-col items-center flex-1 w-full max-w-[120px] md:max-w-[150px]">
+                       <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Best Trait</span>
+                       <span className="text-[14px] md:text-[18px] font-black text-blue-400 text-center leading-[1.1] md:leading-tight break-words line-clamp-2">
+                         {analysis.best_feature || "Shoulders"}
+                       </span>
+                    </div>
+                 </div>
+
+                 {/* Detailed Muscle Stats Grid */}
                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full px-4 mb-10 max-w-2xl">
-                    <ScanStatBlock 
-                      label="OVERALL" 
-                      value={analysis.score || 82} 
-                      delta="INIT" // Initial scan indicator
-                      progress={analysis.score || 82} 
-                    />
-                    <ScanStatBlock 
-                      label="POTENTIAL" 
-                      value={analysis.potential || 95} 
-                      delta="MAX" // Target genetic limit
-                      progress={analysis.potential || 95} 
-                    />
-                    
-                    <ScanStatBlock 
-                      label="UPPER BODY" 
-                      value={analysis.vectors.upper_body || 76} 
-                      delta={analysis.vectors.upper_delta?.replace(/[+-]/g, '') || "2.1"} 
-                      isNegative={analysis.vectors.upper_delta?.includes('-')} 
-                      progress={analysis.vectors.upper_body || 76} 
-                    />
-                    <ScanStatBlock 
-                      label="LOWER BODY" 
-                      value={analysis.vectors.lower_body || 80} 
-                      delta={analysis.vectors.lower_delta?.replace(/[+-]/g, '') || "3.0"} 
-                      isNegative={analysis.vectors.lower_delta?.includes('-')} 
-                      progress={analysis.vectors.lower_body || 80} 
-                    />
-                    
-                    <ScanStatBlock 
-                      label="CORE" 
-                      value={analysis.vectors.core || 78} 
-                      delta={analysis.vectors.core_delta?.replace(/[+-]/g, '') || "1.8"} 
-                      isNegative={analysis.vectors.core_delta?.includes('-')} 
-                      progress={analysis.vectors.core || 78} 
-                    />
-                    <ScanStatBlock 
-                      label="SYMMETRY" 
-                      value={analysis.vectors.symmetry || 81} 
-                      delta={analysis.vectors.symmetry_delta?.replace(/[+-]/g, '') || "2.5"} 
-                      isNegative={analysis.vectors.symmetry_delta?.includes('-')} 
-                      progress={analysis.vectors.symmetry || 81} 
-                    />
+                    <ScanStatBlock label="OVERALL RATING" value={analysis.overall_rating || analysis.score || 82} delta="INIT" progress={analysis.overall_rating || analysis.score || 82} />
+                    <ScanStatBlock label="POTENTIAL RATING" value={analysis.potential_rating || analysis.potential || 95} delta="MAX" progress={analysis.potential_rating || analysis.potential || 95} />
+                    <ScanStatBlock label="CHEST" value={analysis.chest_score || analysis.vectors?.upper_body || 76} delta={analysis.chest_delta?.replace(/[+-]/g, '') || "2.1"} isNegative={analysis.chest_delta?.includes('-')} progress={analysis.chest_score || analysis.vectors?.upper_body || 76} />
+                    <ScanStatBlock label="SHOULDERS" value={analysis.shoulders_score || analysis.vectors?.upper_body || 80} delta={analysis.shoulders_delta?.replace(/[+-]/g, '') || "3.0"} isNegative={analysis.shoulders_delta?.includes('-')} progress={analysis.shoulders_score || analysis.vectors?.upper_body || 80} />
+                    <ScanStatBlock label="BACK" value={analysis.back_score || analysis.vectors?.symmetry || 78} delta={analysis.back_delta?.replace(/[+-]/g, '') || "1.8"} isNegative={analysis.back_delta?.includes('-')} progress={analysis.back_score || analysis.vectors?.symmetry || 78} />
+                    <ScanStatBlock label="ABS & CORE" value={analysis.abs_score || analysis.vectors?.core || 81} delta={analysis.abs_delta?.replace(/[+-]/g, '') || "2.5"} isNegative={analysis.abs_delta?.includes('-')} progress={analysis.abs_score || analysis.vectors?.core || 81} />
+                    <ScanStatBlock label="LEGS" value={analysis.legs_score || analysis.vectors?.lower_body || 75} delta={analysis.legs_delta?.replace(/[+-]/g, '') || "1.5"} isNegative={analysis.legs_delta?.includes('-')} progress={analysis.legs_score || analysis.vectors?.lower_body || 75} />
+                    <ScanStatBlock label="ARMS" value={analysis.arms_score || analysis.vectors?.upper_body || 79} delta={analysis.arms_delta?.replace(/[+-]/g, '') || "2.2"} isNegative={analysis.arms_delta?.includes('-')} progress={analysis.arms_score || analysis.vectors?.upper_body || 79} />
                  </div>
 
-               {/* Share Button (Upgraded Theme & Animations) */}
+                 {/* Share Button (Hidden from screenshot via data-html2canvas-ignore if needed, but keeping it visible looks like an app export) */}
                  <div className="w-full px-4 mt-auto max-w-2xl pb-4">
                    <motion.div 
                      initial={{ opacity: 0, y: 20 }} 
@@ -766,29 +829,23 @@ const Dashboard = () => {
                      transition={{ delay: 0.3 }}
                      className="relative mt-4 w-full flex justify-center group transform-gpu will-change-[opacity,transform]"
                    >
-                     {/* Glowing Background Blur */}
                      <div className="absolute inset-0 bg-[#E71B25] rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 transform-gpu will-change-opacity"></div>
                      
-                     <motion.button
-                       whileHover={{ scale: 1.02 }}
-                       whileTap={{ scale: 0.98 }}
-                       className="relative overflow-hidden w-full py-4 md:py-4 bg-[#E71B25] hover:bg-[#C6161F] text-white font-black text-[15px] md:text-lg uppercase tracking-wide rounded-2xl shadow-[0_10px_30px_rgba(231,27,37,0.3)] transition-colors duration-300 transform-gpu will-change-transform"
+                     <button
+                       onClick={handleShare} 
+                       disabled={isSharing}
+                       className={`relative overflow-hidden w-full py-4 md:py-4 bg-[#E71B25] hover:bg-[#C6161F] text-white font-black text-[15px] md:text-lg uppercase tracking-wide rounded-2xl shadow-[0_10px_30px_rgba(231,27,37,0.3)] transition-colors duration-300 ${isSharing ? 'opacity-70 cursor-wait' : ''}`}
                      >
                        <span className="relative z-10 flex items-center justify-center gap-2">
-                         Share Comparison 
-                         <motion.span 
-                           animate={{ x: [0, 5, 0] }} 
-                           transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                           className="transform-gpu will-change-transform inline-block"
-                         >
-                           →
-                         </motion.span>
+                         {isSharing ? 'Processing...' : 'Share Comparison'}
+                         {!isSharing && <span className="inline-block">→</span>}
                        </span>
-                     </motion.button>
+                     </button>
                    </motion.div>
                  </div>
               </motion.div>
             )}
+             
 
             {/* TAB 3: WORKOUTS */}
             {activeTab === 'protocol' && (
@@ -1029,36 +1086,16 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* Muscle Load */}
+                  {/* 🔴 ANALYTICS TAB VECTOR FIX */}
                   <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5">
-                    <div className="flex items-center gap-1.5 mb-5 border-b border-white/[0.05] pb-2.5">
-                      <Activity className="w-3.5 h-3.5 text-purple-400" />
-                      <h3 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-widest">Muscle Load Distribution</h3>
+                    <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-2.5">
+                      <Focus className="w-3.5 h-3.5 text-orange-400" />
+                      <h3 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-widest">Target Alignment</h3>
                     </div>
-                    
-                    {completedWorkouts === 0 ? (
-                      <div className="h-32 flex flex-col items-center justify-center opacity-40">
-                        <Target className="w-6 h-6 text-gray-500 mb-2" strokeWidth={1} />
-                        <p className="text-[9px] font-medium text-gray-500 uppercase tracking-widest">Awaiting Data</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3.5 h-32 md:h-40 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                        {muscleDistribution.map((muscle, idx) => (
-                          <div key={idx}>
-                            <div className="flex justify-between items-center mb-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-1 h-1 rounded-full bg-[#E71B25]"></div>
-                                <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">{muscle.name}</span>
-                              </div>
-                              <span className="text-[9px] font-mono text-gray-500">{muscle.count}x <span className="text-[#E71B25] ml-1 font-bold">{muscle.percentage}%</span></span>
-                            </div>
-                            <div className="w-full bg-white/[0.02] rounded-full h-1 overflow-hidden">
-                              <motion.div initial={{ width: 0 }} animate={{ width: `${muscle.percentage}%` }} transition={{ duration: 1, delay: idx * 0.1 }} className="bg-gradient-to-r from-[#E71B25]/50 to-[#E71B25] h-full rounded-full" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <ProgressBar label="Chest & Shoulders" value={analysis.chest_score || analysis.vectors?.upper_body || 76} color="bg-blue-500" />
+                    <ProgressBar label="Lower Body Dev." value={analysis.legs_score || analysis.vectors?.lower_body || 75} color="bg-orange-500" />
+                    <ProgressBar label="Core & Posture" value={analysis.abs_score || analysis.vectors?.core || 81} color="bg-yellow-500" />
+                    <ProgressBar label="Back & Symmetry" value={analysis.back_score || analysis.vectors?.symmetry || 78} color="bg-[#E71B25]" />
                   </div>
                 </div>
               </motion.div>
