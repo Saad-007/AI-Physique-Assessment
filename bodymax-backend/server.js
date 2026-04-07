@@ -121,21 +121,17 @@ app.post('/api/generate-protocol', async (req, res) => {
       MANDATORY JSON FORMAT (Strictly dynamic values only - NO PLACEHOLDERS):
       {
         "body_analysis": {
-          "score": [Integer 1-100],
-          "potential": [Integer 90-98],
-          "classification": "[e.g., Athletic Beginner, Endomorph aiming for Fat Loss, etc.]",
-          "estimated_bf": "[Estimated % range]",
-          "bmr": [Integer],
-          "tdee": [Integer],
-          "strengths": ["[Simple strength 1]", "[Simple strength 2]"],
-          "weaknesses": ["[Simple area to improve 1]", "[Simple area to improve 2]"],
-          "vectors": { 
-             "upper_body": [Integer 1-100], "upper_delta": "[e.g., +2.1 or -1.5]",
-             "lower_body": [Integer 1-100], "lower_delta": "[e.g., +3.0]",
-             "core": [Integer 1-100], "core_delta": "[e.g., +1.8]",
-             "symmetry": [Integer 1-100], "symmetry_delta": "[e.g., +2.5]"
-          },
-          "executive_summary": "[A 4-sentence friendly, encouraging, and very easy-to-understand summary explaining where their body is right now and how this exact plan will help them reach their goal.]"
+          "overall_rating": [Integer 1-100],
+          "potential_rating": [Integer 90-98],
+          "dream_body_chances": "[e.g., '92%']",
+          "body_fat_percentage": "[Estimated %]",
+          "best_feature": "[e.g., 'Broad Shoulders' or 'Strong Core']",
+          "chest_score": [Integer 1-100], "chest_delta": "[e.g., +2.1 or -1.5]",
+          "shoulders_score": [Integer 1-100], "shoulders_delta": "[e.g., +3.0]",
+          "abs_score": [Integer 1-100], "abs_delta": "[e.g., +1.8]",
+          "back_score": [Integer 1-100], "back_delta": "[e.g., +2.5]",
+          "legs_score": [Integer 1-100], "legs_delta": "[e.g., +1.5]",
+          "executive_summary": "[A 4-sentence friendly, encouraging summary...]"
         },
         "macros": { "calories": [Target], "protein": [Target], "carbs": [Balance], "fats": [Balance] },
         "nutrition": {
