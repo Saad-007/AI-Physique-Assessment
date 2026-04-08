@@ -5,7 +5,6 @@ import MissionStep from './components/steps/MissionStep';
 import ComparisonStep from './components/steps/ComparsionStep';
 import SocialProofStep from './components/steps/SocialProofStep';
 import AssessmentFlow from './components/steps/AssessmentFlow';
-// 🔴 NAYA IMPORT YAHAN HAI
 import AnalyzingStep from './components/steps/AnalyzingStep'; 
 import PaywallModal from './components/ui/PaywalModal';
 import SuccessPage from './components/ui/SuccessPage';
@@ -13,43 +12,66 @@ import Dashboard from './components/steps/Dashboard';
 import LoginPage from './components/ui/Login';
 
 const BodyMaxFunnel = () => {
+  // 1 se start karein, 7 sirf testing ke liye tha
   const [step, setStep] = useState(1); 
   const [formData, setFormData] = useState({});
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // PWA MAGIC ROUTING LOGIC
+  // 1. SCROLL TO TOP ON STEP CHANGE
   useEffect(() => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
 
-    if (isStandalone && needsAccount) {
-      const savedData = localStorage.getItem('savedAssessmentData');
-      if (savedData) {
-        setFormData(JSON.parse(savedData));
+  // 2. INITIALIZATION & SESSION CHECK
+  useEffect(() => {
+    const initApp = async () => {
+      // Check for standalone PWA mode
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
+
+      // Agar user ne pay kar diya hai lekin account nahi banaya (PWA context)
+      if (isStandalone && needsAccount) {
+        const savedData = localStorage.getItem('savedAssessmentData');
+        if (savedData) {
+          setFormData(JSON.parse(savedData));
+          setStep(8); // Seedha SuccessPage par jayein
+        }
       }
-      setStep(8); // Step 8 is now SuccessPage
-    }
-    
-    setIsInitializing(false);
+      
+      // Yahan aap check kar sakte hain agar Supabase session exist karta hai toh setStep(10) dashboard par bhejein
+      
+      setIsInitializing(false);
+    };
+
+    initApp();
   }, []);
 
   const pageTransition = {
-    initial: { opacity: 0, y: 15 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -15 }, 
-    transition: { duration: 0.35, ease: "easeOut" }
+    initial: { opacity: 0, scale: 0.98 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 1.02 }, 
+    transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] } // Custom cubic-bezier for premium feel
   };
 
-  if (isInitializing) return <div className="min-h-screen bg-[#030303]"></div>;
+  if (isInitializing) return (
+    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+        <motion.div 
+            animate={{ opacity: [0.4, 1, 0.4] }} 
+            transition={{ repeat: Infinity, duration: 1.5 }}
+            className="w-12 h-12 border-2 border-[#E71B25] border-t-transparent rounded-full"
+        />
+    </div>
+  );
 
   return (
     <div
-      className={`relative min-h-[100dvh] bg-[#030303] flex flex-col items-center justify-center overflow-x-hidden font-sans selection:bg-[#E71B25] selection:text-white ${step >= 5 ? 'py-0' : 'py-12 md:py-20'}`}
+      className={`relative min-h-[100dvh] bg-[#030303] flex flex-col items-center justify-center overflow-x-hidden font-sans selection:bg-[#E71B25] selection:text-white transition-all duration-500`}
     >
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none bg-[radial-gradient(#333_1px,transparent_1px)] [background-size:24px_24px]"></div>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] h-[100vw] max-w-[600px] max-h-[600px] bg-[#E71B25] rounded-full opacity-[0.04] pointer-events-none z-0 blur-[100px] md:blur-[150px] transform-gpu will-change-transform"></div>
+      {/* Background Decor */}
+      <div className="fixed inset-0 z-0 opacity-20 pointer-events-none bg-[radial-gradient(#333_1px,transparent_1px)] [background-size:32px_32px]"></div>
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] h-[100vw] max-w-[600px] max-h-[600px] bg-[#E71B25] rounded-full opacity-[0.03] pointer-events-none z-0 blur-[120px] transform-gpu"></div>
 
-      <div className="w-full flex-1 flex flex-col items-center justify-center relative z-10">
+      <div className={`w-full flex-1 flex flex-col items-center relative z-10 ${step >= 5 ? 'p-0' : 'py-12 md:py-20'}`}>
         <AnimatePresence mode="wait">
 
           {step === 1 && (
@@ -82,24 +104,22 @@ const BodyMaxFunnel = () => {
                 formData={formData}
                 setFormData={setFormData}
                 onBack={() => setStep(4)}
-                onComplete={() => setStep(6)} // 🔴 Assessment ke baad Step 6 (Analyzing) par jaye
+                onComplete={() => setStep(6)} 
               />
             </motion.div>
           )}
           
-          {/* 🔴 NEW STEP 6: ANALYZING SCREEN IMPORTED */}
           {step === 6 && (
             <motion.div key="s6" {...pageTransition} className="w-full min-h-screen flex items-center justify-center">
               <AnalyzingStep 
                 formData={formData} 
-                onComplete={() => setStep(7)} // 🔴 Analyze hone ke baad Step 7 (Paywall) par jaye
+                onComplete={() => setStep(7)} 
               />
             </motion.div>
           )}
 
-          {/* 🔴 PAYWALL (Now Step 7) */}
           {step === 7 && (
-            <motion.div key="s7" {...pageTransition} className="w-full min-h-screen flex items-center justify-center">
+            <motion.div key="s7" {...pageTransition} className="w-full min-h-screen flex items-center justify-center p-4">
               <PaywallModal
                 isOpen={true}
                 formData={formData} 
@@ -107,17 +127,14 @@ const BodyMaxFunnel = () => {
                 onSuccess={(plan) => {
                   const updatedFormData = { ...formData, planDuration: plan };
                   setFormData(updatedFormData);
-                  
                   localStorage.setItem('pendingAccountCreation', 'true');
                   localStorage.setItem('savedAssessmentData', JSON.stringify(updatedFormData));
-                  
-                  setStep(8); // Go to SuccessPage
+                  setStep(8); 
                 }} 
               />
             </motion.div>
           )}
 
-          {/* 🔴 SUCCESS PAGE (Now Step 8) */}
           {step === 8 && (
             <motion.div key="s8" {...pageTransition} className="w-full min-h-screen">
               <SuccessPage 
@@ -126,20 +143,18 @@ const BodyMaxFunnel = () => {
                 onGoToDashboard={() => {
                    localStorage.removeItem('pendingAccountCreation');
                    localStorage.removeItem('savedAssessmentData');
-                   setStep(10); // Go to Dashboard
+                   setStep(10);
                 }}
               />
             </motion.div>
           )}
 
-          {/* 🔴 LOGIN PAGE (Now Step 9) */}
           {step === 9 && (
             <motion.div key="s9" {...pageTransition} className="w-full min-h-screen">
               <LoginPage onGoToDashboard={() => setStep(10)} />
             </motion.div>
           )}
           
-          {/* 🔴 DASHBOARD (Now Step 10) */}
           {step === 10 && (
             <motion.div key="s10" {...pageTransition} className="w-full min-h-screen">
               <Dashboard />
