@@ -59,7 +59,7 @@ app.post('/api/generate-protocol', async (req, res) => {
       }
     }
 
-    // 🔴 THE MASTER PROMPT: Simple, Expert, & Friendly Fitness Coach
+    // 🔴 THE MASTER PROMPT
     const systemPrompt = `
       You are BodyMax AI, an expert, highly encouraging, and easy-to-understand Fitness Coach. 
       Your objective is to generate a highly effective, personalized physical analysis and training protocol.
@@ -74,7 +74,9 @@ app.post('/api/generate-protocol', async (req, res) => {
          - Calculate BMR and TDEE based on profile. 
          - Generate a dynamic "Body Score" (1-100) representing their current state.
          - POTENTIAL: Calculate the user's genetic limit or goal potential (usually 90-98) based on their height and overall goal.
-         - DELTAS: Since this is the initial scan, simulate a realistic 'Progression Shift' (e.g., small positive or negative changes like 2.4, -1.2, 4.0) representing the immediate metabolic or postural adjustments they will experience when starting.
+         - DELTAS: Since this is the initial scan, simulate a realistic 'Progression Shift' (e.g., small positive or negative changes like +2.4, -1.2) representing the immediate metabolic or postural adjustments they will experience when starting.
+         - STRENGTHS & LIMITERS: Provide exactly 4 genetic advantages (strengths) and 4 limiters (weaknesses) holding them back from their dream physique.
+         - WORST FEATURE: Name the single muscle group holding them back the most (e.g., "chest development").
       
       2. EQUIPMENT: Strictly match exercises to the user's available equipment (Home vs Commercial Gym).
 
@@ -112,11 +114,9 @@ app.post('/api/generate-protocol', async (req, res) => {
            * Week 1-4 (Focus on form and feeling the muscle)
            * Week 5-8 (Push harder - add a little weight or extra reps)
            * Week 9-12 (Maximum effort - try drop sets or slower movements)
-         - Example Note: "Keep your chest up. Wk 1-4: Focus on form. Wk 5-8: Add light weight. Wk 9-12: Try a drop set on the last set."
 
       6. NUTRITION (EXACT & SIMPLE):
-         - DO NOT provide generic food lists. Provide EXACT quantities (grams, scoops, cups, etc.) for every single item using simple terms.
-         - Example: "150g grilled chicken breast, 1 cup cooked white rice, 15 raw almonds".
+         - DO NOT provide generic food lists. Provide EXACT quantities (grams, scoops, cups, etc.) for every single item.
 
       MANDATORY JSON FORMAT (Strictly dynamic values only - NO PLACEHOLDERS):
       {
@@ -126,22 +126,26 @@ app.post('/api/generate-protocol', async (req, res) => {
           "dream_body_chances": "[e.g., '92%']",
           "body_fat_percentage": "[Estimated %]",
           "best_feature": "[e.g., 'Broad Shoulders' or 'Strong Core']",
+          "worst_feature": "[e.g., 'chest development' or 'shoulder width' (Lowercase)]",
+          "strengths": ["[Advantage 1]", "[Advantage 2]", "[Advantage 3]", "[Advantage 4]"],
+          "weaknesses": ["[Limiter 1]", "[Limiter 2]", "[Limiter 3]", "[Limiter 4]"],
           "chest_score": [Integer 1-100], "chest_delta": "[e.g., +2.1 or -1.5]",
           "shoulders_score": [Integer 1-100], "shoulders_delta": "[e.g., +3.0]",
           "abs_score": [Integer 1-100], "abs_delta": "[e.g., +1.8]",
           "back_score": [Integer 1-100], "back_delta": "[e.g., +2.5]",
           "legs_score": [Integer 1-100], "legs_delta": "[e.g., +1.5]",
+          "arms_score": [Integer 1-100], "arms_delta": "[e.g., +2.2]",
           "executive_summary": "[A 4-sentence friendly, encouraging summary...]"
         },
         "macros": { "calories": [Target], "protein": [Target], "carbs": [Balance], "fats": [Balance] },
         "nutrition": {
-          "strategy": "[Explain the 'Why' behind these macros in simple terms (e.g., 'We need this much protein to repair your muscles and enough carbs to give you energy for your workouts').]",
+          "strategy": "[Explain the 'Why' behind these macros in simple terms]",
           "meals": [ { "name": "Meal 1", "food": "Exact grams/scoops\\nExact grams", "cals": 0, "p": 0, "c": 0, "f": 0 } ]
         },
         "roadmap": [
-          { "phase": "Week 1-4: Foundation", "description": "[Explain simply what changes they will feel in their body during this time]" },
-          { "phase": "Week 5-8: Pushing Limits", "description": "[Explain simply how their strength and visual look will start improving]" },
-          { "phase": "Week 9-12: Final Push & Definition", "description": "[Explain simply the final results they can expect to see]" }
+          { "phase": "Week 1-4: Foundation", "description": "..." },
+          { "phase": "Week 5-8: Pushing Limits", "description": "..." },
+          { "phase": "Week 9-12: Final Push & Definition", "description": "..." }
         ],
         "workouts": [
           { 
@@ -149,13 +153,7 @@ app.post('/api/generate-protocol', async (req, res) => {
             "targets": ["[Muscle 1]", "[Muscle 2]"], 
             "intensity": "[Low, Med, High]", 
             "exercises": [ 
-              { 
-                "name": "[Muscle Group Prefix]: [Exercise Name]", 
-                "sets": "[e.g., 3-4]", 
-                "reps": "[e.g., 8-12]", 
-                "rest": "[e.g., 60-90s]", 
-                "notes": "[Simple form cue + Specific Wk1-12 Progression]" 
-              } 
+              { "name": "[Muscle]: [Exercise]", "sets": "[e.g., 3-4]", "reps": "[e.g., 8-12]", "rest": "[e.g., 60-90s]", "notes": "[Cue + Progression]" } 
             ] 
           }
         ]
@@ -163,15 +161,17 @@ app.post('/api/generate-protocol', async (req, res) => {
 
       CRITICAL CONSTRAINTS:
       - Return EXACTLY ${workoutDays} workout objects.
-      - Ensure there are exactly 8 exercises per workout object (4 for Muscle 1, then 4 for Muscle 2).
-      - KEEP THE LANGUAGE SIMPLE, FRIENDLY, AND HUMAN-LIKE.
+      - Ensure exactly 8 exercises per workout object.
     `;
 
     let contentArray = [{ type: "text", text: "Please analyze my profile and generate the exact JSON response following the strict 4-exercise rule and split logic." }];
 
+    // Safe URL Filter (Prevents OpenAI from crashing on local Blob URLs)
+    const isValidUrl = (url) => typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://') || url.startsWith('data:image/')) && !url.startsWith('blob:');
+
     if (assessmentData.photos) {
       Object.values(assessmentData.photos).forEach(photoUrl => {
-        if (photoUrl && photoUrl.startsWith('http')) {
+        if (isValidUrl(photoUrl)) {
           contentArray.push({ type: "image_url", image_url: { url: photoUrl } });
         }
       });
@@ -179,7 +179,9 @@ app.post('/api/generate-protocol', async (req, res) => {
 
     if (assessmentData.dreamPhysiqueImage || assessmentData.goalImageUrl) {
       const goalImg = assessmentData.dreamPhysiqueImage || assessmentData.goalImageUrl;
-      contentArray.push({ type: "image_url", image_url: { url: goalImg } });
+      if (isValidUrl(goalImg)) {
+        contentArray.push({ type: "image_url", image_url: { url: goalImg } });
+      }
     }
 
     let completion;
@@ -187,37 +189,39 @@ app.post('/api/generate-protocol', async (req, res) => {
       completion = await openai.chat.completions.create({
         model: "gpt-4o",
         response_format: { type: "json_object" },
+        max_tokens: 4000, // 🔴 FIX: Increased Tokens
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: contentArray }
         ],
-      }, {
-        timeout: 60000, 
       });
-    } catch (aiError) {
-      console.error("OpenAI Error:", aiError.message);
-      if (aiError.message.includes("downloading") || aiError.message.includes("image")) {
-        console.log("Retrying without images...");
-        completion = await openai.chat.completions.create({
-          model: "gpt-4o",
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: "Analyze based on text assessment only." }
-          ],
-        }, {
-          timeout: 60000,
-        });
-      } else {
-        throw aiError;
+
+      // 🔴 FIX: Detect if OpenAI Safety Filter blocked the image
+      if (!completion.choices?.[0]?.message?.content || completion.choices?.[0]?.finish_reason === "content_filter") {
+        console.log("⚠️ OpenAI blocked the image (NSFW/Safety). Forcing text-only fallback...");
+        throw new Error("content_filter_triggered");
       }
+
+    } catch (aiError) {
+      console.log("🔄 Retrying without images. Reason:", aiError.message);
+      
+      // Fallback to text-only analysis
+      completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        response_format: { type: "json_object" },
+        max_tokens: 4000,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: "Analyze based on text assessment only. Ignore visual data and generate the JSON." }
+        ],
+      });
     }
 
     // --- SAFE CONTENT EXTRACTION ---
     const rawContent = completion.choices?.[0]?.message?.content;
     
     if (!rawContent) {
-      throw new Error("AI returned an empty response. Please try again.");
+      throw new Error("AI returned an empty response even after retry. Please try again.");
     }
 
     let aiContent = rawContent.trim();
@@ -249,6 +253,6 @@ app.post('/api/generate-protocol', async (req, res) => {
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => console.log(`🚀 BodyMax Smart Server running on port ${PORT}`));
 
-// Safari "Load failed" fix: Tell Safari to wait longer and not drop the connection
-server.keepAliveTimeout = 120000; // 120 seconds
-server.headersTimeout = 120000; // 120 seconds (Should be >= keepAliveTimeout)
+// Safari "Load failed" fix
+server.keepAliveTimeout = 120000; 
+server.headersTimeout = 120000;

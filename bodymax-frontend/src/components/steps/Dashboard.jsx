@@ -5,7 +5,7 @@ import {
   Cpu, Camera, ChevronRight, Zap, ScanLine, XCircle, Utensils,
   Timer, CheckCircle, Apple, Coffee, Moon, TrendingUp, Star, BicepsFlexed, Clock, X,
   Crosshair, Focus, MessageCircle, Droplets, Footprints, Send, PlayCircle, LayoutGrid,
-  Flame, Lock, Pause, ZapOff, BarChart2, ShieldCheck, Hexagon, Award, BarChart
+  Flame, Lock, Pause, ZapOff, BarChart2, ShieldCheck, Sparkles, Hexagon, Check, Award, BarChart
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { updateDailyStreak } from '../../utils/streakUtils';
@@ -65,11 +65,11 @@ const ScanStatBlock = ({ label, value, delta, isNegative, progress }) => (
       </span>
     </div>
     <div className="w-full h-1.5 bg-[#27272a] rounded-full overflow-hidden">
-      <motion.div 
-        initial={{ width: 0 }} 
-        animate={{ width: `${progress}%` }} 
-        transition={{ duration: 1.5, ease: "easeOut" }} 
-        className={`h-full rounded-full ${isNegative ? 'bg-[#ef4444]' : 'bg-[#22c55e]'}`} 
+      <motion.div
+        initial={{ width: 0 }}
+        animate={{ width: `${progress}%` }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+        className={`h-full rounded-full ${isNegative ? 'bg-[#ef4444]' : 'bg-[#22c55e]'}`}
       />
     </div>
   </div>
@@ -84,17 +84,16 @@ const Dashboard = () => {
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [isAIGenerating, setIsAIGenerating] = useState(false);
   const [aiLogIndex, setAiLogIndex] = useState(0);
-  const scanRef = useRef(null); 
-  const [isSharing, setIsSharing] = useState(false); 
-  
+  const scanRef = useRef(null);
+  const [isSharing, setIsSharing] = useState(false);
+
   // GAMIFICATION & PROGRESS STATES
-  const [streak, setStreak] = useState(0); 
+  const [streak, setStreak] = useState(0);
   const [completedWorkouts, setCompletedWorkouts] = useState(0);
-  const [totalWorkouts, setTotalWorkouts] = useState(0); 
+  const [totalWorkouts, setTotalWorkouts] = useState(0);
   const [toastMessage, setToastMessage] = useState(null);
   const [isLevelUp, setIsLevelUp] = useState(false);
 
-  // 🔴 1. State for Week Accordion
   const [expandedWeek, setExpandedWeek] = useState(1);
 
   // EXERCISE TIMER STATES
@@ -102,14 +101,14 @@ const Dashboard = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [timerTotal, setTimerTotal] = useState(60);
-  
+
   // AI Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([
     { role: 'ai', text: 'Protocol initialized. Do you have any questions about your plan or macros today?' }
   ]);
-  
+
   const aiLogs = [
     "INIT > Establishing secure connection to OpenAI...",
     "FETCH > Retrieving biometric data & dream physique target...",
@@ -120,20 +119,19 @@ const Dashboard = () => {
     "DONE > Compiling Personalized BodyMax Protocol..."
   ];
 
-  // 🔴 2. Dynamic Variables for Workout Logic
+  // Dynamic Variables for Workout Logic
   const assessment = profile?.assessment_data || {};
   const safeProtocol = protocol || {};
   const workoutsList = safeProtocol.workouts || [];
   const planDurationText = assessment.planDuration || "4-Week";
-  const maxWeeks = parseInt(planDurationText.split('-')[0]) || 4; 
+  const maxWeeks = parseInt(planDurationText.split('-')[0]) || 4;
   const workoutsPerWeek = workoutsList.length || 1;
-  const programTotalWorkouts = maxWeeks * workoutsPerWeek; 
+  const programTotalWorkouts = maxWeeks * workoutsPerWeek;
 
   let currentWeek = Math.floor(completedWorkouts / workoutsPerWeek) + 1;
   let doneThisWeek = completedWorkouts % workoutsPerWeek;
   if (currentWeek > maxWeeks) { currentWeek = maxWeeks; doneThisWeek = workoutsPerWeek; }
 
-  // 🔴 3. Sync state with currentWeek AFTER it is calculated
   useEffect(() => {
     setExpandedWeek(currentWeek);
   }, [currentWeek]);
@@ -153,9 +151,9 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-      if (profile) {
-          setStreak(profile.current_streak || 0);
-      }
+    if (profile) {
+      setStreak(profile.current_streak || 0);
+    }
   }, [profile]);
 
   useEffect(() => {
@@ -164,7 +162,7 @@ const Dashboard = () => {
       const { data, error } = await supabase.from('user_workout_progress').select('completed_workouts, total_workouts').eq('user_id', session.user.id).maybeSingle();
       if (data) {
         setCompletedWorkouts(data.completed_workouts || 0);
-        setTotalWorkouts(data.total_workouts || 3); 
+        setTotalWorkouts(data.total_workouts || 3);
       }
     };
     if (session) fetchProgress();
@@ -188,7 +186,7 @@ const Dashboard = () => {
 
   const toggleTimer = (index, restString) => {
     if (activeTimerEx === index && isTimerActive) {
-      setIsTimerActive(false); 
+      setIsTimerActive(false);
     } else {
       if (activeTimerEx !== index) {
         const match = restString.match(/\d+/);
@@ -209,7 +207,7 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // VIRAL SHARE FUNCTION (IMAGE + TEXT + LINK)
+  // VIRAL SHARE FUNCTION
   // ==========================================
   const handleShare = async () => {
     if (!scanRef.current) return;
@@ -218,7 +216,7 @@ const Dashboard = () => {
     const currentScore = analysis.overall_rating || analysis.score || 82;
     const potentialScore = analysis.potential_rating || analysis.potential || 95;
     const bodyFat = analysis.body_fat_percentage || "18%";
-    
+
     const shareText = `🤖 BodyMax AI Physique Scan 🤖\n\n` +
       `📊 OVERALL SCORE: ${currentScore}/100\n` +
       `🔥 GENETIC POTENTIAL: ${potentialScore}/100\n` +
@@ -229,8 +227,8 @@ const Dashboard = () => {
     try {
       const blob = await toBlob(scanRef.current, {
         quality: 0.95,
-        backgroundColor: '#030303', 
-        pixelRatio: 2 
+        backgroundColor: '#030303',
+        pixelRatio: 2
       });
 
       if (!blob) throw new Error("Image generation failed");
@@ -240,7 +238,7 @@ const Dashboard = () => {
         await navigator.share({
           title: 'My BodyMax Scan',
           text: shareText,
-          files: [file]    
+          files: [file]
         });
       } else {
         try {
@@ -257,7 +255,7 @@ const Dashboard = () => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         setToastMessage('📸 Image Saved & Text Copied! Just Paste (Ctrl+V) anywhere.');
         setTimeout(() => setToastMessage(null), 4000);
       }
@@ -298,7 +296,7 @@ const Dashboard = () => {
   const generateAndSaveProtocol = async (assessmentData, userId) => {
     try {
       setIsAIGenerating(true);
-      const safePayload = { userId: userId, assessmentData: { ...assessmentData, dreamPhysiquePreview: undefined, dreamPhysiqueFile: undefined, photoFiles: undefined }};
+      const safePayload = { userId: userId, assessmentData: { ...assessmentData, dreamPhysiquePreview: undefined, dreamPhysiqueFile: undefined, photoFiles: undefined } };
       const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:5000" : "https://ai-physique-assessment.onrender.com";
       const response = await fetch(`${backendUrl}/api/generate-protocol`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(safePayload) });
       const data = await response.json();
@@ -351,7 +349,7 @@ const Dashboard = () => {
     const counts = {};
     let totalTargetsHit = 0;
     for (let i = 0; i < completedWorkouts; i++) {
-      const workout = workoutsList[i % workoutsList.length]; 
+      const workout = workoutsList[i % workoutsList.length];
       if (workout && workout.targets) {
         workout.targets.forEach(target => {
           counts[target] = (counts[target] || 0) + 1;
@@ -373,16 +371,16 @@ const Dashboard = () => {
     const weekNum = i + 1;
     let done = 0;
     if (completedWorkouts >= weekNum * workoutsPerWeek) {
-      done = workoutsPerWeek; 
+      done = workoutsPerWeek;
     } else if (completedWorkouts > i * workoutsPerWeek) {
-      done = completedWorkouts % workoutsPerWeek; 
+      done = completedWorkouts % workoutsPerWeek;
     }
     return { week: weekNum, done, max: workoutsPerWeek };
   });
 
   const handleEndSession = async () => {
     if (!session?.user?.id || !selectedWorkout) return;
-    
+
     const currentWorkoutIndex = workoutsList.findIndex(w => w.title === selectedWorkout.title);
     let justUnlocked = false;
     let newCount = completedWorkouts;
@@ -395,14 +393,14 @@ const Dashboard = () => {
       justUnlocked = true;
 
       if (newCount % workoutsPerWeek === 0) isWeekComplete = true;
-      
+
       const newXP = newCount * xpPerWorkout;
       const newCalculatedLevel = Math.floor(newXP / 1000) + 1;
       if (newCalculatedLevel > currentLevel) {
         leveledUp = true;
         setIsLevelUp(true);
       }
-      
+
       const { data: existingProgress } = await supabase.from('user_workout_progress').select('id').eq('user_id', session.user.id).maybeSingle();
       if (existingProgress) {
         await supabase.from('user_workout_progress').update({ completed_workouts: newCount }).eq('user_id', session.user.id);
@@ -458,11 +456,11 @@ const Dashboard = () => {
               {aiLogs.slice(0, aiLogIndex + 1).map((log, i) => {
                 const isActive = i === aiLogIndex;
                 return (
-                  <motion.div 
-                    layout 
-                    key={i} 
-                    initial={{ opacity: 0, y: 15, scale: 0.95 }} 
-                    animate={{ opacity: isActive ? 1 : 0.3, y: 0, scale: 1 }} 
+                  <motion.div
+                    layout
+                    key={i}
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: isActive ? 1 : 0.3, y: 0, scale: 1 }}
                     className="flex items-start gap-2"
                   >
                     <span className={`text-[11px] font-bold mt-[1px] ${isActive ? "text-[#E71B25]" : "text-gray-700"}`}>›</span>
@@ -502,7 +500,7 @@ const Dashboard = () => {
   const userName = profile?.full_name?.split(' ')[0] || 'Athlete';
   const userGoal = assessment.goal || "Hypertrophy & Definition";
   const dreamImage = assessment.dreamPhysiqueImage || assessment.customGoalPhoto || null;
-  const planDurationTitle = planDurationText.replace('-', ' ').toUpperCase(); 
+  const planDurationTitle = planDurationText.replace('-', ' ').toUpperCase();
 
   const getDefaultRoadmap = (duration) => {
     if (duration === "1-Week") {
@@ -530,11 +528,24 @@ const Dashboard = () => {
 
   const tabs = [
     { id: 'overview', label: 'Report', icon: TrendingUp },
-    { id: 'photos', label: 'Scans', icon: ScanLine }, 
+    { id: 'photos', label: 'Scans', icon: ScanLine },
     { id: 'protocol', label: 'Workouts', icon: LayoutGrid },
-    { id: 'analytics', label: 'Telemetry', icon: BarChart2 }, 
+    { id: 'analytics', label: 'Telemetry', icon: BarChart2 },
     { id: 'nutrition', label: 'Nutrition', icon: Apple },
   ];
+
+  // 🧠 SMART AI LOGIC: Calculated here so it's accessible inside the render cleanly
+  const muscleScores = [
+    { name: 'chest development', score: analysis.chest_score || 76 },
+    { name: 'shoulder width', score: analysis.shoulders_score || 80 },
+    { name: 'back symmetry', score: analysis.back_score || 78 },
+    { name: 'core definition', score: analysis.abs_score || 81 },
+    { name: 'leg base', score: analysis.legs_score || 75 },
+    { name: 'arm size', score: analysis.arms_score || 79 },
+  ];
+  const weakestMuscle = muscleScores.reduce((prev, curr) => prev.score < curr.score ? prev : curr);
+  const limitingPercentage = 100 - weakestMuscle.score;
+  const dynamicLimiterName = analysis.worst_feature || weakestMuscle.name;
 
   return (
     <div className="min-h-[100dvh] bg-[#030303] text-gray-300 font-sans flex overflow-hidden selection:bg-[#E71B25] selection:text-white relative">
@@ -634,21 +645,21 @@ const Dashboard = () => {
               </div>
               <h1 className="text-2xl font-semibold text-white tracking-tight">{userName}'s Neural Hub</h1>
             </div>
-            
-            <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 bg-gradient-to-r from-gray-900 to-black border border-white/[0.1] px-4 py-1.5 rounded-lg shadow-md cursor-default">
-                  <Hexagon className="w-4 h-4 text-[#E71B25] fill-[#E71B25]/20" />
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-white leading-tight">LVL {currentLevel}</span>
-                    <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest leading-tight">{rankName}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 bg-[#E71B25]/10 border border-[#E71B25]/20 px-3 py-1.5 rounded-lg shadow-[0_0_15px_rgba(231,27,37,0.15)]">
-                  <Flame className={`w-4 h-4 ${streak > 0 ? 'text-orange-500 animate-pulse' : 'text-gray-500'}`} />
-                  <span className="text-[12px] font-black text-white">{streak}</span>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Day Streak</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-gradient-to-r from-gray-900 to-black border border-white/[0.1] px-4 py-1.5 rounded-lg shadow-md cursor-default">
+                <Hexagon className="w-4 h-4 text-[#E71B25] fill-[#E71B25]/20" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-white leading-tight">LVL {currentLevel}</span>
+                  <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest leading-tight">{rankName}</span>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-[#E71B25]/10 border border-[#E71B25]/20 px-3 py-1.5 rounded-lg shadow-[0_0_15px_rgba(231,27,37,0.15)]">
+                <Flame className={`w-4 h-4 ${streak > 0 ? 'text-orange-500 animate-pulse' : 'text-gray-500'}`} />
+                <span className="text-[12px] font-black text-white">{streak}</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Day Streak</span>
+              </div>
             </div>
           </header>
 
@@ -657,7 +668,7 @@ const Dashboard = () => {
             {/* TAB 1: OVERVIEW */}
             {activeTab === 'overview' && (
               <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-5">
-                 <div className="bg-gradient-to-br from-[#0a0a0a] to-[#0f0f0f] border border-white/[0.04] rounded-3xl p-5 md:p-6 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6">
+                <div className="bg-gradient-to-br from-[#0a0a0a] to-[#0f0f0f] border border-white/[0.04] rounded-3xl p-5 md:p-6 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6">
                   <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-[#E71B25] filter blur-[100px] md:blur-[120px] opacity-[0.06] rounded-full pointer-events-none"></div>
 
                   <div className="relative w-24 h-24 md:w-32 md:h-32 shrink-0 flex items-center justify-center cursor-pointer" onClick={() => setActiveTab('photos')}>
@@ -742,87 +753,220 @@ const Dashboard = () => {
             )}
 
             {/* TAB 2: AI SCANS (WITH IMAGE EXPORT) */}
-            {activeTab === 'photos' && (
-              <motion.div ref={scanRef} key="photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col items-center w-full max-w-4xl mx-auto pt-2 md:pt-4 pb-20 px-2 md:px-8 bg-[#030303]">
-                 
-                 <div className="w-full flex flex-col items-center justify-center mb-8 relative text-center pt-4">
-                    <h2 className="text-[18px] md:text-[22px] font-black text-white tracking-tight uppercase">Physique Matrix</h2>
-                    <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">Current vs Target Morphology</p>
-                 </div>
+{activeTab === 'photos' && (() => {
+  
+  // 🧠 SMART AI LOGIC: Find the actual weakest muscle from AI scores dynamically
+  const muscleScores = [
+    { name: 'chest development', score: analysis.chest_score || 76 },
+    { name: 'shoulder width', score: analysis.shoulders_score || 80 },
+    { name: 'back symmetry', score: analysis.back_score || 78 },
+    { name: 'core definition', score: analysis.abs_score || 81 },
+    { name: 'leg base', score: analysis.legs_score || 75 },
+    { name: 'arm size', score: analysis.arms_score || 79 },
+  ];
+  
+  // Sab se kam score wala muscle nikalna
+  const weakestMuscle = muscleScores.reduce((prev, curr) => prev.score < curr.score ? prev : curr);
+  const limitingPercentage = 100 - weakestMuscle.score;
+  const dynamicLimiterName = analysis.worst_feature || weakestMuscle.name;
 
-                 <div className="grid grid-cols-2 gap-4 md:gap-10 mb-10 w-full">
-                    <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-2xl md:rounded-3xl border-[2px] md:border-[3px] border-[#a855f7]/80 shadow-[0_0_30px_rgba(168,85,247,0.15)] overflow-hidden bg-[#0a0a0a] relative group">
-                       <img src={assessment?.photos?.[1] || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover" alt="Current Physique" />
-                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
-                       <div className="absolute bottom-4 w-full flex justify-center">
-                          <div className="bg-[#a855f7]/20 backdrop-blur-md border border-[#a855f7]/50 px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-                             <div className="w-1.5 h-1.5 rounded-full bg-[#c084fc]"></div>
-                             <span className="text-[9px] md:text-[11px] font-black text-white tracking-widest uppercase">Current</span>
-                          </div>
-                       </div>
-                    </div>
-                    
-                    <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-2xl md:rounded-3xl border-[2px] md:border-[3px] border-[#3b82f6]/80 shadow-[0_0_30px_rgba(59,130,246,0.15)] overflow-hidden bg-[#0a0a0a] relative group">
-                       <img src={dreamImage || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover filter grayscale-[10%]" alt="Goal Physique" />
-                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
-                       <div className="absolute bottom-4 w-full flex justify-center">
-                          <div className="bg-[#3b82f6]/20 backdrop-blur-md border border-[#3b82f6]/50 px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
-                             <Target className="w-2.5 h-2.5 text-[#93c5fd]" />
-                             <span className="text-[9px] md:text-[11px] font-black text-white tracking-widest uppercase">Target</span>
-                          </div>
-                       </div>
-                    </div>
-                 </div>
+  return (
+    <motion.div ref={scanRef} key="photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col items-center w-full max-w-4xl mx-auto pt-2 md:pt-4 pb-20 px-2 md:px-8 bg-[#030303]">
 
-                 <div className="w-full flex justify-between px-2 md:px-6 mb-8 border-b border-white/[0.05] pb-6 max-w-2xl">
-                    <div className="flex flex-col items-center flex-1">
-                       <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Body Fat</span>
-                       <span className="text-[18px] md:text-[24px] font-black text-white leading-tight">{analysis.body_fat_percentage || "18%"}</span>
-                    </div>
-                    <div className="w-px bg-white/[0.05] mx-1 md:mx-2"></div>
-                    <div className="flex flex-col items-center flex-1">
-                       <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Dream Body</span>
-                       <span className="text-[18px] md:text-[24px] font-black text-green-400 leading-tight">{analysis.dream_body_chances || "95%"}</span>
-                    </div>
-                    <div className="w-px bg-white/[0.05] mx-1 md:mx-2"></div>
-                    <div className="flex flex-col items-center flex-1 w-full max-w-[120px] md:max-w-[150px]">
-                       <span className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1 text-center">Best Trait</span>
-                       <span className="text-[14px] md:text-[18px] font-black text-blue-400 text-center leading-[1.1] md:leading-tight break-words line-clamp-2">
-                         {analysis.best_feature || "Shoulders"}
-                       </span>
-                    </div>
-                 </div>
+      {/* HEADER */}
+      <div className="w-full flex flex-col items-center justify-center mb-10 relative text-center pt-4">
+        <h2 className="text-[20px] md:text-[26px] font-black text-white tracking-tight uppercase">Your BodyMax Score</h2>
+        <p className="text-[9px] md:text-[11px] text-gray-500 uppercase tracking-[0.2em] font-bold mt-1">Current Physique vs Dream Target</p>
+      </div>
 
-                 <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full px-4 mb-10 max-w-2xl">
-                    <ScanStatBlock label="OVERALL RATING" value={analysis.overall_rating || analysis.score || 82} delta="INIT" progress={analysis.overall_rating || analysis.score || 82} isNegative={(analysis.overall_rating || analysis.score || 82) < 60} />
-                    <ScanStatBlock label="POTENTIAL RATING" value={analysis.potential_rating || analysis.potential || 95} delta="MAX" progress={analysis.potential_rating || analysis.potential || 95} isNegative={(analysis.potential_rating || analysis.potential || 95) < 60} />
-                    <ScanStatBlock label="CHEST" value={analysis.chest_score || analysis.vectors?.upper_body || 76} delta={analysis.chest_delta?.replace(/[+-]/g, '') || "2.1"} isNegative={(analysis.chest_score || analysis.vectors?.upper_body || 76) < 60} progress={analysis.chest_score || analysis.vectors?.upper_body || 76} />
-                    <ScanStatBlock label="SHOULDERS" value={analysis.shoulders_score || analysis.vectors?.upper_body || 80} delta={analysis.shoulders_delta?.replace(/[+-]/g, '') || "3.0"} isNegative={(analysis.shoulders_score || analysis.vectors?.upper_body || 80) < 60} progress={analysis.shoulders_score || analysis.vectors?.upper_body || 80} />
-                    <ScanStatBlock label="BACK" value={analysis.back_score || analysis.vectors?.symmetry || 78} delta={analysis.back_delta?.replace(/[+-]/g, '') || "1.8"} isNegative={(analysis.back_score || analysis.vectors?.symmetry || 78) < 60} progress={analysis.back_score || analysis.vectors?.symmetry || 78} />
-                    <ScanStatBlock label="ABS & CORE" value={analysis.abs_score || analysis.vectors?.core || 81} delta={analysis.abs_delta?.replace(/[+-]/g, '') || "2.5"} isNegative={(analysis.abs_score || analysis.vectors?.core || 81) < 60} progress={analysis.abs_score || analysis.vectors?.core || 81} />
-                    <ScanStatBlock label="LEGS" value={analysis.legs_score || analysis.vectors?.lower_body || 75} delta={analysis.legs_delta?.replace(/[+-]/g, '') || "1.5"} isNegative={(analysis.legs_score || analysis.vectors?.lower_body || 75) < 60} progress={analysis.legs_score || analysis.vectors?.lower_body || 75} />
-                    <ScanStatBlock label="ARMS" value={analysis.arms_score || analysis.vectors?.upper_body || 79} delta={analysis.arms_delta?.replace(/[+-]/g, '') || "2.2"} isNegative={(analysis.arms_score || analysis.vectors?.upper_body || 79) < 60} progress={analysis.arms_score || analysis.vectors?.upper_body || 79} />
-                 </div>
+      {/* IMAGES GRID */}
+      <div className="grid grid-cols-2 gap-4 md:gap-8 mb-8 w-full">
+        <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-[2rem] border-[2px] border-white/10 overflow-hidden bg-[#0a0a0a] relative group shadow-2xl">
+          <img src={assessment?.photos?.[1] || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover" alt="Current" />
+          <div className="absolute inset-0 bg-black/30"></div>
+          <div className="absolute bottom-4 w-full flex justify-center">
+            <div className="bg-[#111]/90 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+              <span className="text-[9px] md:text-[11px] font-black text-white tracking-widest uppercase">Current State</span>
+            </div>
+          </div>
+        </div>
 
-                 <div className="w-full px-4 mt-auto max-w-2xl pb-4">
-                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="relative mt-4 w-full flex justify-center group transform-gpu will-change-[opacity,transform]">
-                     <div className="absolute inset-0 bg-[#E71B25] rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 transform-gpu will-change-opacity"></div>
-                     <button onClick={handleShare} disabled={isSharing} className={`relative overflow-hidden w-full py-4 md:py-4 bg-[#E71B25] hover:bg-[#C6161F] text-white font-black text-[15px] md:text-lg uppercase tracking-wide rounded-2xl shadow-[0_10px_30px_rgba(231,27,37,0.3)] transition-colors duration-300 ${isSharing ? 'opacity-70 cursor-wait' : ''}`}>
-                       <span className="relative z-10 flex items-center justify-center gap-2">
-                         {isSharing ? 'Extracting Neural Data...' : 'Share Comparison'}
-                         {!isSharing && <span className="inline-block">→</span>}
-                       </span>
-                     </button>
-                   </motion.div>
-                 </div>
-              </motion.div>
-            )}
-              
+        <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-[2rem] border-[2px] border-[#E71B25]/40 overflow-hidden bg-[#0a0a0a] relative group shadow-2xl">
+          <img src={dreamImage || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover filter grayscale-[10%]" alt="Target" />
+          <div className="absolute inset-0 bg-black/30"></div>
+          <div className="absolute bottom-4 w-full flex justify-center">
+            <div className="bg-[#111]/90 backdrop-blur-md border border-[#E71B25]/50 px-4 py-2 rounded-full flex items-center gap-2">
+              <Target className="w-3 h-3 text-[#E71B25]" />
+              <span className="text-[9px] md:text-[11px] font-black text-white tracking-widest uppercase">Target Goal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FLAT AESTHETIC DREAM BODY PROBABILITY BANNER */}
+      <div className="w-full max-w-2xl px-4 mb-10">
+        <div className="w-full bg-[#111] rounded-[1.5rem] p-4 md:p-6 flex flex-row items-center gap-4 md:gap-6 shadow-lg">
+          {/* Left Side: Dream Body Score */}
+          <div className="flex items-center justify-center shrink-0 pr-4 md:pr-6 border-r border-[#22c55e]/20">
+            <span className="text-[36px] md:text-[48px] font-black text-[#22c55e] leading-none tracking-tighter drop-shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+              {analysis.dream_body_chances || "92%"}
+            </span>
+          </div>
+          
+          {/* Right Side: Summary Text */}
+          <div className="flex-1">
+            <p className="text-[11px] md:text-[14px] text-gray-300 leading-snug md:leading-relaxed font-medium text-left">
+              You have a <span className="text-white font-black">{analysis.dream_body_chances || "92%"} chance</span> of achieving your exact dream physique if you strictly execute your custom BodyMax protocol.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 🔥 UPGRADED: CURRENT VS POTENTIAL RATING (Aamne-Samne) */}
+      <div className="w-full max-w-2xl px-4 mb-10">
+        <div className="w-full bg-[#111] rounded-[1.5rem] p-6 md:p-8 flex flex-row items-center justify-between shadow-lg">
+          
+          {/* Left Side: Current Score */}
+          <div className="flex flex-col items-start flex-1">
+            <span className="text-[9px] md:text-[11px] text-gray-500 font-bold tracking-[0.2em] uppercase mb-1">Current Rating</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-[40px] md:text-[52px] font-black text-white leading-none tracking-tighter">
+                {analysis.overall_rating || analysis.score || 82}
+              </span>
+              <span className="text-[10px] md:text-[14px] font-bold text-gray-600">/100</span>
+            </div>
+          </div>
+
+          {/* Center: Subtle Arrow */}
+          <div className="flex items-center justify-center px-2 md:px-4 shrink-0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600/50 w-5 h-5 md:w-8 md:h-8">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </div>
+
+          {/* Right Side: Potential Score */}
+          <div className="flex flex-col items-end flex-1">
+            <span className="text-[9px] md:text-[11px] text-[#E71B25] font-bold tracking-[0.2em] uppercase mb-1 text-right">Genetic Potential</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-[40px] md:text-[52px] font-black text-[#E71B25] leading-none tracking-tighter">
+                {analysis.potential_rating || analysis.potential || 95}
+              </span>
+              <span className="text-[10px] md:text-[14px] font-bold text-[#E71B25]/50">/100</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* DETAILED MUSCLE STATS GRID */}
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full px-4 mb-12 max-w-2xl">
+        <ScanStatBlock label="CHEST" value={analysis.chest_score || analysis.vectors?.upper_body || 76} delta={analysis.chest_delta?.replace(/[+-]/g, '') || "2.1"} isNegative={(analysis.chest_score || analysis.vectors?.upper_body || 76) < 60} progress={analysis.chest_score || analysis.vectors?.upper_body || 76} />
+        <ScanStatBlock label="SHOULDERS" value={analysis.shoulders_score || analysis.vectors?.upper_body || 80} delta={analysis.shoulders_delta?.replace(/[+-]/g, '') || "3.0"} isNegative={(analysis.shoulders_score || analysis.vectors?.upper_body || 80) < 60} progress={analysis.shoulders_score || analysis.vectors?.upper_body || 80} />
+        <ScanStatBlock label="BACK" value={analysis.back_score || analysis.vectors?.symmetry || 78} delta={analysis.back_delta?.replace(/[+-]/g, '') || "1.8"} isNegative={(analysis.back_score || analysis.vectors?.symmetry || 78) < 60} progress={analysis.back_score || analysis.vectors?.symmetry || 78} />
+        <ScanStatBlock label="ABS & CORE" value={analysis.abs_score || analysis.vectors?.core || 81} delta={analysis.abs_delta?.replace(/[+-]/g, '') || "2.5"} isNegative={(analysis.abs_score || analysis.vectors?.core || 81) < 60} progress={analysis.abs_score || analysis.vectors?.core || 81} />
+        <ScanStatBlock label="LEGS" value={analysis.legs_score || analysis.vectors?.lower_body || 75} delta={analysis.legs_delta?.replace(/[+-]/g, '') || "1.5"} isNegative={(analysis.legs_score || analysis.vectors?.lower_body || 75) < 60} progress={analysis.legs_score || analysis.vectors?.lower_body || 75} />
+        <ScanStatBlock label="ARMS" value={analysis.arms_score || analysis.vectors?.upper_body || 79} delta={analysis.arms_delta?.replace(/[+-]/g, '') || "2.2"} isNegative={(analysis.arms_score || analysis.vectors?.upper_body || 79) < 60} progress={analysis.arms_score || analysis.vectors?.upper_body || 79} />
+      </div>
+
+      {/* FLAT AESTHETIC VIRAL SECTION: WHAT'S WORKING / HOLDING YOU BACK */}
+      <div className="w-full max-w-2xl px-4 mb-10">
+        
+        {/* What's Working For You */}
+        <div className="bg-[#0a0a0a] border border-white/10 rounded-[2rem] p-6 md:p-8 mb-6 shadow-2xl">
+          <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+            <div className="w-8 h-8 rounded-full bg-[#22c55e]/10 flex items-center justify-center text-[#22c55e] shrink-0">
+              <Check className="w-5 h-5" strokeWidth={3} />
+            </div>
+            <div>
+              <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">What's Working</h3>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Genetic Advantages</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(Array.isArray(analysis.strengths) && analysis.strengths.length > 0 ? analysis.strengths : ["Wide shoulder frame", "Good waist structure", "Strong leg base", "High V-taper potential"]).map((item, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e] mt-1.5 shrink-0"></div>
+                <span className="text-[13px] md:text-[14px] font-medium text-gray-300 leading-snug">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* What's Holding You Back */}
+        <div className="bg-[#0a0a0a] border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-2xl">
+          <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+            <div className="w-8 h-8 rounded-full bg-[#E71B25]/10 flex items-center justify-center text-[#E71B25] shrink-0">
+              <X className="w-5 h-5" strokeWidth={3} />
+            </div>
+            <div>
+              <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">Holding You Back</h3>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Dream Physique Limiters</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {(Array.isArray(analysis.weaknesses) && analysis.weaknesses.length > 0 ? analysis.weaknesses : ["Lack of upper chest development", "Higher body fat hiding definition", "Narrow shoulder width", "Weak arm size relative to torso"]).map((item, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#E71B25] mt-1.5 shrink-0"></div>
+                <span className="text-[13px] md:text-[14px] font-medium text-gray-400 leading-snug">{item}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* SMART AI IMPACT STAT BOX */}
+          <div className="bg-[#111] border border-[#E71B25]/30 rounded-xl p-4 md:p-6 shadow-lg">
+            <div className="flex flex-row items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-[#E71B25] flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 text-white fill-white" />
+              </div>
+              <div>
+                <div className="text-[10px] text-[#E71B25] uppercase tracking-[0.2em] font-bold mb-1">Impact Analysis</div>
+                <div className="text-[12px] md:text-[16px] font-medium text-white leading-snug capitalize">
+                  Your <strong className="font-black underline decoration-2 underline-offset-4 decoration-[#E71B25]">{dynamicLimiterName}</strong> is limiting your aesthetic potential by <span className="font-black text-lg md:text-xl text-[#E71B25]">{limitingPercentage}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== GOOD NEWS SECTION ===== */}
+      <div className="w-full max-w-2xl px-4 mb-12">
+        <div className="bg-[#0a0a0a] border border-[#22c55e]/20 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[#22c55e]/5 rounded-full blur-[60px] pointer-events-none"></div>
+          
+          <div className="flex items-center gap-3 mb-4 relative z-10">
+            <div className="w-8 h-8 rounded-full bg-[#22c55e]/10 flex items-center justify-center text-[#22c55e] shrink-0">
+              <Sparkles className="w-4 h-4" strokeWidth={2.5} />
+            </div>
+            <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">Good News</h3>
+          </div>
+          
+          <p className="text-[14px] md:text-[16px] font-medium text-gray-300 leading-relaxed relative z-10">
+            By following your <span className="text-[#22c55e] font-black uppercase tracking-wider">bodymax hyper-personalized plan</span>, you'll crush every obstacle in your way, & achieve your dream physique faster than you ever thought possible.
+          </p>
+        </div>
+      </div>
+
+      {/* SHARE BUTTON */}
+      <div className="w-full px-4 mt-auto max-w-2xl pb-4">
+        <button onClick={handleShare} disabled={isSharing} className={`w-full py-5 bg-[#E71B25] hover:bg-[#C6161F] text-white font-black text-[14px] md:text-[16px] uppercase tracking-[0.15em] rounded-2xl shadow-xl transition-colors ${isSharing ? 'opacity-70 cursor-wait' : ''}`}>
+          <span className="flex items-center justify-center gap-2">
+            {isSharing ? 'Extracting Neural Data...' : 'Share Comparison Report'}
+            {!isSharing && <span>→</span>}
+          </span>
+        </button>
+      </div>
+
+    </motion.div>
+  );
+})()}
 
             {/* TAB 3: WORKOUTS (UPGRADED WEEKS ACCORDION) */}
             {activeTab === 'protocol' && (
               <motion.div key="protocol" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-5">
-                
+
                 <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
@@ -831,7 +975,7 @@ const Dashboard = () => {
                     </div>
                     <p className="text-[9px] md:text-[10px] text-gray-500 font-medium">Surgical-grade routine aligned with {userGoal}.</p>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 bg-white/[0.02] px-3 py-2 rounded-xl border border-white/[0.03]">
                     <div className="text-center">
                       <span className="block text-[7px] text-gray-500 uppercase font-bold tracking-widest">Wk {currentWeek}/{maxWeeks}</span>
@@ -852,141 +996,141 @@ const Dashboard = () => {
                     const isWeekLocked = weekNum > currentWeek;
                     const isWeekCompleted = weekNum < currentWeek;
                     const isWeekActive = weekNum === currentWeek;
-                    
+
                     const weekRoadmap = roadmap[weekIdx] || roadmap[roadmap.length - 1];
                     const phaseTitle = weekRoadmap?.phase?.includes(':') ? weekRoadmap.phase.split(':')[1].trim() : "Execution Phase";
 
                     return (
                       <div key={weekNum} className={`flex flex-col rounded-3xl border overflow-hidden transition-all duration-300 ${isWeekActive ? 'border-[#E71B25]/30 bg-[#0a0a0a] shadow-[0_5px_20px_rgba(231,27,37,0.05)]' : 'border-white/[0.04] bg-[#050505]'}`}>
-                         
-                         <button 
-                           onClick={() => !isWeekLocked && setExpandedWeek(isExpanded ? null : weekNum)}
-                           className={`w-full p-4 md:p-5 flex items-center justify-between text-left transition-colors ${isWeekLocked ? 'cursor-not-allowed opacity-50 grayscale' : 'cursor-pointer hover:bg-white/[0.02]'}`}
-                         >
-                            <div className="flex items-center gap-4">
-                               <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 ${isWeekCompleted ? 'bg-green-500/10 border-green-500/20 text-green-500' : isWeekActive ? 'bg-[#E71B25]/10 border-[#E71B25]/30 text-[#E71B25]' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-                                  {isWeekCompleted ? <CheckCircle className="w-5 h-5" /> : isWeekLocked ? <Lock className="w-4 h-4" /> : <Zap className="w-5 h-5" />}
-                               </div>
-                               <div>
-                                  <div className="flex items-center gap-2 mb-0.5">
-                                     <h3 className={`text-[14px] md:text-[16px] font-black uppercase tracking-widest leading-none ${isWeekLocked ? 'text-gray-500' : 'text-white'}`}>Week {weekNum < 10 ? `0${weekNum}` : weekNum}</h3>
-                                     {isWeekActive && <span className="text-[8px] bg-[#E71B25] text-white px-1.5 py-0.5 rounded uppercase font-bold tracking-widest">Active</span>}
-                                  </div>
-                                  <p className="text-[10px] md:text-[11px] text-gray-400 font-medium truncate">{phaseTitle}</p>
-                               </div>
+
+                        <button
+                          onClick={() => !isWeekLocked && setExpandedWeek(isExpanded ? null : weekNum)}
+                          className={`w-full p-4 md:p-5 flex items-center justify-between text-left transition-colors ${isWeekLocked ? 'cursor-not-allowed opacity-50 grayscale' : 'cursor-pointer hover:bg-white/[0.02]'}`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border shrink-0 ${isWeekCompleted ? 'bg-green-500/10 border-green-500/20 text-green-500' : isWeekActive ? 'bg-[#E71B25]/10 border-[#E71B25]/30 text-[#E71B25]' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                              {isWeekCompleted ? <CheckCircle className="w-5 h-5" /> : isWeekLocked ? <Lock className="w-4 h-4" /> : <Zap className="w-5 h-5" />}
                             </div>
-                            {!isWeekLocked && (
-                               <ChevronRight className={`w-5 h-5 shrink-0 text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
-                            )}
-                         </button>
+                            <div>
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <h3 className={`text-[14px] md:text-[16px] font-black uppercase tracking-widest leading-none ${isWeekLocked ? 'text-gray-500' : 'text-white'}`}>Week {weekNum < 10 ? `0${weekNum}` : weekNum}</h3>
+                                {isWeekActive && <span className="text-[8px] bg-[#E71B25] text-white px-1.5 py-0.5 rounded uppercase font-bold tracking-widest">Active</span>}
+                              </div>
+                              <p className="text-[10px] md:text-[11px] text-gray-400 font-medium truncate">{phaseTitle}</p>
+                            </div>
+                          </div>
+                          {!isWeekLocked && (
+                            <ChevronRight className={`w-5 h-5 shrink-0 text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
+                          )}
+                        </button>
 
-                         <AnimatePresence>
-                            {isExpanded && !isWeekLocked && (
-                               <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="border-t border-white/[0.04]"
-                               >
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 p-4 md:p-5 bg-gradient-to-b from-transparent to-[#030303]/50">
-                                     {workoutsList.map((workout, dayIdx) => {
-                                        const absoluteIndex = weekIdx * workoutsPerWeek + dayIdx;
-                                        const estTime = (workout.exercises?.length || 0) * 8 + 5;
-                                        const isCardCompleted = absoluteIndex < completedWorkouts;
-                                        const isCardLocked = absoluteIndex > completedWorkouts;
-                                        const isCardActive = absoluteIndex === completedWorkouts;
+                        <AnimatePresence>
+                          {isExpanded && !isWeekLocked && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="border-t border-white/[0.04]"
+                            >
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 p-4 md:p-5 bg-gradient-to-b from-transparent to-[#030303]/50">
+                                {workoutsList.map((workout, dayIdx) => {
+                                  const absoluteIndex = weekIdx * workoutsPerWeek + dayIdx;
+                                  const estTime = (workout.exercises?.length || 0) * 8 + 5;
+                                  const isCardCompleted = absoluteIndex < completedWorkouts;
+                                  const isCardLocked = absoluteIndex > completedWorkouts;
+                                  const isCardActive = absoluteIndex === completedWorkouts;
 
-                                        return (
-                                          <motion.div
-                                            whileHover={!isCardLocked ? { y: -2, scale: 1.01 } : {}}
-                                            key={dayIdx}
-                                            className={`group relative overflow-hidden transition-all duration-300 flex flex-col rounded-2xl border
+                                  return (
+                                    <motion.div
+                                      whileHover={!isCardLocked ? { y: -2, scale: 1.01 } : {}}
+                                      key={dayIdx}
+                                      className={`group relative overflow-hidden transition-all duration-300 flex flex-col rounded-2xl border
                                               ${isCardLocked ? 'bg-[#050505] border-white/[0.02] grayscale opacity-50 cursor-not-allowed' : ''}
                                               ${isCardCompleted ? 'bg-[#0a0a0a] border-green-500/20 hover:border-green-500/30' : ''}
                                               ${isCardActive ? 'bg-gradient-to-br from-[#111] to-[#050505] border-[#E71B25]/30 shadow-[0_5px_20px_rgba(231,27,37,0.1)] ring-1 ring-[#E71B25]/10' : ''}
                                             `}
-                                          >
-                                            {isCardActive && <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#E71B25] to-[#E71B25]/20 shadow-[0_0_10px_#E71B25]" />}
-                                            {isCardCompleted && <div className="absolute top-0 left-0 w-1 h-full bg-green-500/50" />}
+                                    >
+                                      {isCardActive && <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#E71B25] to-[#E71B25]/20 shadow-[0_0_10px_#E71B25]" />}
+                                      {isCardCompleted && <div className="absolute top-0 left-0 w-1 h-full bg-green-500/50" />}
 
-                                            <div className="p-4 flex flex-col h-full z-10 pl-5"> 
-                                                <div className="flex justify-between items-start mb-3">
-                                                   <div className="flex flex-col">
-                                                      <span className={`text-[8px] md:text-[9px] font-mono font-bold uppercase tracking-[0.2em] mb-1
+                                      <div className="p-4 flex flex-col h-full z-10 pl-5">
+                                        <div className="flex justify-between items-start mb-3">
+                                          <div className="flex flex-col">
+                                            <span className={`text-[8px] md:text-[9px] font-mono font-bold uppercase tracking-[0.2em] mb-1
                                                         ${isCardActive ? 'text-[#E71B25]' : isCardCompleted ? 'text-green-500' : 'text-gray-500'}
                                                       `}>
-                                                        Day 0{dayIdx + 1} {isCardCompleted && '✓'}
-                                                      </span>
-                                                      <h3 className={`text-[13px] md:text-[15px] font-black uppercase tracking-tight leading-none
+                                              Day 0{dayIdx + 1} {isCardCompleted && '✓'}
+                                            </span>
+                                            <h3 className={`text-[13px] md:text-[15px] font-black uppercase tracking-tight leading-none
                                                         ${isCardLocked ? 'text-gray-600' : 'text-white'}
                                                       `}>{workout.title}</h3>
-                                                   </div>
+                                          </div>
 
-                                                   {!isCardLocked && (
-                                                     <div className="flex items-center gap-1 bg-black/50 px-2 py-1 rounded-md border border-white/[0.05] shrink-0">
-                                                       <div className={`w-1 h-1 rounded-full ${workout.intensity === 'Low' ? 'bg-blue-500' : workout.intensity === 'High' ? 'bg-orange-500' : 'bg-[#E71B25]'}`}></div>
-                                                       <span className="text-[7px] font-bold uppercase tracking-widest text-gray-400">{workout.intensity}</span>
-                                                     </div>
-                                                   )}
-                                                </div>
-
-                                                <div className="mb-4">
-                                                   <div className="flex flex-wrap gap-1.5">
-                                                      {workout.targets?.map((t, i) => (
-                                                        <span key={i} className={`text-[7px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border
-                                                          ${isCardLocked ? 'border-white/[0.02] text-gray-600 bg-transparent' :
-                                                            isCardActive ? 'border-[#E71B25]/30 text-[#E71B25] bg-[#E71B25]/5' :
-                                                            'border-white/[0.05] text-gray-400 bg-white/[0.02]'}
-                                                        `}>{t}</span>
-                                                      ))}
-                                                   </div>
-                                                </div>
-
-                                                <div className="w-full h-px bg-white/[0.05] my-auto"></div>
-
-                                                <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto">
-                                                   <div className="flex gap-3">
-                                                      <div className="flex flex-col">
-                                                        <div className={`flex items-center gap-1 text-[9px] font-mono font-bold ${isCardLocked ? 'text-gray-600' : 'text-white'}`}>
-                                                          <Clock className="w-2.5 h-2.5 text-gray-500" /> {estTime} MIN
-                                                        </div>
-                                                      </div>
-                                                      <div className="w-px h-4 bg-white/[0.05]"></div>
-                                                      <div className="flex flex-col">
-                                                        <div className={`flex items-center gap-1 text-[9px] font-mono font-bold ${isCardLocked ? 'text-gray-600' : 'text-white'}`}>
-                                                          <Activity className="w-2.5 h-2.5 text-gray-500" /> {workout.exercises?.length || 0} EXS
-                                                        </div>
-                                                      </div>
-                                                   </div>
-
-                                                   <button
-                                                     onClick={() => !isCardLocked && setSelectedWorkout(workout)}
-                                                     disabled={isCardLocked}
-                                                     className={`relative overflow-hidden group/btn px-3 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest transition-all w-full sm:w-auto
-                                                       ${isCardLocked ? 'bg-white/5 text-gray-600 cursor-not-allowed' :
-                                                         isCardCompleted ? 'bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white border border-green-500/20' :
-                                                         'bg-[#E71B25] text-white hover:bg-[#C6161F] hover:shadow-[0_0_15px_rgba(231,27,37,0.3)]'}
-                                                     `}
-                                                   >
-                                                      <div className="flex items-center justify-center gap-1.5 relative z-10">
-                                                        {isCardLocked ? (
-                                                          <>LOCKED <Lock className="w-2 h-2" /></>
-                                                        ) : isCardCompleted ? (
-                                                          <>REPLAY <PlayCircle className="w-2.5 h-2.5" /></>
-                                                        ) : (
-                                                          <>INITIATE <PlayCircle className="w-2.5 h-2.5" fill="currentColor" /></>
-                                                        )}
-                                                      </div>
-                                                   </button>
-                                                </div>
+                                          {!isCardLocked && (
+                                            <div className="flex items-center gap-1 bg-black/50 px-2 py-1 rounded-md border border-white/[0.05] shrink-0">
+                                              <div className={`w-1 h-1 rounded-full ${workout.intensity === 'Low' ? 'bg-blue-500' : workout.intensity === 'High' ? 'bg-orange-500' : 'bg-[#E71B25]'}`}></div>
+                                              <span className="text-[7px] font-bold uppercase tracking-widest text-gray-400">{workout.intensity}</span>
                                             </div>
-                                          </motion.div>
-                                        );
-                                     })}
-                                  </div>
-                               </motion.div>
-                            )}
-                         </AnimatePresence>
+                                          )}
+                                        </div>
+
+                                        <div className="mb-4">
+                                          <div className="flex flex-wrap gap-1.5">
+                                            {workout.targets?.map((t, i) => (
+                                              <span key={i} className={`text-[7px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border
+                                                          ${isCardLocked ? 'border-white/[0.02] text-gray-600 bg-transparent' :
+                                                  isCardActive ? 'border-[#E71B25]/30 text-[#E71B25] bg-[#E71B25]/5' :
+                                                    'border-white/[0.05] text-gray-400 bg-white/[0.02]'}
+                                                        `}>{t}</span>
+                                            ))}
+                                          </div>
+                                        </div>
+
+                                        <div className="w-full h-px bg-white/[0.05] my-auto"></div>
+
+                                        <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto">
+                                          <div className="flex gap-3">
+                                            <div className="flex flex-col">
+                                              <div className={`flex items-center gap-1 text-[9px] font-mono font-bold ${isCardLocked ? 'text-gray-600' : 'text-white'}`}>
+                                                <Clock className="w-2.5 h-2.5 text-gray-500" /> {estTime} MIN
+                                              </div>
+                                            </div>
+                                            <div className="w-px h-4 bg-white/[0.05]"></div>
+                                            <div className="flex flex-col">
+                                              <div className={`flex items-center gap-1 text-[9px] font-mono font-bold ${isCardLocked ? 'text-gray-600' : 'text-white'}`}>
+                                                <Activity className="w-2.5 h-2.5 text-gray-500" /> {workout.exercises?.length || 0} EXS
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <button
+                                            onClick={() => !isCardLocked && setSelectedWorkout(workout)}
+                                            disabled={isCardLocked}
+                                            className={`relative overflow-hidden group/btn px-3 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest transition-all w-full sm:w-auto
+                                                       ${isCardLocked ? 'bg-white/5 text-gray-600 cursor-not-allowed' :
+                                                isCardCompleted ? 'bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white border border-green-500/20' :
+                                                  'bg-[#E71B25] text-white hover:bg-[#C6161F] hover:shadow-[0_0_15px_rgba(231,27,37,0.3)]'}
+                                                     `}
+                                          >
+                                            <div className="flex items-center justify-center gap-1.5 relative z-10">
+                                              {isCardLocked ? (
+                                                <>LOCKED <Lock className="w-2 h-2" /></>
+                                              ) : isCardCompleted ? (
+                                                <>REPLAY <PlayCircle className="w-2.5 h-2.5" /></>
+                                              ) : (
+                                                <>INITIATE <PlayCircle className="w-2.5 h-2.5" fill="currentColor" /></>
+                                              )}
+                                            </div>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     );
                   })}
@@ -997,59 +1141,59 @@ const Dashboard = () => {
             {/* TAB 4: TELEMETRY (ANALYTICS & XP) */}
             {activeTab === 'analytics' && (
               <motion.div key="analytics" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="md:col-span-2 bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 relative overflow-hidden group">
-                     <div className="absolute right-0 top-0 w-64 h-64 bg-[#E71B25]/5 rounded-full blur-[80px] pointer-events-none group-hover:bg-[#E71B25]/10 transition-colors duration-700"></div>
-                     <div className="relative z-10 flex items-center gap-5">
-                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-[3px] border-[#E71B25] flex items-center justify-center bg-black shadow-[0_0_20px_rgba(231,27,37,0.2)] shrink-0">
-                         <span className="text-2xl md:text-3xl font-black text-white">{currentLevel}</span>
-                       </div>
-                       <div className="flex-1">
-                          <div className="flex justify-between items-start mb-1">
-                            <div>
-                              <span className="text-[8px] md:text-[9px] font-mono text-[#E71B25] font-bold tracking-[0.2em] uppercase">Current Standing</span>
-                              <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tight leading-none mt-0.5">{rankName}</h2>
-                            </div>
-                            <ShieldCheck className="w-5 h-5 text-white/10" />
+                    <div className="absolute right-0 top-0 w-64 h-64 bg-[#E71B25]/5 rounded-full blur-[80px] pointer-events-none group-hover:bg-[#E71B25]/10 transition-colors duration-700"></div>
+                    <div className="relative z-10 flex items-center gap-5">
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-[3px] border-[#E71B25] flex items-center justify-center bg-black shadow-[0_0_20px_rgba(231,27,37,0.2)] shrink-0">
+                        <span className="text-2xl md:text-3xl font-black text-white">{currentLevel}</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-1">
+                          <div>
+                            <span className="text-[8px] md:text-[9px] font-mono text-[#E71B25] font-bold tracking-[0.2em] uppercase">Current Standing</span>
+                            <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tight leading-none mt-0.5">{rankName}</h2>
                           </div>
-                          
-                          <div className="mt-3 md:mt-4">
-                            <div className="flex justify-between items-end mb-1.5">
-                              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">XP to Lvl {currentLevel + 1}</span>
-                              <span className="text-[10px] font-mono font-bold text-white">{xpInCurrentLevel} <span className="text-gray-600">/ {xpNeeded}</span></span>
-                            </div>
-                            <div className="w-full bg-white/[0.03] rounded-full h-1.5 overflow-hidden border border-white/5">
-                              <motion.div 
-                                initial={{ width: 0 }} animate={{ width: `${(xpInCurrentLevel / xpNeeded) * 100}%` }} transition={{ duration: 1.5 }}
-                                className="bg-gradient-to-r from-orange-500 to-[#E71B25] h-full shadow-[0_0_10px_#E71B25]" 
-                              />
-                            </div>
+                          <ShieldCheck className="w-5 h-5 text-white/10" />
+                        </div>
+
+                        <div className="mt-3 md:mt-4">
+                          <div className="flex justify-between items-end mb-1.5">
+                            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">XP to Lvl {currentLevel + 1}</span>
+                            <span className="text-[10px] font-mono font-bold text-white">{xpInCurrentLevel} <span className="text-gray-600">/ {xpNeeded}</span></span>
                           </div>
-                       </div>
-                     </div>
+                          <div className="w-full bg-white/[0.03] rounded-full h-1.5 overflow-hidden border border-white/5">
+                            <motion.div
+                              initial={{ width: 0 }} animate={{ width: `${(xpInCurrentLevel / xpNeeded) * 100}%` }} transition={{ duration: 1.5 }}
+                              className="bg-gradient-to-r from-orange-500 to-[#E71B25] h-full shadow-[0_0_10px_#E71B25]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5 flex flex-col justify-center gap-3">
-                     <div className="bg-white/[0.01] border border-white/[0.03] rounded-2xl p-3 flex items-center gap-3 hover:bg-white/[0.03] transition-colors">
-                       <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-                         <Dumbbell className="w-3.5 h-3.5 text-green-400" />
-                       </div>
-                       <div>
-                         <span className="block text-[16px] font-black text-white leading-none">{completedWorkouts}</span>
-                         <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold">Total Workouts</span>
-                       </div>
-                     </div>
-                     
-                     <div className="bg-white/[0.01] border border-white/[0.03] rounded-2xl p-3 flex items-center gap-3 hover:bg-white/[0.03] transition-colors">
-                       <div className="w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
-                         <Star className="w-3.5 h-3.5 text-yellow-400" />
-                       </div>
-                       <div>
-                         <span className="block text-[16px] font-black text-white leading-none">{currentXP}</span>
-                         <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold">Total XP Earned</span>
-                       </div>
-                     </div>
+                    <div className="bg-white/[0.01] border border-white/[0.03] rounded-2xl p-3 flex items-center gap-3 hover:bg-white/[0.03] transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                        <Dumbbell className="w-3.5 h-3.5 text-green-400" />
+                      </div>
+                      <div>
+                        <span className="block text-[16px] font-black text-white leading-none">{completedWorkouts}</span>
+                        <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold">Total Workouts</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/[0.01] border border-white/[0.03] rounded-2xl p-3 flex items-center gap-3 hover:bg-white/[0.03] transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
+                        <Star className="w-3.5 h-3.5 text-yellow-400" />
+                      </div>
+                      <div>
+                        <span className="block text-[16px] font-black text-white leading-none">{currentXP}</span>
+                        <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold">Total XP Earned</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1062,33 +1206,33 @@ const Dashboard = () => {
                       </div>
                       <span className="text-[8px] text-gray-600 font-mono tracking-widest bg-white/[0.03] px-2 py-0.5 rounded-sm">W1-{maxWeeks}</span>
                     </div>
-                    
+
                     <div className="flex items-end justify-between gap-1.5 h-32 md:h-40 mt-auto overflow-x-auto pb-1 scrollbar-hide px-1">
                       {weeklyChartData.map((data, i) => {
                         const heightPct = data.max > 0 ? (data.done / data.max) * 100 : 0;
                         const isCurrent = data.week === currentWeek;
                         const isFullyComplete = heightPct === 100;
-                        
+
                         return (
                           <div key={i} className="flex flex-col items-center flex-1 min-w-[20px] max-w-[32px] group h-full justify-end relative cursor-default">
-                             <span className="absolute -top-5 text-[8px] font-mono text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity bg-[#111] px-1.5 py-0.5 rounded border border-white/10 z-10 whitespace-nowrap">
-                               {data.done}/{data.max}
-                             </span>
-                             <div className="w-full max-w-[16px] bg-white/[0.02] rounded-full h-full relative flex items-end justify-center border border-white/[0.02] group-hover:bg-white/[0.05] transition-colors overflow-hidden">
-                                <motion.div
-                                  initial={{ height: 0 }} 
-                                  animate={{ height: `${heightPct}%` }} 
-                                  transition={{ duration: 1, delay: i * 0.05 }}
-                                  className={`w-full rounded-full transition-colors duration-300
-                                    ${isCurrent ? 'bg-gradient-to-t from-[#E71B25]/80 to-[#E71B25] shadow-[0_0_10px_rgba(231,27,37,0.8)]' : 
-                                      isFullyComplete ? 'bg-gradient-to-t from-green-500/40 to-green-500/80' : 
+                            <span className="absolute -top-5 text-[8px] font-mono text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity bg-[#111] px-1.5 py-0.5 rounded border border-white/10 z-10 whitespace-nowrap">
+                              {data.done}/{data.max}
+                            </span>
+                            <div className="w-full max-w-[16px] bg-white/[0.02] rounded-full h-full relative flex items-end justify-center border border-white/[0.02] group-hover:bg-white/[0.05] transition-colors overflow-hidden">
+                              <motion.div
+                                initial={{ height: 0 }}
+                                animate={{ height: `${heightPct}%` }}
+                                transition={{ duration: 1, delay: i * 0.05 }}
+                                className={`w-full rounded-full transition-colors duration-300
+                                    ${isCurrent ? 'bg-gradient-to-t from-[#E71B25]/80 to-[#E71B25] shadow-[0_0_10px_rgba(231,27,37,0.8)]' :
+                                    isFullyComplete ? 'bg-gradient-to-t from-green-500/40 to-green-500/80' :
                                       'bg-gradient-to-t from-gray-700/50 to-gray-600'}
                                   `}
-                                />
-                             </div>
-                             <span className={`text-[7px] md:text-[8px] mt-1.5 font-bold uppercase tracking-wider transition-colors ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-gray-400'}`}>
-                               W{data.week}
-                             </span>
+                              />
+                            </div>
+                            <span className={`text-[7px] md:text-[8px] mt-1.5 font-bold uppercase tracking-wider transition-colors ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-gray-400'}`}>
+                              W{data.week}
+                            </span>
                           </div>
                         )
                       })}
@@ -1253,16 +1397,16 @@ const Dashboard = () => {
               {/* Body */}
               <div className="flex-1 overflow-y-auto bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-repeat relative">
                 <div className="absolute inset-0 bg-[#050505]/95 z-0"></div>
-                
+
                 <div className="p-4 md:p-6 relative z-10">
                   {selectedWorkout.exercises ? (
                     <div className="relative">
                       <div className="absolute left-[15px] md:left-[19px] top-6 bottom-6 w-[1px] bg-gradient-to-b from-[#E71B25] via-[#E71B25]/50 to-transparent z-0 shadow-[0_0_10px_#E71B25]"></div>
-                      
+
                       <div className="space-y-4 md:space-y-5 relative z-10">
                         {selectedWorkout.exercises.map((ex, i) => (
                           <div key={i} className="flex gap-3 md:gap-5 group">
-                            
+
                             {/* Left: Number Ring */}
                             <div className="flex flex-col items-center shrink-0 mt-1">
                               <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#0a0a0a] border-[2px] border-[#E71B25] flex items-center justify-center text-[10px] md:text-[12px] font-black text-white shadow-[0_0_15px_rgba(231,27,37,0.3)] z-10 group-hover:scale-110 transition-transform">
@@ -1273,13 +1417,13 @@ const Dashboard = () => {
                             {/* Right: Exercise Data Block */}
                             <div className="bg-[#0a0a0a] border border-white/[0.05] rounded-2xl p-4 w-full hover:bg-[#111] transition-colors shadow-sm flex flex-col relative overflow-hidden">
                               <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-white/[0.02] to-transparent"></div>
-                              
+
                               <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
                                 <div className="flex-1">
                                   <h4 className="text-[13px] md:text-[14px] font-black text-white mb-1.5 tracking-wide uppercase">{ex.name}</h4>
                                   <div className="flex items-start gap-1.5 bg-[#E71B25]/5 border border-[#E71B25]/10 p-2 rounded-lg">
-                                     <Crosshair className="w-3 h-3 text-[#E71B25] shrink-0 mt-0.5" />
-                                     <p className="text-[9px] md:text-[10px] text-gray-400 font-medium leading-relaxed">{ex.notes}</p>
+                                    <Crosshair className="w-3 h-3 text-[#E71B25] shrink-0 mt-0.5" />
+                                    <p className="text-[9px] md:text-[10px] text-gray-400 font-medium leading-relaxed">{ex.notes}</p>
                                   </div>
                                 </div>
 
