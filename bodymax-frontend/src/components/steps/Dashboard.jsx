@@ -783,6 +783,10 @@ const Dashboard = () => {
                 const limitingPercentage = 100 - weakestMuscle.score;
                 const dynamicLimiterName = analysis.worst_feature || weakestMuscle.name;
 
+                // 🔴 CORRECTION: Define images inside the block to ensure they exist
+                const currentImage = assessment?.photos?.[1] || assessment?.photos?.[0] || '/placeholder.jpg';
+                const displayDreamImage = assessment?.dreamPhysiqueImage || '/placeholder.jpg';
+
                 return (
                   <motion.div ref={scanRef} key="photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col items-center w-full max-w-4xl mx-auto pt-2 md:pt-4 pb-20 px-2 md:px-8 bg-[#030303]">
 
@@ -792,8 +796,15 @@ const Dashboard = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 md:gap-8 mb-8 w-full">
+                      {/* CURRENT STATE IMAGE */}
                       <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-[2rem] border-[2px] border-white/10 overflow-hidden bg-[#0a0a0a] relative group shadow-2xl">
-                        <img src={assessment?.photos?.[1] || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover" alt="Current" />
+                        <img
+                          src={currentImage}
+                          crossOrigin="anonymous"
+                          className="w-full h-full object-cover"
+                          alt="Current"
+                          onError={(e) => { e.target.src = '/placeholder.jpg' }}
+                        />
                         <div className="absolute inset-0 bg-black/30"></div>
                         <div className="absolute bottom-4 w-full flex justify-center">
                           <div className="bg-[#111]/90 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full flex items-center gap-2">
@@ -803,8 +814,15 @@ const Dashboard = () => {
                         </div>
                       </div>
 
+                      {/* TARGET GOAL IMAGE */}
                       <div className="w-full aspect-[3/4] md:aspect-[4/5] rounded-[2rem] border-[2px] border-[#E71B25]/40 overflow-hidden bg-[#0a0a0a] relative group shadow-2xl">
-                        <img src={dreamImage || '/placeholder.jpg'} crossOrigin="anonymous" className="w-full h-full object-cover filter grayscale-[10%]" alt="Target" />
+                        <img
+                          src={displayDreamImage}
+                          crossOrigin="anonymous"
+                          className="w-full h-full object-cover filter grayscale-[10%]"
+                          alt="Target"
+                          onError={(e) => { e.target.src = '/placeholder.jpg' }}
+                        />
                         <div className="absolute inset-0 bg-black/30"></div>
                         <div className="absolute bottom-4 w-full flex justify-center">
                           <div className="bg-[#111]/90 backdrop-blur-md border border-[#E71B25]/50 px-4 py-2 rounded-full flex items-center gap-2">
@@ -814,7 +832,6 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </div>
-
                     <div className="w-full max-w-2xl px-4 mb-10">
                       <div className="w-full bg-[#111] rounded-[1.5rem] p-4 md:p-6 flex flex-row items-center gap-4 md:gap-6 shadow-lg">
                         <div className="flex items-center justify-center shrink-0 pr-4 md:pr-6 border-r border-[#22c55e]/20">
@@ -1163,8 +1180,8 @@ const Dashboard = () => {
                               <div
                                 key={i}
                                 className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all duration-300 ${isUnlocked
-                                    ? 'bg-[#111] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.5)]'
-                                    : 'bg-[#050505] border-white/[0.02] opacity-50 grayscale'
+                                  ? 'bg-[#111] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.5)]'
+                                  : 'bg-[#050505] border-white/[0.02] opacity-50 grayscale'
                                   }`}
                               >
                                 <div className="flex items-center gap-2.5">

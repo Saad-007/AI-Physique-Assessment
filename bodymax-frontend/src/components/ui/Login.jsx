@@ -83,9 +83,9 @@ const LoginPage = ({ onGoToDashboard }) => {
       }
 
       // STEP 2: If the user exists, PROCEED to send the reset link
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`, 
-      });
+const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+  redirectTo: `${window.location.origin}/reset-password`, 
+});
 
       if (resetError) {
         setErrorMsg("Error: " + resetError.message);

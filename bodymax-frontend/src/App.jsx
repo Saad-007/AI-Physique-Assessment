@@ -10,6 +10,7 @@ import PaywallModal from './components/ui/PaywalModal';
 import SuccessPage from './components/ui/SuccessPage';
 import Dashboard from './components/steps/Dashboard';
 import LoginPage from './components/ui/Login';
+import ResetPassword from './components/ui/ResetPassword';
 
 const BodyMaxFunnel = () => {
   // 1 se start karein
@@ -45,6 +46,12 @@ const BodyMaxFunnel = () => {
 
     initApp();
   }, []);
+  useEffect(() => {
+  // Check if URL contains reset-password
+  if (window.location.pathname === '/reset-password' || window.location.hash.includes('type=recovery')) {
+    setStep(11); // Naya step number for Reset Password
+  }
+}, []);
 
   // 🔴 OPTIMIZATION: Removed 'scale' property. Scale on large DOM trees causes mobile lag.
   // Using simple opacity and slight Y-axis movement is 10x faster for mobile GPUs.
@@ -167,6 +174,11 @@ const BodyMaxFunnel = () => {
               <Dashboard />
             </motion.div>
           )}
+          {step === 11 && (
+  <motion.div key="s11" {...pageTransition} className="w-full min-h-[100dvh]">
+    <ResetPassword onComplete={() => setStep(9)} /> 
+  </motion.div>
+)}
         </AnimatePresence>
       </div>
     </div>

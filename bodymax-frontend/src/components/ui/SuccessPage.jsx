@@ -48,17 +48,12 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
             if (authData.user) {
                 console.log("2. Auth Success! User ID:", authData.user.id);
                 
-                // ==========================================
-                // 🔴 THE MISSING MAGIC: LOCAL STORAGE MERGE
-                // ==========================================
-                // Hum check karenge ke kya LocalStorage mein payment ke baad ka data para hai?
+                // Merge LocalStorage data (Payment data) with Props data
                 const savedLocalDataStr = localStorage.getItem('savedAssessmentData');
                 const localAssessmentData = savedLocalDataStr ? JSON.parse(savedLocalDataStr) : {};
-                
-                // Props wala data aur LocalStorage wale data ko merge kar dein (LocalStorage wins if overlap)
                 const finalAssessmentData = { ...assessmentData, ...localAssessmentData };
 
-                // Destructure to separate actual files from the rest of the JSON data
+                // Separate files from JSON data
                 const { 
                   photos, 
                   photoFiles, 
@@ -67,79 +62,64 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
                   ...cleanAssessmentData 
                 } = finalAssessmentData;
                 
-                // Ensure planDuration exists
-                if (!cleanAssessmentData.planDuration) {
-                    cleanAssessmentData.planDuration = "12-Week";
-                }
-
-                let permanentPhotoUrls = {}; 
+                let permanentPhotoUrls = []; // Array format for Dashboard compatibility
                 let finalGoalImageUrl = null;
 
                 console.log("3. Starting Photo Uploads...");
-                // ==========================================
-                // UPLOAD THE 3 BODY PHOTOS
-                // ==========================================
+
+                // --- UPLOAD THE 3 BODY PHOTOS ---
                 if (photoFiles) {
+                    // We iterate through keys 1, 2, 3 as they were stored in the assessment
                     for (const key of [1, 2, 3]) {
                         const file = photoFiles[key];
                         if (file && file.name) {
-                            try {
-                                const fileExt = file.name.split('.').pop();
-                                const filePath = `${authData.user.id}/photo_${key}_${Date.now()}.${fileExt}`;
+                            const fileExt = file.name.split('.').pop();
+                            const filePath = `${authData.user.id}/photo_${key}_${Date.now()}.${fileExt}`;
 
-                                const { error: uploadError } = await supabase.storage
+                            const { error: uploadError } = await supabase.storage
+                                .from('user_photos')
+                                .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+                            if (!uploadError) {
+                                const { data: urlData } = supabase.storage
                                     .from('user_photos')
-                                    .upload(filePath, file, { cacheControl: '3600', upsert: true });
-
-                                if (!uploadError) {
-                                    const { data: urlData } = supabase.storage
-                                        .from('user_photos')
-                                        .getPublicUrl(filePath);
-                                    permanentPhotoUrls[key] = urlData.publicUrl;
-                                }
-                            } catch (photoErr) {
-                                console.error(`Crash while uploading photo ${key}:`, photoErr);
+                                    .getPublicUrl(filePath);
+                                permanentPhotoUrls.push(urlData.publicUrl);
                             }
                         }
                     }
                 }
 
-                // ==========================================
-                // UPLOAD THE DREAM PHYSIQUE GOAL PHOTO
-                // ==========================================
+                // --- UPLOAD THE DREAM PHYSIQUE GOAL PHOTO ---
                 if (dreamPhysiqueFile && dreamPhysiqueFile.name) {
-                    try {
-                        const file = dreamPhysiqueFile;
-                        const fileExt = file.name.split('.').pop();
-                        const filePath = `${authData.user.id}/goal_${Date.now()}.${fileExt}`;
-                        
-                        const { error: uploadError } = await supabase.storage
-                            .from('user_photos') 
-                            .upload(filePath, file, { cacheControl: '3600', upsert: true });
+                    const fileExt = dreamPhysiqueFile.name.split('.').pop();
+                    const filePath = `${authData.user.id}/goal_${Date.now()}.${fileExt}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                        .from('user_photos') 
+                        .upload(filePath, dreamPhysiqueFile, { cacheControl: '3600', upsert: true });
 
-                        if (!uploadError) {
-                            const { data: urlData } = supabase.storage
-                                .from('user_photos')
-                                .getPublicUrl(filePath);
-                            finalGoalImageUrl = urlData.publicUrl;
-                        }
-                    } catch (dreamErr) {
-                        console.error("Crash while uploading dream photo:", dreamErr);
+                    if (!uploadError) {
+                        const { data: urlData } = supabase.storage
+                            .from('user_photos')
+                            .getPublicUrl(filePath);
+                        finalGoalImageUrl = urlData.publicUrl;
                     }
-                } else if (finalAssessmentData.dreamPhysiqueImage && typeof finalAssessmentData.dreamPhysiqueImage === 'string') {
+                } else if (finalAssessmentData.dreamPhysiqueImage) {
                     finalGoalImageUrl = finalAssessmentData.dreamPhysiqueImage;
                 }
 
-                console.log("4. Preparing Database Insert/Merge...");
-                
-                cleanAssessmentData.photos = Object.keys(permanentPhotoUrls).length > 0 ? permanentPhotoUrls : null;
-                cleanAssessmentData.dreamPhysiqueImage = finalGoalImageUrl;
+                console.log("4. Preparing Final Data Payload...");
 
-                // ==========================================
-                // 🔴 USE UPSERT INSTEAD OF INSERT
-                // ==========================================
-                // Agar Supabase auth triggers ne pehle hi profile bana di hai, toh insert fail ho jayega. 
-                // Upsert ensure karega ke data perfectly update ho.
+                // Dashboard Mapping: Ensure keys match exactly what Dashboard expects
+                const dataToSave = {
+                    ...cleanAssessmentData,
+                    photos: permanentPhotoUrls, // Dashboard will use photos[0] or photos[1]
+                    dreamPhysiqueImage: finalGoalImageUrl, // Dashboard's displayDreamImage key
+                    planDuration: cleanAssessmentData.planDuration || "12-Week"
+                };
+
+                // 2. UPSERT TO PROFILES TABLE
                 const { error: dbError } = await supabase
                     .from('profiles')
                     .upsert([
@@ -147,29 +127,26 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
                             id: authData.user.id,
                             full_name: formData.name,
                             email: formData.email,
-                            assessment_data: cleanAssessmentData,
+                            assessment_data: dataToSave,
                         }
                     ]);
 
                 if (dbError) {
                     console.error("Database save error:", dbError);
-                    throw new Error("Failed to save profile data. " + dbError.message); 
+                    throw new Error(dbError.message); 
                 }
                 
-                console.log("5. Database Merge Successful!");
+                console.log("5. Cleanup and Success!");
+                localStorage.removeItem('pendingAccountCreation');
+                localStorage.removeItem('savedAssessmentData');
+                
+                setIsSubmitting(false);
+                setIsSuccess(true);
             }
-
-            // 🔴 MAGIC: Account ban gaya aur data save ho gaya, toh localStorage clean kar dein
-            localStorage.removeItem('pendingAccountCreation');
-            localStorage.removeItem('savedAssessmentData');
-            
-            // Show success animation
-            setIsSubmitting(false);
-            setIsSuccess(true);
 
         } catch (err) {
             console.error("CRITICAL SIGNUP ERROR:", err);
-            setErrorMsg(err.message || "An unexpected error occurred. Please try again.");
+            setErrorMsg(err.message || "Account created but profile sync failed. Please contact support.");
             setIsSubmitting(false);
         }
     };
