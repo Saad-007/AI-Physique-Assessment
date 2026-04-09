@@ -120,6 +120,144 @@ const pricingPlans = [
 ];
 
 // ==========================================
+// REUSABLE PRICING & CHECKOUT WIDGET
+// ==========================================
+const PricingWidget = ({ id, onCheckout, onSuccess }) => {
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  const handlePlanClick = (planId) => {
+    setSelectedPlan(planId);
+    setIsCheckoutOpen(true); 
+  };
+
+  return (
+    <div id={id} className="flex flex-col items-center text-center w-full mb-12 mt-12 scroll-mt-24">
+      <h2 className="text-[20px] md:text-[24px] font-bold text-white leading-[1.1] tracking-tight mb-6">
+        Select Your Plan to Continue
+      </h2>
+
+      <div className="w-full flex flex-col gap-5">
+        {pricingPlans.map((plan) => {
+          const isSelected = selectedPlan === plan.id;
+          return (
+            <div
+              key={plan.id}
+              onClick={() => handlePlanClick(plan.id)}
+              className={`relative w-full rounded-2xl cursor-pointer transition-all duration-200 border-[1.5px] overflow-visible flex h-[105px] md:h-[115px] ${
+                isSelected
+                  ? 'border-[#E71B25] bg-[#120a09] shadow-[0_0_20px_rgba(231,27,37,0.15)]'
+                  : 'border-[#2C2C2E] bg-[#161618] hover:border-[#3C3C3E]'
+              }`}
+            >
+              {plan.badge && (
+                <div className={`absolute text-[10px] font-bold tracking-wider z-30 ${plan.badge.style}`}>
+                  {plan.badge.text}
+                </div>
+              )}
+
+              <div className="flex flex-1 items-center pl-4 pr-1 py-3 h-full z-20">
+                <div className={`w-6 h-6 rounded-full border-[2px] flex items-center justify-center shrink-0 mr-3 md:mr-4 transition-colors ${isSelected ? 'border-[#E71B25]' : 'border-[#4A4A4C]'}`}>
+                  {isSelected && <div className="w-3 h-3 bg-[#E71B25] rounded-full" />}
+                </div>
+
+                <div className="flex flex-col justify-center h-full pt-1">
+                  <h3 className="text-white font-bold text-[16px] md:text-[18px] leading-none mb-1.5 text-left">{plan.title}</h3>
+                  <p className="text-[#98989A] text-[11px] md:text-[12px] leading-tight pr-2 mb-auto text-left">{plan.subtitle}</p>
+
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-white text-[12px] md:text-[13px] font-medium">{plan.duration}</span>
+                    <span className="text-[#98989A] text-[12px] md:text-[13px] line-through decoration-[#98989A]">{plan.oldTotal}</span>
+                    <span className="text-white text-[12px] md:text-[13px] font-medium">→ {plan.newTotal}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute right-[4px] top-[4px] bottom-[4px] w-[110px] md:w-[130px] overflow-hidden rounded-[0.8rem] z-10 pointer-events-none">
+                <div
+                  className={`absolute inset-0 transition-colors duration-300 ${isSelected ? 'bg-[#E71B25]' : 'bg-[#222224]'}`}
+                  style={{ clipPath: 'polygon(15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%)' }}
+                />
+                <div className="relative z-20 flex flex-col items-center justify-center h-full w-full pl-4 md:pl-5">
+                  {plan.oldDaily && (
+                    <span className={`text-[11px] md:text-[12px] line-through decoration-current mb-0.5 ${isSelected ? 'text-white/80' : 'text-[#98989A]'}`}>
+                      {plan.oldDaily}
+                    </span>
+                  )}
+                  <span className={`font-bold text-[24px] md:text-[28px] leading-none tracking-tight mb-0.5 ${isSelected ? 'text-white drop-shadow-sm' : 'text-white'}`}>
+                    {plan.newDaily}
+                  </span>
+                  <span className={`text-[10px] md:text-[11px] ${isSelected ? 'text-white/90' : 'text-[#98989A]'}`}>
+                    per day
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="w-full flex flex-col items-center mt-6">
+        {!isCheckoutOpen && !selectedPlan && (
+          <div className="w-full max-w-[420px] bg-[#1c1c1e] text-gray-400 py-4 rounded-2xl font-bold text-[15px] uppercase tracking-widest flex items-center justify-center border border-white/5 opacity-70">
+            Select a Plan Above
+          </div>
+        )}
+
+        <AnimatePresence mode="wait">
+          {isCheckoutOpen && selectedPlan && (
+            <motion.div
+              key="embed-form"
+              initial={{ opacity: 0, height: 0, y: -20 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0 }}
+              className="w-full max-w-[420px] rounded-[1.5rem] overflow-hidden shadow-[0_0_40px_rgba(231,27,37,0.3)] border border-white/10 mt-6"
+            >
+              <WhopCheckoutEmbed
+                key={selectedPlan}
+                planId={pricingPlans.find(plan => plan.id === selectedPlan)?.planId}
+                theme="dark"
+                hidePrice={false}
+                onComplete={() => {
+                  console.log("Payment 100% Successful for:", selectedPlan);
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="mt-4 flex items-center gap-1.5 text-gray-500">
+          <Lock className="w-3 h-3" />
+          <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
+        </div>
+
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            const rawPlan = selectedPlan || "12-weeks";
+            let formattedPlan = "12-Week";
+            if (rawPlan === '1-week') formattedPlan = "1-Week";
+            if (rawPlan === '4-weeks') formattedPlan = "4-Week";
+            
+            console.log("Developer Bypass Triggered. Sending Plan:", formattedPlan);
+
+            if (onCheckout) {
+              onCheckout(formattedPlan);
+            } else if (onSuccess) {
+              onSuccess(formattedPlan);
+            }
+          }}
+          className="mt-6 text-[10px] text-gray-500 uppercase tracking-[0.2em] border-b border-transparent hover:text-white hover:border-white transition-all z-50 cursor-pointer relative"
+        >
+          🛠 Dev: Bypass Payment & Proceed
+        </button>
+      </div>
+    </div>
+  );
+};
+
+
+// ==========================================
 // SWIPEABLE REVIEW CAROUSEL COMPONENT
 // ==========================================
 const reviewsData = [
@@ -255,18 +393,12 @@ const ReviewCarousel = () => {
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
-const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout,formData }) => {
+const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
   const [timeLeft, setTimeLeft] = useState(2 * 3600 + 15 * 60 + 47);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  
-  const handlePlanClick = (planId) => {
-    setSelectedPlan(planId);
-    setIsCheckoutOpen(true); 
-  };
 
   const scrollToPricing = () => {
-    document.getElementById('pricing-section')?.scrollIntoView({ behavior: 'smooth' });
+    // Scrolls specifically to the BOTTOM pricing section to ensure they see the rest of the page first
+    document.getElementById('pricing-section-bottom')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -276,6 +408,7 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout,formData }) => {
     }, 1000);
     return () => clearInterval(timer);
   }, [isOpen]);
+
   const currentPhoto = formData?.photoPreviewUrls?.[1] || formData?.photos?.[1] || '/Today3.png'; 
   const goalPhoto = formData?.dreamPhysiquePreview || formData?.dreamPhysiqueImage || '/Future1.png';
   const hours = Math.floor(timeLeft / 3600);
@@ -310,7 +443,7 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout,formData }) => {
             </span>
           </motion.div>
 
-       
+        
 
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
@@ -371,6 +504,11 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout,formData }) => {
                 </div>
               </div>
 
+              {/* ==========================================
+                  FIRST WIDGET INSTANCE (TOP)
+                  ========================================== */}
+              <PricingWidget id="pricing-section-top" onCheckout={onCheckout} onSuccess={onSuccess} />
+                    
               {/* ==========================================
                   NEW: BLURRED CURIOSITY WIDGET
                   ========================================== */}
@@ -750,129 +888,9 @@ const PaywallModal = ({ isOpen, onClose ,onSuccess,onCheckout,formData }) => {
               </div>
 
               {/* ==========================================
-                  SECTION 2: PRICING CARDS & WHOP CHECKOUT
+                  SECOND WIDGET INSTANCE (BOTTOM)
                   ========================================== */}
-              <div id="pricing-section" className="flex flex-col items-center text-center w-full mb-12 mt-12 scroll-mt-24">
-                <h2 className="text-[20px] md:text-[24px] font-bold text-white leading-[1.1] tracking-tight mb-6">
-                  Select Your Plan to Continue
-                </h2>
-
-                <div className="w-full flex flex-col gap-5">
-                  {pricingPlans.map((plan) => {
-                    const isSelected = selectedPlan === plan.id;
-                    return (
-                      <div
-                        key={plan.id}
-                        onClick={() => handlePlanClick(plan.id)}
-                        className={`relative w-full rounded-2xl cursor-pointer transition-all duration-200 border-[1.5px] overflow-visible flex h-[105px] md:h-[115px] ${isSelected
-                            ? 'border-[#E71B25] bg-[#120a09] shadow-[0_0_20px_rgba(231,27,37,0.15)]'
-                            : 'border-[#2C2C2E] bg-[#161618] hover:border-[#3C3C3E]'
-                          }`}
-                      >
-                        {plan.badge && (
-                          <div className={`absolute text-[10px] font-bold tracking-wider z-30 ${plan.badge.style}`}>
-                            {plan.badge.text}
-                          </div>
-                        )}
-
-                        <div className="flex flex-1 items-center pl-4 pr-1 py-3 h-full z-20">
-                          <div className={`w-6 h-6 rounded-full border-[2px] flex items-center justify-center shrink-0 mr-3 md:mr-4 transition-colors ${isSelected ? 'border-[#E71B25]' : 'border-[#4A4A4C]'}`}>
-                            {isSelected && <div className="w-3 h-3 bg-[#E71B25] rounded-full" />}
-                          </div>
-
-                          <div className="flex flex-col justify-center h-full pt-1">
-                            <h3 className="text-white font-bold text-[16px] md:text-[18px] leading-none mb-1.5 text-left">{plan.title}</h3>
-                            <p className="text-[#98989A] text-[11px] md:text-[12px] leading-tight pr-2 mb-auto text-left">{plan.subtitle}</p>
-
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-white text-[12px] md:text-[13px] font-medium">{plan.duration}</span>
-                              <span className="text-[#98989A] text-[12px] md:text-[13px] line-through decoration-[#98989A]">{plan.oldTotal}</span>
-                              <span className="text-white text-[12px] md:text-[13px] font-medium">→ {plan.newTotal}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="absolute right-[4px] top-[4px] bottom-[4px] w-[110px] md:w-[130px] overflow-hidden rounded-[0.8rem] z-10 pointer-events-none">
-                          <div
-                            className={`absolute inset-0 transition-colors duration-300 ${isSelected ? 'bg-[#E71B25]' : 'bg-[#222224]'}`}
-                            style={{ clipPath: 'polygon(15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%)' }}
-                          />
-                          <div className="relative z-20 flex flex-col items-center justify-center h-full w-full pl-4 md:pl-5">
-                            {plan.oldDaily && (
-                              <span className={`text-[11px] md:text-[12px] line-through decoration-current mb-0.5 ${isSelected ? 'text-white/80' : 'text-[#98989A]'}`}>
-                                {plan.oldDaily}
-                              </span>
-                            )}
-                            <span className={`font-bold text-[24px] md:text-[28px] leading-none tracking-tight mb-0.5 ${isSelected ? 'text-white drop-shadow-sm' : 'text-white'}`}>
-                              {plan.newDaily}
-                            </span>
-                            <span className={`text-[10px] md:text-[11px] ${isSelected ? 'text-white/90' : 'text-[#98989A]'}`}>
-                              per day
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* SMART CHECKOUT ACTION & WHOP EMBED SDK */}
-              <div className="w-full flex flex-col items-center mb-12">
-                {!isCheckoutOpen && !selectedPlan && (
-                  <div className="w-full max-w-[420px] bg-[#1c1c1e] text-gray-400 py-4 rounded-2xl font-bold text-[15px] uppercase tracking-widest flex items-center justify-center border border-white/5 opacity-70">
-                    Select a Plan Above
-                  </div>
-                )}
-
-                <AnimatePresence mode="wait">
-                  {isCheckoutOpen && selectedPlan && (
-                    <motion.div
-                      key="embed-form"
-                      initial={{ opacity: 0, height: 0, y: -20 }}
-                      animate={{ opacity: 1, height: "auto", y: 0 }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="w-full max-w-[420px] rounded-[1.5rem] overflow-hidden shadow-[0_0_40px_rgba(231,27,37,0.3)] border border-white/10"
-                    >
-                      <WhopCheckoutEmbed
-                        key={selectedPlan}
-                        planId={pricingPlans.find(plan => plan.id === selectedPlan)?.planId}
-                        theme="dark"
-                        hidePrice={false}
-                        onComplete={() => {
-                          console.log("Payment 100% Successful for:", selectedPlan);
-                        }}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="mt-4 flex items-center gap-1.5 text-gray-500">
-                  <Lock className="w-3 h-3" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
-                </div>
-
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const rawPlan = selectedPlan || "12-weeks";
-                    let formattedPlan = "12-Week";
-                    if (rawPlan === '1-week') formattedPlan = "1-Week";
-                    if (rawPlan === '4-weeks') formattedPlan = "4-Week";
-                    
-                    console.log("Developer Bypass Triggered. Sending Plan:", formattedPlan);
-
-                    if (onCheckout) {
-                      onCheckout(formattedPlan);
-                    } else if (onSuccess) {
-                      onSuccess(formattedPlan);
-                    }
-                  }}
-                  className="mt-6 text-[10px] text-gray-500 uppercase tracking-[0.2em] border-b border-transparent hover:text-white hover:border-white transition-all z-50 cursor-pointer relative"
-                >
-                  🛠 Dev: Bypass Payment & Proceed
-                </button>
-              </div>
+              <PricingWidget id="pricing-section-bottom" onCheckout={onCheckout} onSuccess={onSuccess} />
 
             </motion.div>
           </motion.div>
