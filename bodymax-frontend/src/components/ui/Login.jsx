@@ -13,7 +13,7 @@ const LoginPage = ({ onGoToDashboard }) => {
   const [isResetMode, setIsResetMode] = useState(false); // 🔴 New State for Forgot Password
   const [resetSuccessMsg, setResetSuccessMsg] = useState('');
 
-  const handleLogin = async (e) => {
+const handleLogin = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrorMsg('');
@@ -32,13 +32,37 @@ const LoginPage = ({ onGoToDashboard }) => {
 
       if (data.user) {
         const savedLocalDataStr = localStorage.getItem('savedAssessmentData');
+        
         if (savedLocalDataStr) {
           const localAssessmentData = JSON.parse(savedLocalDataStr);
           const { data: profile } = await supabase.from('profiles').select('assessment_data').eq('id', data.user.id).single();
-          const mergedData = { ...(profile?.assessment_data || {}), ...localAssessmentData };
+          
+          // CRITICAL FIX: Only merge if local storage actually has valuable text data.
+          // NEVER overwrite the images.
+          const currentDbData = profile?.assessment_data || {};
+          
+          // Create a safe copy of local data, stripping out ALL image-related fields
+          const safeLocalData = { ...localAssessmentData };
+          delete safeLocalData.photos;
+          delete safeLocalData.photoFiles;
+          delete safeLocalData.photoPreviewUrls;
+          delete safeLocalData.dreamPhysiqueImage;
+          delete safeLocalData.dreamPhysiquePreview;
+          delete safeLocalData.safePhotoFilesBase64;
+          delete safeLocalData.safeGoalFileBase64;
+
+          // Merge: Database takes priority for images, LocalStorage takes priority for text (if updated)
+          const mergedData = { 
+            ...currentDbData, 
+            ...safeLocalData,
+            // Explicitly protect the image URLs from the database
+            photos: currentDbData.photos || null,
+            dreamPhysiqueImage: currentDbData.dreamPhysiqueImage || null
+          };
 
           await supabase.from('profiles').update({ assessment_data: mergedData }).eq('id', data.user.id);
           
+          // Cleanup
           localStorage.removeItem('pendingAccountCreation');
           localStorage.removeItem('savedAssessmentData');
         }
@@ -52,7 +76,6 @@ const LoginPage = ({ onGoToDashboard }) => {
       setIsSubmitting(false);
     }
   };
-
   // 🔴 NEW: Password Reset Handler (With Strict Email Existence Check)
   const handleResetPassword = async (e) => {
     e.preventDefault();

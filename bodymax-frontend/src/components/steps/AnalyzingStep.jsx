@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Target } from 'lucide-react';
+import { Camera, Target, Cpu } from 'lucide-react';
 
 const AnalyzingStep = ({ formData, onComplete }) => {
   const [progress, setProgress] = useState([0, 0, 0, 0]);
@@ -50,80 +50,113 @@ const AnalyzingStep = ({ formData, onComplete }) => {
   const goalPhoto = formData?.dreamPhysiquePreview || formData?.dreamPhysiqueImage || '/Future1.png';
 
   return (
-    <div className="w-full min-h-screen bg-[#030303] flex flex-col items-center justify-center p-6 py-12 relative overflow-hidden">
-      {/* Background soft glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#E71B25] filter blur-[150px] opacity-10 pointer-events-none"></div>
+    <div className="w-full min-h-[100dvh] bg-[#030303] flex flex-col items-center justify-center p-5 relative overflow-hidden font-sans">
+      
+      {/* Subtle Premium Background Glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#E71B25] rounded-full filter blur-[120px] opacity-[0.07] pointer-events-none"></div>
 
-      {/* Side-by-Side Images Container (NO OVERLAP) */}
-      <div className="flex justify-center items-center gap-4 md:gap-6 mb-12 w-full max-w-[400px] mt-4 relative z-10">
+      {/* System Status Badge */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 text-[#E71B25] text-[9px] font-black tracking-[0.2em] uppercase mb-8 shadow-sm"
+      >
+        <Cpu className="w-3 h-3 animate-pulse" /> Neural Processing
+      </motion.div>
+
+      {/* Side-by-Side Images Container - Compact & Sleek */}
+      <div className="flex justify-center items-center gap-3 md:gap-4 mb-8 w-full max-w-[320px] relative z-10">
         
         {/* Current Photo */}
         <motion.div 
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 0.8, ease: "easeOut" }}
-           className="w-1/2 aspect-[4/5] bg-[#0a0a0a] rounded-2xl md:rounded-3xl border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.8)] overflow-hidden relative"
+           initial={{ opacity: 0, x: -10 }}
+           animate={{ opacity: 1, x: 0 }}
+           transition={{ duration: 0.6, ease: "easeOut" }}
+           className="w-1/2 aspect-[4/5] bg-[#0a0a0a] rounded-[1.25rem] border border-white/5 shadow-xl overflow-hidden relative"
         >
-          <img src={currentPhoto} alt="Current" className="absolute inset-0 w-full h-full object-cover object-center" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent"></div>
-          <div className="absolute bottom-3 left-0 w-full flex justify-center">
-            <span className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold text-gray-300 uppercase tracking-widest flex items-center gap-1.5 border border-white/10 shadow-lg">
-              <Camera className="w-3 h-3" /> Current
+          <img src={currentPhoto} alt="Current" className="absolute inset-0 w-full h-full object-cover grayscale-[15%]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent opacity-90"></div>
+          <div className="absolute bottom-2.5 left-0 w-full flex justify-center">
+            <span className="bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-md text-[8px] font-bold text-gray-300 uppercase tracking-widest flex items-center gap-1 border border-white/[0.05]">
+              <Camera className="w-2.5 h-2.5 text-gray-400" /> Current
             </span>
           </div>
         </motion.div>
+
+        {/* Sync Indicator (Center) */}
+        <div className="flex flex-col items-center justify-center shrink-0 opacity-50">
+          <div className="w-[1px] h-6 bg-gradient-to-b from-transparent to-white/20"></div>
+          <div className="w-1 h-1 rounded-full bg-white/40 my-1"></div>
+          <div className="w-[1px] h-6 bg-gradient-to-t from-transparent to-white/20"></div>
+        </div>
 
         {/* Goal Photo */}
         <motion.div 
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-           className="w-1/2 aspect-[4/5] bg-[#0a0a0a] rounded-2xl md:rounded-3xl border border-[#E71B25]/30 shadow-[0_10px_40px_rgba(231,27,37,0.15)] overflow-hidden relative"
+           initial={{ opacity: 0, x: 10 }}
+           animate={{ opacity: 1, x: 0 }}
+           transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+           className="w-1/2 aspect-[4/5] bg-[#0a0a0a] rounded-[1.25rem] border border-[#E71B25]/20 shadow-[0_5px_20px_rgba(231,27,37,0.08)] overflow-hidden relative"
         >
-          <img src={goalPhoto} alt="Goal" className="absolute inset-0 w-full h-full object-cover object-center filter grayscale-[10%]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent"></div>
-          <div className="absolute bottom-3 left-0 w-full flex justify-center">
-            <span className="bg-[#E71B25]/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-1.5 border border-[#E71B25]/50 shadow-lg">
-              <Target className="w-3 h-3 text-[#ff8a8a]" /> Goal
+          <img src={goalPhoto} alt="Goal" className="absolute inset-0 w-full h-full object-cover filter grayscale-[5%]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent opacity-90"></div>
+          <div className="absolute bottom-2.5 left-0 w-full flex justify-center">
+            <span className="bg-[#E71B25]/10 backdrop-blur-md px-2.5 py-1 rounded-md text-[8px] font-bold text-white uppercase tracking-widest flex items-center gap-1 border border-[#E71B25]/30">
+              <Target className="w-2.5 h-2.5 text-[#ff8a8a]" /> Target
             </span>
           </div>
         </motion.div>
 
       </div>
 
-      {/* Heading */}
+      {/* Aesthetic Heading */}
       <motion.h2 
-        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-        className="text-white text-[18px] md:text-[22px] font-bold text-center mb-10 max-w-[300px] md:max-w-[340px] leading-snug tracking-tight z-10 drop-shadow-md"
+        initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        className="text-white/90 text-[15px] md:text-[17px] font-medium text-center mb-8 max-w-[280px] leading-relaxed tracking-tight z-10"
       >
-        Generating your Body Max Report & personalized plan to build your dream physique.
+        Generating your <strong className="text-white font-bold">BodyMax Report</strong> & personalized plan.
       </motion.h2>
 
-      {/* Loading Bars */}
-      <div className="w-full max-w-[340px] flex flex-col gap-6 z-10">
+      {/* Compact High-Tech Loading Module */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
+        className="w-full max-w-[320px] bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/[0.04] rounded-2xl p-4 md:p-5 flex flex-col gap-4 z-10 shadow-2xl"
+      >
         {[
-          "Analyzing Your Current Physique",
-          "Analyzing Your Dream Physique",
-          "Generating BodyMax Score Report",
-          "Building Personalized Plan & Program For You"
-        ].map((text, i) => (
-          <div key={i} className="w-full flex flex-col gap-2">
-            <div className="flex justify-between items-end text-white font-medium text-[12px] md:text-[13px]">
-              <div className="flex items-start gap-3">
-                <span className="font-bold w-3">{i + 1}.</span>
-                <span className={progress[i] === 100 ? "text-white" : "text-gray-400"}>{text}</span>
+          "Analyzing Current Physique",
+          "Processing Dream Target",
+          "Generating BodyMax Score",
+          "Building Personalized Protocol"
+        ].map((text, i) => {
+          const isDone = progress[i] === 100;
+          const isActive = progress[i] > 0 && progress[i] < 100;
+          const isPending = progress[i] === 0;
+
+          return (
+            <div key={i} className="w-full flex flex-col gap-1.5">
+              <div className="flex justify-between items-center text-[9px] md:text-[10px] uppercase tracking-wider font-bold">
+                <div className="flex items-center gap-2">
+                  {/* Smart Status Dot */}
+                  <div className={`w-1.5 h-1.5 rounded-full ${isDone ? 'bg-[#22c55e]' : isActive ? 'bg-[#E71B25] animate-pulse shadow-[0_0_8px_#E71B25]' : 'bg-gray-800'}`}></div>
+                  <span className={`${isDone ? 'text-gray-400' : isActive ? 'text-white' : 'text-gray-600'} transition-colors duration-300`}>
+                    {text}
+                  </span>
+                </div>
+                <span className={`font-mono ${isActive ? 'text-[#E71B25]' : isDone ? 'text-gray-500' : 'text-gray-700'}`}>
+                  {Math.floor(progress[i])}%
+                </span>
               </div>
-              <span className="font-mono font-bold ml-2">{Math.floor(progress[i])}%</span>
+              
+              {/* Thin, Sleek Progress Bar */}
+              <div className="w-full h-[2px] bg-white/[0.03] rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all ease-out ${isDone ? 'bg-[#22c55e]' : 'bg-[#E71B25] shadow-[0_0_5px_#E71B25]'}`} 
+                  style={{ width: `${progress[i]}%`, transitionDuration: '50ms' }}
+                ></div>
+              </div>
             </div>
-            <div className="w-full h-[6px] md:h-[8px] bg-[#111] rounded-full overflow-hidden border border-white/[0.05]">
-              <div 
-                className="h-full bg-[#E71B25] rounded-full transition-all ease-out" 
-                style={{ width: `${progress[i]}%`, transitionDuration: '50ms' }}
-              ></div>
-            </div>
-          </div>
-        ))}
-      </div>
+          );
+        })}
+      </motion.div>
+      
     </div>
   );
 };

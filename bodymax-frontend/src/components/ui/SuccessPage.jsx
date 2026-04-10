@@ -10,19 +10,54 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
     const [errorMsg, setErrorMsg] = useState('');
     const [isSuccess, setIsSuccess] = useState(false);
     
-    // 🔴 PWA DETECTION STATE
+    // PWA DETECTION STATE
     const [isStandalone, setIsStandalone] = useState(false);
 
     useEffect(() => {
-        // Check if the user is using the installed PWA (Standalone mode)
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         setIsStandalone(checkStandalone);
 
         if (!checkStandalone) {
-            // Agar browser mein hai, toh yaad rakhein ke isko app install karne ke baad account banana hai
             localStorage.setItem('pendingAccountCreation', 'true');
         }
     }, []);
+
+    // Helper to upload either a File object or a Base64 string
+    const uploadImageToSupabase = async (fileOrBase64, userId, fileNamePrefix) => {
+        if (!fileOrBase64) return null;
+
+        try {
+            const fileName = `${userId}/${fileNamePrefix}_${Date.now()}`;
+            let fileToUpload = fileOrBase64;
+
+            // If it's a base64 string (often happens after a page reload when files are lost)
+            if (typeof fileOrBase64 === 'string' && fileOrBase64.startsWith('data:image')) {
+                // Convert base64 to Blob
+                const res = await fetch(fileOrBase64);
+                fileToUpload = await res.blob();
+            } else if (typeof fileOrBase64 === 'string' && fileOrBase64.startsWith('blob:')) {
+                // We cannot upload a dead blob URL. 
+                console.warn("Dead blob URL detected. Cannot upload.");
+                return null;
+            }
+
+            const { error: uploadError } = await supabase.storage
+                .from('user_photos')
+                .upload(`${fileName}.jpg`, fileToUpload, { 
+                    cacheControl: '3600', 
+                    upsert: true,
+                    contentType: 'image/jpeg' 
+                });
+
+            if (!uploadError) {
+                const { data: urlData } = supabase.storage.from('user_photos').getPublicUrl(`${fileName}.jpg`);
+                return urlData.publicUrl;
+            }
+        } catch (err) {
+            console.error(`Failed to upload ${fileNamePrefix}:`, err);
+        }
+        return null;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -48,30 +83,53 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
             if (authData.user) {
                 console.log("2. Auth Success! User ID:", authData.user.id);
                 
-                // Merge LocalStorage data (Payment data) with Props data
+                // =====================================
+                // 🔴 THE FIX: SAFE MERGE LOGIC
+                // =====================================
                 const savedLocalDataStr = localStorage.getItem('savedAssessmentData');
                 const localAssessmentData = savedLocalDataStr ? JSON.parse(savedLocalDataStr) : {};
-                const finalAssessmentData = { ...assessmentData, ...localAssessmentData };
+                
+                // 🔴 CRITICAL: Hum LocalStorage me se files wale keys hata denge 
+                // taake wo asli files (jo props se aa rahi hain) ko tabah na karein.
+                delete localAssessmentData.photoFiles;
+                delete localAssessmentData.dreamPhysiqueFile;
+                delete localAssessmentData.photos;
+                delete localAssessmentData.dreamPhysiqueImage;
+                delete localAssessmentData.dreamPhysiquePreview;
+                delete localAssessmentData.photoPreviewUrls;
 
-                // Separate files from JSON data
+                // Ab merge karenge. Asli files ab safely props (assessmentData) se aayengi!
+                const finalAssessmentData = { 
+                    ...assessmentData, 
+                    ...localAssessmentData 
+                };
+
                 const { 
                   photos, 
                   photoFiles, 
-                  dreamPhysiqueFile, 
-                  dreamPhysiquePreview, 
+                  dreamPhysiqueFile,
+                  dreamPhysiqueImage, 
+                  dreamPhysiquePreview,
+                  photoPreviewUrls, 
                   ...cleanAssessmentData 
                 } = finalAssessmentData;
                 
-                let permanentPhotoUrls = []; // Array format for Dashboard compatibility
-                let finalGoalImageUrl = null;
+                let permanentPhotoUrls = { ...(photos || {}) }; 
+                
+                // Target Image ka naya bulletproof logic
+                let finalGoalImageUrl = dreamPhysiqueImage || null;
+                // Agar pehle se koi valid preview hai (jo blob na ho), usko default set karlo
+                if (!finalGoalImageUrl && dreamPhysiquePreview && !dreamPhysiquePreview.startsWith('blob:')) {
+                     finalGoalImageUrl = dreamPhysiquePreview;
+                }
 
-                console.log("3. Starting Photo Uploads...");
+                console.log("3. Processing Photos...");
 
-                // --- UPLOAD THE 3 BODY PHOTOS ---
-                if (photoFiles) {
-                    // We iterate through keys 1, 2, 3 as they were stored in the assessment
+                // --- UPLOAD NEW FILES (Current Body Photos) ---
+                if (photoFiles && Object.keys(photoFiles).length > 0) {
                     for (const key of [1, 2, 3]) {
                         const file = photoFiles[key];
+                        // File must be valid (not an empty object)
                         if (file && file.name) {
                             const fileExt = file.name.split('.').pop();
                             const filePath = `${authData.user.id}/photo_${key}_${Date.now()}.${fileExt}`;
@@ -81,16 +139,15 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
                                 .upload(filePath, file, { cacheControl: '3600', upsert: true });
 
                             if (!uploadError) {
-                                const { data: urlData } = supabase.storage
-                                    .from('user_photos')
-                                    .getPublicUrl(filePath);
-                                permanentPhotoUrls.push(urlData.publicUrl);
+                                const { data: urlData } = supabase.storage.from('user_photos').getPublicUrl(filePath);
+                                permanentPhotoUrls[key] = urlData.publicUrl;
                             }
                         }
                     }
                 }
 
-                // --- UPLOAD THE DREAM PHYSIQUE GOAL PHOTO ---
+                // --- 🔴 UPLOAD TARGET / DREAM PHYSIQUE FILE ---
+                // Ye ab safely upload hogi kyunke file destroy nahi hui!
                 if (dreamPhysiqueFile && dreamPhysiqueFile.name) {
                     const fileExt = dreamPhysiqueFile.name.split('.').pop();
                     const filePath = `${authData.user.id}/goal_${Date.now()}.${fileExt}`;
@@ -100,22 +157,21 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
                         .upload(filePath, dreamPhysiqueFile, { cacheControl: '3600', upsert: true });
 
                     if (!uploadError) {
-                        const { data: urlData } = supabase.storage
-                            .from('user_photos')
-                            .getPublicUrl(filePath);
+                        const { data: urlData } = supabase.storage.from('user_photos').getPublicUrl(filePath);
                         finalGoalImageUrl = urlData.publicUrl;
+                        console.log("Target Goal image uploaded successfully:", finalGoalImageUrl);
+                    } else {
+                        console.error("Target Goal image upload failed:", uploadError);
                     }
-                } else if (finalAssessmentData.dreamPhysiqueImage) {
-                    finalGoalImageUrl = finalAssessmentData.dreamPhysiqueImage;
                 }
 
                 console.log("4. Preparing Final Data Payload...");
 
-                // Dashboard Mapping: Ensure keys match exactly what Dashboard expects
+                // FINAL PAYLOAD FOR DATABASE
                 const dataToSave = {
                     ...cleanAssessmentData,
-                    photos: permanentPhotoUrls, // Dashboard will use photos[0] or photos[1]
-                    dreamPhysiqueImage: finalGoalImageUrl, // Dashboard's displayDreamImage key
+                    photos: permanentPhotoUrls, 
+                    dreamPhysiqueImage: finalGoalImageUrl, // Ab ye 100% database mein jayega
                     planDuration: cleanAssessmentData.planDuration || "12-Week"
                 };
 
@@ -151,9 +207,8 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
         }
     };
 
-    // =========================================================================
-    // VIEW 1: BROWSER VIEW (FORCE PWA INSTALL AFTER PAYMENT)
-    // =========================================================================
+    // ... Rest of your component (Browser View and PWA View) remains exactly the same ...
+    
     if (!isStandalone) {
         return (
             <div className="min-h-[100dvh] bg-[#030303] flex items-center justify-center p-4 relative overflow-hidden">
@@ -178,7 +233,6 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
                         <InstallPrompt />
                     </div>
 
-                    {/* Fallback button */}
                     <button 
                         onClick={() => setIsStandalone(true)} 
                         className="text-[9px] font-bold text-gray-600 hover:text-gray-400 uppercase tracking-widest transition-colors border-b border-transparent hover:border-gray-500 pb-0.5"
@@ -190,9 +244,6 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
         );
     }
 
-    // =========================================================================
-    // VIEW 2: PWA VIEW (CREATE ACCOUNT FORM - AESTHETIC)
-    // =========================================================================
     return (
         <div className="min-h-[100dvh] bg-[#030303] flex items-center justify-center p-4 relative overflow-hidden">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#E71B25] mix-blend-screen filter blur-[120px] opacity-[0.05] rounded-full pointer-events-none" />
@@ -297,9 +348,6 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
                             </p>
                         </motion.div>
                     ) : (
-                        /* ==========================================
-                           SUCCESS VIEW (GO TO DASHBOARD)
-                           ========================================== */
                         <motion.div
                             key="success-view"
                             initial={{ opacity: 0, scale: 0.95 }}

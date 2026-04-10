@@ -9,33 +9,37 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Include static assets that aren't in the manifest but should be cached
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      
+      // 🔴 THE FIX: Enable PWA manifest in development mode
+      devOptions: {
+        enabled: true
+      },
+
       manifest: {
         name: 'Body Max',
         short_name: 'Body Max',
         description: 'My awesome PWA app',
         start_url: '/',
-        display: 'standalone', // Keeps it looking like a native app (hides browser UI)
-        theme_color: '#000000', // Changes the status bar color on mobile
-        background_color: '#000000', // Splash screen background color
+        display: 'standalone', 
+        theme_color: '#000000', 
+        background_color: '#000000', 
         icons: [
           {
             src: '/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable' // Crucial for Android to make the logo fill the icon space
+            purpose: 'any maskable' 
           },
           {
             src: '/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable' // Crucial for splash screens and large desktop icons
+            purpose: 'any maskable' 
           }
         ]
       },
       workbox: {
-        // This is the magic that caches your fonts so they NEVER break
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -44,7 +48,7 @@ export default defineConfig({
               cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                maxAgeSeconds: 60 * 60 * 24 * 365 
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -58,7 +62,7 @@ export default defineConfig({
               cacheName: 'gstatic-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                maxAgeSeconds: 60 * 60 * 24 * 365 
               },
               cacheableResponse: {
                 statuses: [0, 200]

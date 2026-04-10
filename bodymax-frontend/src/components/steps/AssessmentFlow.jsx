@@ -43,24 +43,31 @@ import { MagneticButton } from "../ui/MagneticButton";
 import PaywallModal from "../ui/PaywalModal";
 
 // ==========================================
-// ADVANCED ANIMATED COUNTER
+// ADVANCED ANIMATED COUNTER (Optimized for 60/120fps Mobile Displays)
 // ==========================================
-const AnimatedCounter = ({ end, suffix = "", duration = 1500 }) => {
+const AnimatedCounter = React.memo(({ end, suffix = "", duration = 1500 }) => {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    let start = 0;
-    const increment = end / (duration / 16);
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) {
-        setCount(end);
-        clearInterval(timer);
+    let startTime;
+    let animationFrame;
+
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const percentage = Math.min(progress / duration, 1);
+      
+      setCount(Math.ceil(end * percentage));
+
+      if (progress < duration) {
+        animationFrame = requestAnimationFrame(animate);
       } else {
-        setCount(Math.ceil(start));
+        setCount(end);
       }
-    }, 16);
-    return () => clearInterval(timer);
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
   }, [end, duration]);
 
   return (
@@ -69,12 +76,12 @@ const AnimatedCounter = ({ end, suffix = "", duration = 1500 }) => {
       {suffix}
     </>
   );
-};
+});
 
 // ==========================================
-// ULTRA-PREMIUM SLIDER
+// ULTRA-PREMIUM SLIDER (Memoized to stop re-render lag)
 // ==========================================
-const CustomSlider = ({ label, min, max, value, onChange, unit }) => {
+const CustomSlider = React.memo(({ label, min, max, value, onChange, unit }) => {
   const percentage = ((value - min) / (max - min)) * 100;
   return (
     <div className="flex flex-col w-full mb-8 group relative z-10">
@@ -116,12 +123,12 @@ const CustomSlider = ({ label, min, max, value, onChange, unit }) => {
       </div>
     </div>
   );
-};
+});
 
 // ==========================================
 // SEPARATE COMPONENT: REVIEW STEP
 // ==========================================
-const ReviewStep = ({ review, onNext }) => {
+const ReviewStep = React.memo(({ review, onNext }) => {
   return (
     <div className="flex flex-col w-full h-full max-w-md mx-auto relative z-10 text-left">
       <div className="fixed bottom-0 left-0 right-0 h-[45vh] bg-gradient-to-t from-[#E71B25]/20 via-[#E71B25]/5 to-transparent pointer-events-none z-[-1]" />
@@ -170,11 +177,13 @@ const ReviewStep = ({ review, onNext }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-        className="relative w-[280px] md:w-[320px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl mb-10 border border-white/10"
+        className="relative w-[280px] md:w-[320px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl mb-10 border border-white/10 transform-gpu"
       >
         <img
           src={review.image}
           alt="Transformation progress"
+          decoding="async"
+          loading="lazy"
           className="w-full h-full object-cover"
         />
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.5)] border border-white/10 whitespace-nowrap">
@@ -201,7 +210,7 @@ const ReviewStep = ({ review, onNext }) => {
       </motion.div>
     </div>
   );
-};
+});
 
 // ==========================================
 // THE DATA ENGINE
@@ -674,10 +683,11 @@ const AssessmentFlow = ({
     enter: (dir) => ({
       x: dir > 0 ? 40 : -40,
       opacity: 0,
-      scale: 0.92,
+      scale: 0.95, // Softened scale for mobile smoothness
       rotateY: dir > 0 ? 15 : -15,
       filter: "blur(12px)",
-      transformPerspective: 1000,
+      transformPerspective: 1200,
+      WebkitBackfaceVisibility: "hidden", // Prevents iOS flickering
     }),
     center: {
       x: 0,
@@ -685,26 +695,28 @@ const AssessmentFlow = ({
       scale: 1,
       rotateY: 0,
       filter: "blur(0px)",
-      transformPerspective: 1000,
+      transformPerspective: 1200,
+      WebkitBackfaceVisibility: "hidden",
     },
     exit: (dir) => ({
       x: dir < 0 ? -40 : 40,
       opacity: 0,
-      scale: 0.92,
+      scale: 0.95,
       rotateY: dir < 0 ? -15 : 15,
       filter: "blur(12px)",
-      transformPerspective: 1000,
+      transformPerspective: 1200,
+      WebkitBackfaceVisibility: "hidden",
     }),
   };
 
   return (
     <div className="w-full min-h-screen flex flex-col font-sans relative overflow-hidden bg-[#020202]">
-      {/* 🚀 ADVANCED AMBIENT BACKGROUND */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+      {/* 🚀 ADVANCED AMBIENT BACKGROUND (Optimized for Mobile GPU) */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" style={{ WebkitTransform: 'translateZ(0)' }}>
         <motion.div
           animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.15, 0.1] }}
           transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
-          className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] bg-[#E71B25] rounded-full blur-[150px] mix-blend-screen"
+          className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] bg-[#E71B25] rounded-full blur-[150px] mix-blend-screen will-change-transform transform-gpu"
         />
         <motion.div
           animate={{ scale: [1, 1.3, 1], opacity: [0.05, 0.1, 0.05] }}
@@ -714,9 +726,9 @@ const AssessmentFlow = ({
             ease: "easeInOut",
             delay: 2,
           }}
-          className="absolute top-[40%] -right-[20%] w-[80vw] h-[80vw] bg-[#C6161F] rounded-full blur-[150px] mix-blend-screen"
+          className="absolute top-[40%] -right-[20%] w-[80vw] h-[80vw] bg-[#C6161F] rounded-full blur-[150px] mix-blend-screen will-change-transform transform-gpu"
         />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay transform-gpu"></div>
       </div>
 
       {/* TIGHT, HIGH-END HEADER - HIDDEN IF isFinished === true */}
@@ -737,9 +749,9 @@ const AssessmentFlow = ({
             {/* Hide Progress Bar text & UI when on interstitial pages */}
             {isQuestionStep(currentStep) && (
               <>
-                <div className="flex-1 mx-6 h-1.5 bg-[#111] rounded-full overflow-hidden border border-white/[0.05] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] relative">
+                <div className="flex-1 mx-6 h-1.5 bg-[#111] rounded-full overflow-hidden border border-white/[0.05] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] relative transform-gpu">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-[#C6161F] via-[#E71B25] to-[#ff4747] relative rounded-full"
+                    className="h-full bg-gradient-to-r from-[#C6161F] via-[#E71B25] to-[#ff4747] relative rounded-full will-change-transform"
                     animate={{
                       width: `${(currentQuestionNumber / TOTAL_QUESTIONS) * 100}%`,
                     }}
@@ -771,7 +783,7 @@ const AssessmentFlow = ({
               animate="center"
               exit="exit"
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className="w-full flex flex-col transform-gpu h-full"
+              className="w-full flex flex-col transform-gpu h-full will-change-transform"
             >
               {/* --- SEPARATE REVIEW COMPONENT RENDER --- */}
               {currentStep.type === "review" && (
@@ -784,7 +796,7 @@ const AssessmentFlow = ({
 
                   {/* Floating Header Tags with Sleek SVG Arrow */}
                   <div className="w-full flex justify-between items-end px-6 md:px-10 mb-3 relative z-10">
-                    <div className="absolute left-1/2 -translate-x-1/2 mt-1 w-12 md:w-14 opacity-60">
+                    <div className="absolute left-1/2 -translate-x-1/2 mt-1 w-12 md:w-14 opacity-60 transform-gpu">
                       <svg viewBox="0 0 100 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto drop-shadow-sm">
                         <path d="M10 30 Q 50 -10 90 30" stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none" />
                         <path d="M75 28 L 90 30 L 85 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -796,7 +808,7 @@ const AssessmentFlow = ({
                   <div className="flex w-full gap-2.5 md:gap-4 mb-6 stretch flex-1 min-h-[460px] md:min-h-[500px]">
 
                     {/* --- BEFORE CARD --- */}
-                    <div className="flex-1 bg-[#1A1A1C] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                    <div className="flex-1 bg-[#1A1A1C] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.5)] transform-gpu">
                       {/* Tighter padding */}
                       <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
                         <h3 className="text-gray-400 font-bold text-[12px] md:text-[14px] mb-3 md:mb-4 tracking-tight">
@@ -823,12 +835,14 @@ const AssessmentFlow = ({
                           src={currentStep.before.image}
                           className="w-full h-full object-cover object-top"
                           alt="Before"
+                          decoding="async"
+                          loading="lazy"
                         />
                       </div>
                     </div>
 
                     {/* --- AFTER CARD --- */}
-                    <div className="flex-1 bg-gradient-to-b from-[#139E46] to-[#0A5A26] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(19,158,70,0.2)]">
+                    <div className="flex-1 bg-gradient-to-b from-[#139E46] to-[#0A5A26] rounded-[1.5rem] flex flex-col overflow-hidden relative shadow-[0_10px_30px_rgba(19,158,70,0.2)] transform-gpu">
                       {/* Tighter padding */}
                       <div className="p-3 md:p-5 flex flex-col z-10 flex-1">
                         <h3 className="text-white font-bold text-[12px] md:text-[14px] mb-3 md:mb-4 tracking-tight drop-shadow-sm">
@@ -855,6 +869,8 @@ const AssessmentFlow = ({
                           src={currentStep.after.image}
                           className="w-full h-full object-cover object-top"
                           alt="After"
+                          decoding="async"
+                          loading="lazy"
                         />
                       </div>
                     </div>
@@ -880,7 +896,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
-                    className="relative w-full max-w-[340px] md:max-w-[420px] mx-auto flex rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] mb-8 border border-white/[0.05]"
+                    className="relative w-full max-w-[340px] md:max-w-[420px] mx-auto flex rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] mb-8 border border-white/[0.05] transform-gpu"
                   >
                     {/* Left Side: Today */}
                     <div className="flex-1 relative flex flex-col pt-6 bg-[#6E2B2A]">
@@ -892,6 +908,7 @@ const AssessmentFlow = ({
                           src={currentStep.before.image}
                           className="absolute inset-0 w-full h-full object-cover object-bottom"
                           alt="Before"
+                          decoding="async"
                         />
                       </div>
                     </div>
@@ -906,12 +923,13 @@ const AssessmentFlow = ({
                           src={currentStep.after.image}
                           className="absolute inset-0 w-full h-full object-cover object-bottom"
                           alt="After"
+                          decoding="async"
                         />
                       </div>
                     </div>
 
                     {/* Custom Curved SVG Arrow (Centered over the split) */}
-                    <div className="absolute top-[98px] md:top-[30px] left-1/2 -translate-x-1/2 w-25 md:w-20 z-20 pointer-events-none drop-shadow-lg">
+                    <div className="absolute top-[98px] md:top-[30px] left-1/2 -translate-x-1/2 w-25 md:w-20 z-20 pointer-events-none drop-shadow-lg transform-gpu">
                       <svg
                         viewBox="0 0 100 40"
                         fill="none"
@@ -942,7 +960,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="text-center px-2 mb-6 md:mb-8"
+                    className="text-center px-2 mb-6 md:mb-8 transform-gpu"
                   >
                     <h2 className="text-[22px] md:text-[28px] font-bold text-white leading-[1.2] tracking-tight mb-4">
                       Your Personalized BodyMax
@@ -961,7 +979,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="w-full flex justify-center mt-auto pb-2"
+                    className="w-full flex justify-center mt-auto pb-2 transform-gpu"
                   >
                     <MagneticButton text="Continue" onClick={handleNext} />
                   </motion.div>
@@ -978,7 +996,7 @@ const AssessmentFlow = ({
                   </h2>
 
                   {/* Unified Green Card matching the image */}
-                  <div className="w-full rounded-[1.5rem] overflow-hidden mb-10 shadow-[0_0_40px_rgba(34,197,94,0.15)] flex flex-col">
+                  <div className="w-full rounded-[1.5rem] overflow-hidden mb-10 shadow-[0_0_40px_rgba(34,197,94,0.15)] flex flex-col transform-gpu">
                     <div className="bg-gradient-to-b from-[#4ade80] to-[#16a34a] p-6 text-center">
                       <p className="text-white text-[18px] md:text-[20px] font-bold leading-tight drop-shadow-sm">
                         you can improve your physique by up to 66% in the next
@@ -996,7 +1014,7 @@ const AssessmentFlow = ({
                   </div>
 
                   {/* Custom Graph Area */}
-                  <div className="relative w-full aspect-[1.6] max-w-sm mx-auto mb-10 mt-4">
+                  <div className="relative w-full aspect-[1.6] max-w-sm mx-auto mb-10 mt-4 transform-gpu">
                     {/* SVG Graph */}
                     <svg
                       viewBox="0 0 400 250"
@@ -1200,13 +1218,13 @@ const AssessmentFlow = ({
                 "before-after-comparison",
                 "results-projection",
               ].includes(currentStep.type) && (
-                  <div className="mb-10 text-center md:text-left">
+                  <div className="mb-10 text-center md:text-left transform-gpu">
                     {currentStep.phase && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 mb-4"
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 mb-4 transform-gpu"
                       >
                         <div className="w-1.5 h-1.5 bg-[#E71B25] rounded-full animate-pulse shadow-[0_0_8px_#E71B25]" />
                         <span className="text-[9px] font-black tracking-[0.2em] text-[#E71B25] uppercase">
@@ -1257,7 +1275,7 @@ const AssessmentFlow = ({
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   exit={{ opacity: 0 }}
-                                  className="absolute inset-0 bg-gradient-to-r from-transparent via-[#E71B25]/10 to-transparent pointer-events-none"
+                                  className="absolute inset-0 bg-gradient-to-r from-transparent via-[#E71B25]/10 to-transparent pointer-events-none transform-gpu"
                                 />
                                 <motion.div
                                   initial={{ x: "-100%" }}
@@ -1267,7 +1285,7 @@ const AssessmentFlow = ({
                                     duration: 2,
                                     ease: "linear",
                                   }}
-                                  className="absolute top-0 bottom-0 w-[1px] bg-[#E71B25]/50 shadow-[0_0_15px_#E71B25]"
+                                  className="absolute top-0 bottom-0 w-[1px] bg-[#E71B25]/50 shadow-[0_0_15px_#E71B25] transform-gpu will-change-transform"
                                 />
                               </>
                             )}
@@ -1285,7 +1303,7 @@ const AssessmentFlow = ({
                                 stiffness: 400,
                                 damping: 15,
                               }}
-                              className={`p-2.5 rounded-[0.8rem] transition-all duration-300 ${isSelected ? "bg-black/50 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)]" : "bg-black/20 group-hover:bg-black/40"}`}
+                              className={`p-2.5 rounded-[0.8rem] transition-all duration-300 transform-gpu ${isSelected ? "bg-black/50 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)]" : "bg-black/20 group-hover:bg-black/40"}`}
                             >
                               <option.icon
                                 className="w-5 h-5 drop-shadow-md"
@@ -1338,7 +1356,7 @@ const AssessmentFlow = ({
                                         stiffness: 500,
                                         damping: 20,
                                       }}
-                                      className="w-2.5 h-2.5 rounded-full bg-[#E71B25] shadow-[0_0_8px_#E71B25]"
+                                      className="w-2.5 h-2.5 rounded-full bg-[#E71B25] shadow-[0_0_8px_#E71B25] transform-gpu"
                                     />
                                   )}
                                 </AnimatePresence>
@@ -1372,6 +1390,8 @@ const AssessmentFlow = ({
                         <img
                           src={option.img}
                           alt={option.label}
+                          decoding="async"
+                          loading="lazy"
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
 
@@ -1388,7 +1408,7 @@ const AssessmentFlow = ({
                               animate={{ scale: 1, rotate: 0 }}
                               exit={{ scale: 0 }}
                               transition={{ type: "spring", bounce: 0.5 }}
-                              className="absolute top-3 right-3 bg-green-500 rounded-full p-1 shadow-[0_0_15px_rgba(34,197,94,0.6)] z-20"
+                              className="absolute top-3 right-3 bg-green-500 rounded-full p-1 shadow-[0_0_15px_rgba(34,197,94,0.6)] z-20 transform-gpu"
                             >
                               <Check
                                 className="w-4 h-4 text-black"
@@ -1437,7 +1457,7 @@ const AssessmentFlow = ({
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/10 to-transparent pointer-events-none"
+                                className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/10 to-transparent pointer-events-none transform-gpu"
                               />
                             )}
                           </AnimatePresence>
@@ -1446,7 +1466,7 @@ const AssessmentFlow = ({
                               initial={{ scale: 0, rotate: 45 }}
                               animate={{ scale: 1, rotate: 0 }}
                               transition={{ type: "spring" }}
-                              className="absolute top-3 right-3 bg-[#E71B25] rounded-full p-1 shadow-[0_0_12px_rgba(231,27,37,0.5)]"
+                              className="absolute top-3 right-3 bg-[#E71B25] rounded-full p-1 shadow-[0_0_12px_rgba(231,27,37,0.5)] transform-gpu"
                             >
                               <Check
                                 className="w-3 h-3 text-white"
@@ -1465,7 +1485,7 @@ const AssessmentFlow = ({
                               stiffness: 400,
                               damping: 15,
                             }}
-                            className={`${option.fullWidth ? "" : "bg-black/30 p-3 rounded-2xl mb-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] group-hover:bg-black/50 transition-colors"}`}
+                            className={`${option.fullWidth ? "" : "bg-black/30 p-3 rounded-2xl mb-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] group-hover:bg-black/50 transition-colors"} transform-gpu`}
                           >
                             <option.icon
                               className={`${option.fullWidth ? "w-6 h-6 drop-shadow-md" : "w-8 h-8 drop-shadow-lg"}`}
@@ -1512,6 +1532,7 @@ const AssessmentFlow = ({
                               stiffness: 300,
                               damping: 15,
                             }}
+                            className="transform-gpu"
                           >
                             <option.icon
                               className="w-6 h-6 md:w-7 md:h-7 mb-2 drop-shadow-md"
@@ -1528,7 +1549,7 @@ const AssessmentFlow = ({
                     })}
                   </div>
                   {currentStep.infoBox && (
-                    <div className="bg-white/[0.02] backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-white/[0.05] rounded-[1.25rem] p-5 flex gap-4 text-left relative overflow-hidden">
+                    <div className="bg-white/[0.02] backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-white/[0.05] rounded-[1.25rem] p-5 flex gap-4 text-left relative overflow-hidden transform-gpu">
                       <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-l-full shadow-[0_0_10px_rgba(234,179,8,0.5)]"></div>
                       <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/5 p-2.5 rounded-xl h-fit border border-yellow-500/20">
                         <currentStep.infoBox.icon className="w-5 h-5 text-yellow-400" />
@@ -1626,7 +1647,7 @@ const AssessmentFlow = ({
                             stiffness: 400,
                             damping: 15,
                           }}
-                          className={`p-2.5 rounded-[0.8rem] transition-all ${formData.location === opt.l ? "bg-black/50 shadow-inner" : "bg-black/20 group-hover:bg-black/40"}`}
+                          className={`p-2.5 rounded-[0.8rem] transition-all transform-gpu ${formData.location === opt.l ? "bg-black/50 shadow-inner" : "bg-black/20 group-hover:bg-black/40"}`}
                         >
                           <opt.i
                             className="w-5 h-5 drop-shadow-md"
@@ -1654,7 +1675,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, y: 30, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
-                    className="text-center bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] rounded-[2rem] p-8 md:p-12 shadow-[0_30px_60px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)] mb-10 w-full relative overflow-hidden"
+                    className="text-center bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] rounded-[2rem] p-8 md:p-12 shadow-[0_30px_60px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)] mb-10 w-full relative overflow-hidden transform-gpu"
                   >
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[#E71B25]/80 to-transparent blur-[1px]"></div>
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-10 bg-[#E71B25] blur-[50px] opacity-40 rounded-full pointer-events-none"></div>
@@ -1666,7 +1687,7 @@ const AssessmentFlow = ({
                         duration: 4,
                         ease: "easeInOut",
                       }}
-                      className="w-20 h-20 bg-gradient-to-b from-[#E71B25]/20 to-transparent border border-[#E71B25]/30 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[inset_0_2px_10px_rgba(255,255,255,0.1)]"
+                      className="w-20 h-20 bg-gradient-to-b from-[#E71B25]/20 to-transparent border border-[#E71B25]/30 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[inset_0_2px_10px_rgba(255,255,255,0.1)] transform-gpu"
                     >
                       <currentStep.icon
                         className="w-10 h-10 text-[#E71B25] drop-shadow-[0_0_15px_rgba(231,27,37,0.8)]"
@@ -1709,7 +1730,7 @@ const AssessmentFlow = ({
                       stiffness: 200,
                       damping: 20,
                     }}
-                    className="w-full flex justify-center"
+                    className="w-full flex justify-center transform-gpu"
                   >
                     <MagneticButton
                       text={currentStep.buttonText}
@@ -1726,13 +1747,15 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="w-full flex justify-center gap-3 md:gap-5 mb-8"
+                    className="w-full flex justify-center gap-3 md:gap-5 mb-8 transform-gpu"
                   >
                     {/* AVERAGE GUY BOX (Full Image Background) */}
                     <div className="flex-1 relative rounded-[1.25rem] overflow-hidden border border-white/[0.05] aspect-[3/4] shadow-lg group transform-gpu">
                       <img
                         src={currentStep.imgAverage}
                         alt="Average Guy"
+                        decoding="async"
+                        loading="lazy"
                         className="absolute inset-0 w-full h-full object-cover grayscale opacity-60 group-hover:scale-110 transition-transform duration-700"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/60 to-transparent" />
@@ -1755,6 +1778,8 @@ const AssessmentFlow = ({
                       <img
                         src={currentStep.imgElite}
                         alt="BodyMax User"
+                        decoding="async"
+                        loading="lazy"
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
@@ -1787,7 +1812,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
-                    className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-2xl p-6 mb-10 flex gap-4 text-left shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+                    className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-2xl p-6 mb-10 flex gap-4 text-left shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] transform-gpu"
                   >
                     <div className="bg-[#E71B25]/10 p-2.5 rounded-full h-fit shrink-0 border border-[#E71B25]/20">
                       <Brain className="w-5 h-5 text-[#E71B25]" />
@@ -1804,7 +1829,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="w-full flex justify-center"
+                    className="w-full flex justify-center transform-gpu"
                   >
                     <MagneticButton
                       text={currentStep.buttonText}
@@ -1820,7 +1845,7 @@ const AssessmentFlow = ({
                   <motion.h2
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-lg md:text-xl font-bold text-white mb-5 flex items-center justify-center gap-2.5 tracking-wide"
+                    className="text-lg md:text-xl font-bold text-white mb-5 flex items-center justify-center gap-2.5 tracking-wide transform-gpu"
                   >
                     <Users className="w-5 h-5 text-[#E71B25]" /> You're in good
                     company
@@ -1835,7 +1860,7 @@ const AssessmentFlow = ({
                         stiffness: 300,
                         damping: 20,
                       }}
-                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_10px_20px_rgba(0,0,0,0.5)] relative overflow-hidden group transform-gpu"
+                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_10px_20px_rgba(0,0,0,0.5)] relative overflow-hidden group transform-gpu will-change-transform"
                     >
                       <div className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       <Users className="absolute -right-4 -bottom-4 w-28 h-28 text-white/[0.02] transition-transform duration-500 group-hover:scale-110 pointer-events-none" />
@@ -1857,7 +1882,7 @@ const AssessmentFlow = ({
                         stiffness: 300,
                         damping: 20,
                       }}
-                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_10px_20px_rgba(0,0,0,0.5)] relative overflow-hidden group transform-gpu"
+                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_10px_20px_rgba(0,0,0,0.5)] relative overflow-hidden group transform-gpu will-change-transform"
                     >
                       <div className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       <TrendingUp className="absolute -right-4 -bottom-4 w-28 h-28 text-white/[0.02] transition-transform duration-500 group-hover:scale-110 pointer-events-none" />
@@ -1880,7 +1905,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="w-full flex justify-center"
+                    className="w-full flex justify-center transform-gpu"
                   >
                     <MagneticButton
                       text="Start My Assessment →"
@@ -1893,7 +1918,7 @@ const AssessmentFlow = ({
               {/* --- ULTRA-PREMIUM AI SCAN INTERSTITIAL --- */}
               {currentStep.type === "scan-interstitial" && (
                 <div className="flex flex-col items-center w-full mt-2">
-                  <div className="relative w-36 h-36 mx-auto mb-10 flex items-center justify-center mt-6">
+                  <div className="relative w-36 h-36 mx-auto mb-10 flex items-center justify-center mt-6 transform-gpu">
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{
@@ -1901,7 +1926,7 @@ const AssessmentFlow = ({
                         duration: 8,
                         ease: "linear",
                       }}
-                      className="absolute inset-0 border-[2px] border-[#E71B25]/40 rounded-full border-dashed"
+                      className="absolute inset-0 border-[2px] border-[#E71B25]/40 rounded-full border-dashed will-change-transform"
                     />
                     <motion.div
                       animate={{ rotate: -360 }}
@@ -1910,12 +1935,12 @@ const AssessmentFlow = ({
                         duration: 12,
                         ease: "linear",
                       }}
-                      className="absolute inset-3 border border-[#E71B25]/30 rounded-full"
+                      className="absolute inset-3 border border-[#E71B25]/30 rounded-full will-change-transform"
                     />
                     <motion.div
                       animate={{ scale: [1, 1.1, 1] }}
                       transition={{ repeat: Infinity, duration: 2 }}
-                      className="absolute inset-6 bg-[#E71B25]/15 rounded-full blur-xl"
+                      className="absolute inset-6 bg-[#E71B25]/15 rounded-full blur-xl will-change-transform"
                     />
                     <User
                       className="w-12 h-12 text-[#E71B25] relative z-10 drop-shadow-[0_0_15px_rgba(231,27,37,0.8)]"
@@ -1929,7 +1954,7 @@ const AssessmentFlow = ({
                           duration: 2,
                           ease: "easeInOut",
                         }}
-                        className="w-full h-[3px] bg-white shadow-[0_0_30px_5px_rgba(231,27,37,0.8)]"
+                        className="w-full h-[3px] bg-white shadow-[0_0_30px_5px_rgba(231,27,37,0.8)] will-change-transform"
                       />
                     </div>
                   </div>
@@ -1938,7 +1963,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1, duration: 0.5 }}
-                    className="text-center w-full"
+                    className="text-center w-full transform-gpu"
                   >
                     <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/30 text-[#E71B25] text-[10px] font-black tracking-[0.25em] uppercase mb-6 shadow-[0_0_20px_rgba(231,27,37,0.15)]">
                       <Sparkles className="w-3.5 h-3.5" /> Initializing AI
@@ -1969,7 +1994,7 @@ const AssessmentFlow = ({
                         },
                       },
                     }}
-                    className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] rounded-[2rem] p-7 md:p-10 w-full text-left mb-10 shadow-[0_30px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] relative overflow-hidden"
+                    className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] rounded-[2rem] p-7 md:p-10 w-full text-left mb-10 shadow-[0_30px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] relative overflow-hidden transform-gpu"
                   >
                     <div className="absolute top-12 bottom-10 left-[38px] md:left-[50px] w-[2px] bg-gradient-to-b from-[#E71B25] to-transparent z-0" />
                     <h4 className="text-[11px] text-gray-400 font-black uppercase tracking-[0.25em] mb-8 relative z-10 flex items-center gap-2">
@@ -2001,7 +2026,7 @@ const AssessmentFlow = ({
                               },
                             },
                           }}
-                          className="flex items-center gap-5 relative z-10"
+                          className="flex items-center gap-5 relative z-10 transform-gpu"
                         >
                           <div className="w-7 h-7 rounded-full bg-[#111] border-[2px] border-[#E71B25]/50 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(231,27,37,0.2)]">
                             <div className="w-2 h-2 rounded-full bg-[#E71B25] animate-pulse shadow-[0_0_8px_#E71B25]" />
@@ -2018,7 +2043,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 1.2, type: "spring", stiffness: 200 }}
-                    className="w-full flex justify-center"
+                    className="w-full flex justify-center transform-gpu"
                   >
                     <MagneticButton
                       text="Upload My Photos →"
@@ -2034,7 +2059,7 @@ const AssessmentFlow = ({
                   <motion.h2
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-3xl md:text-4xl font-bold text-white mb-10 text-center tracking-tight leading-tight max-w-sm"
+                    className="text-3xl md:text-4xl font-bold text-white mb-10 text-center tracking-tight leading-tight max-w-sm transform-gpu"
                   >
                     Upload <span className="text-[#E71B25]">3 photos</span> to
                     get your body analyzed
@@ -2065,7 +2090,7 @@ const AssessmentFlow = ({
                             damping: 20,
                           }}
                           key={i}
-                          className="flex flex-col items-center flex-1"
+                          className="flex flex-col items-center flex-1 transform-gpu"
                         >
                           <div
                             className={`w-full aspect-[2/3] bg-[#111] rounded-xl md:rounded-2xl relative mb-3 overflow-visible border shadow-[0_10px_20px_rgba(0,0,0,0.5)] transition-all duration-300 ${isUploaded ? "border-[#E71B25]" : "border-white/[0.05]"}`}
@@ -2073,6 +2098,8 @@ const AssessmentFlow = ({
                             <img
                               src={displayImg}
                               alt={card.label}
+                              decoding="async"
+                              loading="lazy"
                               className={`w-full h-full object-cover rounded-xl md:rounded-2xl transition-all duration-500 ${isUploaded ? "opacity-100" : "opacity-70"}`}
                             />
 
@@ -2097,7 +2124,7 @@ const AssessmentFlow = ({
                     })}
                   </div>
 
-                  <div className="flex items-center gap-3 text-sm md:text-base font-medium text-white mb-8 bg-white/[0.03] backdrop-blur-md px-5 py-3 rounded-full border border-white/[0.05] shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+                  <div className="flex items-center gap-3 text-sm md:text-base font-medium text-white mb-8 bg-white/[0.03] backdrop-blur-md px-5 py-3 rounded-full border border-white/[0.05] shadow-[0_4px_10px_rgba(0,0,0,0.3)] transform-gpu">
                     <div className="bg-green-500 rounded-md p-0.5">
                       <Check className="w-4 h-4 text-black" strokeWidth={4} />
                     </div>
@@ -2130,7 +2157,7 @@ const AssessmentFlow = ({
                         <motion.div
                           initial={{ opacity: 0, height: 0, scale: 0.9 }}
                           animate={{ opacity: 1, height: "auto", scale: 1 }}
-                          className="w-full flex flex-col items-center mb-6"
+                          className="w-full flex flex-col items-center mb-6 transform-gpu"
                         >
                           <MagneticButton
                             text="Analyse My Body →"
@@ -2153,7 +2180,7 @@ const AssessmentFlow = ({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="w-full flex flex-col gap-3.5 mb-6"
+                    className="w-full flex flex-col gap-3.5 mb-6 transform-gpu"
                   >
                     <motion.button
                       whileHover={{ scale: 1.02 }}
@@ -2188,70 +2215,72 @@ const AssessmentFlow = ({
                 </div>
               )}
 
-            {/* --- FINAL UPLOAD GOAL STEP --- */}
-{currentStep.type === "upload-goal" && (
-  <div className="flex flex-col gap-4 mt-2">
-    
-    {/* Hidden File Input */}
-    <input
-      type="file"
-      accept="image/png, image/jpeg, image/webp"
-      ref={goalUploadRef}
-      onChange={handleGoalPhotoUpload} 
-      className="hidden"
-    />
+              {/* --- FINAL UPLOAD GOAL STEP --- */}
+              {currentStep.type === "upload-goal" && (
+                <div className="flex flex-col gap-4 mt-2">
 
-    <AnimatePresence mode="wait">
-      {formData.dreamPhysiquePreview ? (
-        /* --- PREVIEW MODE (UPDATED FOR TALLER IMAGE) --- */
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          // Added max-w-md and mx-auto to keep it looking sharp on wide screens
-          className="relative group rounded-[2rem] overflow-hidden border-2 border-[#E71B25] shadow-[0_0_40px_rgba(231,27,37,0.2)] mb-8 w-full max-w-md mx-auto"
-        >
-          <img 
-            src={formData.dreamPhysiquePreview} 
-            alt="Goal Preview" 
-            // CHANGED HERE: Removed aspect-video, added explicit tall heights and object-top
-            className="w-full h-[400px] md:h-[500px] object-cover object-top"
-          />
-          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => goalUploadRef.current.click()}
-              className="bg-white text-black px-6 py-2 rounded-full font-black uppercase text-xs tracking-widest flex items-center gap-2 shadow-xl"
-            >
-              <Upload className="w-4 h-4" /> Change Photo
-            </motion.button>
-          </div>
-        </motion.div>
-      ) : (
-        /* --- UPLOAD MODE --- */
-        <motion.button
-          onClick={() => goalUploadRef.current.click()}
-          className="flex flex-col items-center justify-center py-16 border-[1.5px] border-dashed border-[#E71B25]/40 bg-[#E71B25]/5 hover:bg-[#E71B25]/10 rounded-[2rem] transition-all mb-8 group relative overflow-hidden"
-        >
-          <Upload className="w-8 h-8 text-[#E71B25] mb-3" />
-          <span className="text-white font-bold tracking-wide">Tap to Upload Goal Image</span>
-          <span className="text-gray-500 text-xs mt-1">PNG, JPG, WEBP</span>
-        </motion.button>
-      )}
-    </AnimatePresence>
+                  {/* Hidden File Input */}
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp"
+                    ref={goalUploadRef}
+                    onChange={handleGoalPhotoUpload} 
+                    className="hidden"
+                  />
 
-    {/* Navigation Button */}
-    {formData.dreamPhysiquePreview && (
-      <motion.button
-        onClick={() => handleNext()}
-        className="w-full py-5 bg-[#E71B25] hover:bg-[#C6161F] transition-colors text-white font-black uppercase tracking-widest rounded-xl shadow-lg"
-      >
-        Confirm Goal
-      </motion.button>
-    )}
-  </div>
-)}
+                  <AnimatePresence mode="wait">
+                    {formData.dreamPhysiquePreview ? (
+                      /* --- PREVIEW MODE (UPDATED FOR TALLER IMAGE) --- */
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        // Added max-w-md and mx-auto to keep it looking sharp on wide screens
+                        className="relative group rounded-[2rem] overflow-hidden border-2 border-[#E71B25] shadow-[0_0_40px_rgba(231,27,37,0.2)] mb-8 w-full max-w-md mx-auto transform-gpu"
+                      >
+                        <img 
+                          src={formData.dreamPhysiquePreview} 
+                          alt="Goal Preview" 
+                          decoding="async"
+                          loading="lazy"
+                          // CHANGED HERE: Removed aspect-video, added explicit tall heights and object-top
+                          className="w-full h-[400px] md:h-[500px] object-cover object-top"
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => goalUploadRef.current.click()}
+                            className="bg-white text-black px-6 py-2 rounded-full font-black uppercase text-xs tracking-widest flex items-center gap-2 shadow-xl"
+                          >
+                            <Upload className="w-4 h-4" /> Change Photo
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      /* --- UPLOAD MODE --- */
+                      <motion.button
+                        onClick={() => goalUploadRef.current.click()}
+                        className="flex flex-col items-center justify-center py-16 border-[1.5px] border-dashed border-[#E71B25]/40 bg-[#E71B25]/5 hover:bg-[#E71B25]/10 rounded-[2rem] transition-all mb-8 group relative overflow-hidden transform-gpu"
+                      >
+                        <Upload className="w-8 h-8 text-[#E71B25] mb-3" />
+                        <span className="text-white font-bold tracking-wide">Tap to Upload Goal Image</span>
+                        <span className="text-gray-500 text-xs mt-1">PNG, JPG, WEBP</span>
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Navigation Button */}
+                  {formData.dreamPhysiquePreview && (
+                    <motion.button
+                      onClick={() => handleNext()}
+                      className="w-full py-5 bg-[#E71B25] hover:bg-[#C6161F] transition-colors text-white font-black uppercase tracking-widest rounded-xl shadow-lg transform-gpu"
+                    >
+                      Confirm Goal
+                    </motion.button>
+                  )}
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>

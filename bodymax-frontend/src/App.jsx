@@ -13,7 +13,6 @@ import LoginPage from './components/ui/Login';
 import ResetPassword from './components/ui/ResetPassword';
 
 const BodyMaxFunnel = () => {
-  // 1 se start karein
   const [step, setStep] = useState(1); 
   const [formData, setFormData] = useState({});
   const [isInitializing, setIsInitializing] = useState(true);
@@ -23,38 +22,47 @@ const BodyMaxFunnel = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
 
-  // 2. INITIALIZATION & SESSION CHECK
+  // 2. SMART ROUTING & WEB-TO-APP HANDOFF INTERCEPTOR
   useEffect(() => {
     const initApp = async () => {
-      // Check for standalone PWA mode
+      // Rule A: Agar password reset link se aaya hai toh seedha Step 11
+      if (window.location.pathname === '/reset-password' || window.location.hash.includes('type=recovery')) {
+        setStep(11);
+        setIsInitializing(false);
+        return; // Routing complete
+      }
+
+      // Rule B: PWA (Standalone) Mode Check (WEB-TO-APP HANDOFF)
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
       const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
 
-      // Agar user ne pay kar diya hai lekin account nahi banaya (PWA context)
       if (isStandalone && needsAccount) {
         const savedData = localStorage.getItem('savedAssessmentData');
         if (savedData) {
-          setFormData(JSON.parse(savedData));
-          setStep(8); // Seedha SuccessPage par jayein
+          try {
+            // Data ko safely parse karo aur state mein daalo
+            const parsedData = JSON.parse(savedData);
+            setFormData(parsedData);
+            
+            // Seedha Create Account (SuccessPage) par bhejo
+            setStep(8); 
+            setIsInitializing(false);
+            return; // Routing complete
+          } catch (error) {
+            console.error("Error loading saved data:", error);
+          }
         }
       }
       
-      // Yahan aap check kar sakte hain agar Supabase session exist karta hai toh setStep(10)
-      
+      // Rule C: Normal User (Pehli dafa aaya hai ya browser mein hai)
+      // Step pehle se 1 hai, toh bas initialization false kar do
       setIsInitializing(false);
     };
 
     initApp();
   }, []);
-  useEffect(() => {
-  // Check if URL contains reset-password
-  if (window.location.pathname === '/reset-password' || window.location.hash.includes('type=recovery')) {
-    setStep(11); // Naya step number for Reset Password
-  }
-}, []);
 
-  // 🔴 OPTIMIZATION: Removed 'scale' property. Scale on large DOM trees causes mobile lag.
-  // Using simple opacity and slight Y-axis movement is 10x faster for mobile GPUs.
+  // OPTIMIZATION: Simple Y-axis translation is 10x faster for mobile GPUs.
   const pageTransition = {
     initial: { opacity: 0, y: 15 },
     animate: { opacity: 1, y: 0 },
@@ -79,8 +87,7 @@ const BodyMaxFunnel = () => {
       {/* Background Decor */}
       <div className="fixed inset-0 z-0 opacity-20 pointer-events-none bg-[radial-gradient(#333_1px,transparent_1px)] [background-size:32px_32px]"></div>
       
-      {/* 🔴 OPTIMIZATION: Removed blur-[120px] and replaced with CSS radial gradient. 
-          This looks exactly the same but completely removes GPU rendering lag on mobile */}
+      {/* CSS radial gradient for zero-lag mobile rendering */}
       <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden">
         <div className="w-[150vw] h-[150vw] max-w-[800px] max-h-[800px] bg-[radial-gradient(circle_at_center,rgba(231,27,37,0.05)_0%,transparent_60%)]"></div>
       </div>
@@ -141,8 +148,11 @@ const BodyMaxFunnel = () => {
                 onSuccess={(plan) => {
                   const updatedFormData = { ...formData, planDuration: plan };
                   setFormData(updatedFormData);
+                  
+                  // Marking the handoff variables before moving to Step 8
                   localStorage.setItem('pendingAccountCreation', 'true');
                   localStorage.setItem('savedAssessmentData', JSON.stringify(updatedFormData));
+                  
                   setStep(8); 
                 }} 
               />
@@ -174,11 +184,13 @@ const BodyMaxFunnel = () => {
               <Dashboard />
             </motion.div>
           )}
+
           {step === 11 && (
-  <motion.div key="s11" {...pageTransition} className="w-full min-h-[100dvh]">
-    <ResetPassword onComplete={() => setStep(9)} /> 
-  </motion.div>
-)}
+            <motion.div key="s11" {...pageTransition} className="w-full min-h-[100dvh]">
+              <ResetPassword onComplete={() => setStep(9)} /> 
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </div>
     </div>
