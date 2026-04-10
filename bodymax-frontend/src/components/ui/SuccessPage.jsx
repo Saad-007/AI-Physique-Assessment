@@ -59,7 +59,7 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
         return null;
     };
 
-    const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         setErrorMsg('');
@@ -74,34 +74,27 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
             });
 
             if (authError) {
-                console.error("Auth Error:", authError);
                 setErrorMsg(authError.message);
                 setIsSubmitting(false);
                 return;
             }
 
             if (authData.user) {
-                console.log("2. Auth Success! User ID:", authData.user.id);
-                
                 // =====================================
-                // 🔴 THE FIX: SAFE MERGE LOGIC
+                // 🔴 THE FIX: PROTECT IMAGE DATA
                 // =====================================
                 const savedLocalDataStr = localStorage.getItem('savedAssessmentData');
                 const localAssessmentData = savedLocalDataStr ? JSON.parse(savedLocalDataStr) : {};
                 
-                // 🔴 CRITICAL: Hum LocalStorage me se files wale keys hata denge 
-                // taake wo asli files (jo props se aa rahi hain) ko tabah na karein.
-                delete localAssessmentData.photoFiles;
-                delete localAssessmentData.dreamPhysiqueFile;
-                delete localAssessmentData.photos;
-                delete localAssessmentData.dreamPhysiqueImage;
-                delete localAssessmentData.dreamPhysiquePreview;
-                delete localAssessmentData.photoPreviewUrls;
+                // We remove the keys from localData that might contain "dead" data
+                const localDataClean = { ...localAssessmentData };
+                delete localDataClean.dreamPhysiqueFile;
+                delete localDataClean.photoFiles;
 
-                // Ab merge karenge. Asli files ab safely props (assessmentData) se aayengi!
+                // Merge: Props (Fresh data) + Clean Local Data
                 const finalAssessmentData = { 
                     ...assessmentData, 
-                    ...localAssessmentData 
+                    ...localDataClean 
                 };
 
                 const { 
@@ -110,35 +103,26 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
                   dreamPhysiqueFile,
                   dreamPhysiqueImage, 
                   dreamPhysiquePreview,
-                  photoPreviewUrls, 
                   ...cleanAssessmentData 
                 } = finalAssessmentData;
                 
                 let permanentPhotoUrls = { ...(photos || {}) }; 
                 
-                // Target Image ka naya bulletproof logic
-                let finalGoalImageUrl = dreamPhysiqueImage || null;
-                // Agar pehle se koi valid preview hai (jo blob na ho), usko default set karlo
-                if (!finalGoalImageUrl && dreamPhysiquePreview && !dreamPhysiquePreview.startsWith('blob:')) {
-                     finalGoalImageUrl = dreamPhysiquePreview;
-                }
+                // 🟢 FIX: Prioritize Existing Image > Preview URL > Null
+                let finalGoalImageUrl = dreamPhysiqueImage || dreamPhysiquePreview || null;
 
-                console.log("3. Processing Photos...");
+                console.log("3. Processing Uploads...");
 
-                // --- UPLOAD NEW FILES (Current Body Photos) ---
-                if (photoFiles && Object.keys(photoFiles).length > 0) {
+                // --- UPLOAD CURRENT BODY PHOTOS ---
+                if (photoFiles) {
                     for (const key of [1, 2, 3]) {
                         const file = photoFiles[key];
-                        // File must be valid (not an empty object)
-                        if (file && file.name) {
+                        // Only upload if it's a real File object with a name
+                        if (file && file.name && file.size > 0) {
                             const fileExt = file.name.split('.').pop();
                             const filePath = `${authData.user.id}/photo_${key}_${Date.now()}.${fileExt}`;
-
-                            const { error: uploadError } = await supabase.storage
-                                .from('user_photos')
-                                .upload(filePath, file, { cacheControl: '3600', upsert: true });
-
-                            if (!uploadError) {
+                            const { error: upErr } = await supabase.storage.from('user_photos').upload(filePath, file);
+                            if (!upErr) {
                                 const { data: urlData } = supabase.storage.from('user_photos').getPublicUrl(filePath);
                                 permanentPhotoUrls[key] = urlData.publicUrl;
                             }
@@ -146,63 +130,49 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
                     }
                 }
 
-                // --- 🔴 UPLOAD TARGET / DREAM PHYSIQUE FILE ---
-                // Ye ab safely upload hogi kyunke file destroy nahi hui!
-                if (dreamPhysiqueFile && dreamPhysiqueFile.name) {
+                // --- 🔴 UPLOAD TARGET IMAGE (The one that was returning null) ---
+                if (dreamPhysiqueFile && dreamPhysiqueFile.name && dreamPhysiqueFile.size > 0) {
                     const fileExt = dreamPhysiqueFile.name.split('.').pop();
                     const filePath = `${authData.user.id}/goal_${Date.now()}.${fileExt}`;
                     
                     const { error: uploadError } = await supabase.storage
                         .from('user_photos') 
-                        .upload(filePath, dreamPhysiqueFile, { cacheControl: '3600', upsert: true });
+                        .upload(filePath, dreamPhysiqueFile);
 
                     if (!uploadError) {
                         const { data: urlData } = supabase.storage.from('user_photos').getPublicUrl(filePath);
                         finalGoalImageUrl = urlData.publicUrl;
-                        console.log("Target Goal image uploaded successfully:", finalGoalImageUrl);
-                    } else {
-                        console.error("Target Goal image upload failed:", uploadError);
                     }
                 }
 
-                console.log("4. Preparing Final Data Payload...");
-
-                // FINAL PAYLOAD FOR DATABASE
+                // FINAL PAYLOAD
                 const dataToSave = {
                     ...cleanAssessmentData,
                     photos: permanentPhotoUrls, 
-                    dreamPhysiqueImage: finalGoalImageUrl, // Ab ye 100% database mein jayega
+                    dreamPhysiqueImage: finalGoalImageUrl, // Guaranteed not to be null if a preview exists
                     planDuration: cleanAssessmentData.planDuration || "12-Week"
                 };
 
-                // 2. UPSERT TO PROFILES TABLE
+                // 2. SAVE TO PROFILES
                 const { error: dbError } = await supabase
                     .from('profiles')
-                    .upsert([
-                        {
-                            id: authData.user.id,
-                            full_name: formData.name,
-                            email: formData.email,
-                            assessment_data: dataToSave,
-                        }
-                    ]);
+                    .upsert([{
+                        id: authData.user.id,
+                        full_name: formData.name,
+                        email: formData.email,
+                        assessment_data: dataToSave,
+                    }]);
 
-                if (dbError) {
-                    console.error("Database save error:", dbError);
-                    throw new Error(dbError.message); 
-                }
+                if (dbError) throw new Error(dbError.message); 
                 
-                console.log("5. Cleanup and Success!");
                 localStorage.removeItem('pendingAccountCreation');
                 localStorage.removeItem('savedAssessmentData');
                 
                 setIsSubmitting(false);
                 setIsSuccess(true);
             }
-
         } catch (err) {
-            console.error("CRITICAL SIGNUP ERROR:", err);
-            setErrorMsg(err.message || "Account created but profile sync failed. Please contact support.");
+            setErrorMsg(err.message || "Sync failed.");
             setIsSubmitting(false);
         }
     };
