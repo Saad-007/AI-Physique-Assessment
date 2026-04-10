@@ -76,7 +76,7 @@ const handleLogin = async (e) => {
       setIsSubmitting(false);
     }
   };
-  // 🔴 NEW: Password Reset Handler (With Strict Email Existence Check)
+  // 🔴 FIXED: Password Reset Handler
   const handleResetPassword = async (e) => {
     e.preventDefault();
     const targetEmail = formData.email.trim();
@@ -91,33 +91,39 @@ const handleLogin = async (e) => {
     setResetSuccessMsg('');
 
     try {
-      // STEP 1: Manually check if the user actually exists in the 'profiles' table
+      // STEP 1: Check if the user exists in your profiles table
       const { data: existingUser, error: checkError } = await supabase
         .from('profiles')
         .select('email')
         .eq('email', targetEmail)
-        .maybeSingle(); // maybeSingle returns null if no user is found, without throwing an error
+        .maybeSingle();
 
-      // If no user is found in the database, stop and show error immediately
+      if (checkError) {
+        console.error("Lookup error:", checkError);
+      }
+
       if (!existingUser) {
-        setErrorMsg("No account found. Please input your correct/registered email.");
+        setErrorMsg("No account found with this email. Please register first.");
         setIsSubmitting(false);
         return; 
       }
 
-      // STEP 2: If the user exists, PROCEED to send the reset link
-const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-  redirectTo: `${window.location.origin}/reset-password`, 
-});
+      // STEP 2: Send reset link
+      // 🔴 FIX: Destructure as { error } to match the check below
+      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`, 
+      });
 
-      if (resetError) {
-        setErrorMsg("Error: " + resetError.message);
+      if (error) {
+        // Handle Supabase Auth specific errors (like rate limits)
+        setErrorMsg(error.message);
       } else {
         setResetSuccessMsg("A secure reset link has been dispatched to your email.");
       }
       
     } catch (err) {
-      setErrorMsg("System error. Please try again.");
+      // This catches unexpected logic/network crashes
+      setErrorMsg("Connection failed. Please check your internet.");
     } finally {
       setIsSubmitting(false);
     }
