@@ -560,7 +560,17 @@ const AssessmentFlow = ({
   resumeAssessment,
   setResumeAssessment,
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // 🔴 1. Lazily Initialize with resumeAssessment check
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    // Agar App.jsx ne forcefully resume karwaya hai, toh direct aakhri slide load karo
+    if (resumeAssessment) {
+      return assessmentData.length - 1;
+    }
+    // Warna LocalStorage se check karo
+    const savedIndex = localStorage.getItem('assessmentCurrentIndex');
+    return savedIndex ? parseInt(savedIndex, 10) : 0;
+  });
+  
   const [direction, setDirection] = useState(1);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isFinished, setIsFinished] = useState(false); // KILL SWITCH STATE
@@ -571,12 +581,19 @@ const AssessmentFlow = ({
 
   useEffect(() => {
     if (resumeAssessment) {
-      setDirection(-1); // Ulta animate karega
-      setIsFinished(false); // Kill switch off
-      setCurrentIndex(assessmentData.length - 1); // Exact aakhri slide par
-      if (setResumeAssessment) setResumeAssessment(false); // State reset
+      setDirection(-1); 
+      setIsFinished(false); 
+      setCurrentIndex(assessmentData.length - 1); 
+      if (setResumeAssessment) setResumeAssessment(false); 
     }
   }, [resumeAssessment, setResumeAssessment]);
+
+  // 🔴 2. Added !isFinished check so it doesn't accidentally save after completion
+  useEffect(() => {
+    if (!isFinished) {
+      localStorage.setItem('assessmentCurrentIndex', currentIndex.toString());
+    }
+  }, [currentIndex, isFinished]);
 
   const currentStep = assessmentData[currentIndex];
   const isLastStep = currentIndex === assessmentData.length - 1;
@@ -588,6 +605,7 @@ const AssessmentFlow = ({
   const handleNext = () => {
     // Agar aakhri slide par hain, toh main funnel ko Step 6 (Paywall) par bhej dein
     if (currentIndex >= assessmentData.length - 1) {
+      localStorage.removeItem('assessmentCurrentIndex');
       if (onComplete) onComplete(); // <--- YEH LINE CHANGE HUI HAI
       return;
     }
