@@ -151,7 +151,8 @@ const handleSubmit = async (e) => {
                 
                 localStorage.removeItem('pendingAccountCreation');
                 localStorage.removeItem('savedAssessmentData');
-                
+                // 🔴 THE FIX: Ye naya flag add karein
+                localStorage.setItem('accountCreated', 'true');
                 setIsSubmitting(false);
                 setIsSuccess(true);
             }

@@ -98,11 +98,7 @@ const Dashboard = () => {
 
   const [expandedWeek, setExpandedWeek] = useState(1);
 
-  // EXERCISE TIMER STATES
-  const [activeTimerEx, setActiveTimerEx] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [timerTotal, setTimerTotal] = useState(60);
+
 
   // AI Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -141,18 +137,25 @@ const Dashboard = () => {
       if (!activePlan || activePlan === "Free Tier") {
         setShowRenewalPaywall(true);
       } else {
+        // Plan ke total din (e.g. "12-Week" = 12 * 7 = 84 days)
         const totalPlanDays = parseInt(activePlan.split('-')[0]) * 7 || 0;
-        const currentStreakDays = profile?.current_streak || 0;
+        
+        // 🔴 THE FIX: Check actual days passed since account creation
+        const accountCreationDate = new Date(profile.created_at || Date.now());
+        const currentTime = new Date();
+        const timeDifference = currentTime - accountCreationDate;
+        
+        // Convert milliseconds to total days passed
+        const daysElapsed = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
 
-        if (totalPlanDays > 0 && currentStreakDays >= totalPlanDays) {
-          setShowRenewalPaywall(true);
+        if (totalPlanDays > 0 && daysElapsed >= totalPlanDays) {
+          setShowRenewalPaywall(true); // Plan Expired! Block Dashboard
         } else {
           setShowRenewalPaywall(false);
         }
       }
     }
   }, [profile, isLoading, completedWorkouts]);
-
   let currentWeek = Math.floor(completedWorkouts / workoutsPerWeek) + 1;
   let doneThisWeek = completedWorkouts % workoutsPerWeek;
   if (currentWeek > maxWeeks) { currentWeek = maxWeeks; doneThisWeek = workoutsPerWeek; }
@@ -192,60 +195,55 @@ const Dashboard = () => {
     if (session) fetchProgress();
   }, [session]);
 
+  
+// ==========================================
+  // 🔴 NEW: Aesthetic "Mark Complete" Logic
   // ==========================================
-  // 🔴 TIMER & AUTOMATIC DONE LOGIC
-  // ==========================================
-  useEffect(() => {
-    let interval = null;
-    if (isTimerActive && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    } else if (timeLeft === 0 && isTimerActive) {
-      setIsTimerActive(false);
+  const markExerciseComplete = async (exerciseIndex) => {
+    if (!selectedWorkout) return;
 
-      // Timer zero hotay hi automatic exercise ko Done mark kar dein
-      if (activeTimerEx !== null && selectedWorkout) {
-        const alreadyDone = selectedWorkout.completedExercises || [];
-        if (!alreadyDone.includes(activeTimerEx)) {
-          setSelectedWorkout(prev => ({
-            ...prev,
-            completedExercises: [...alreadyDone, activeTimerEx]
-          }));
-          setToastMessage("✅ Exercise Completed!");
-          setTimeout(() => setToastMessage(null), 2500);
-        }
+    const alreadyDone = selectedWorkout.completedExercises || [];
+    if (!alreadyDone.includes(exerciseIndex)) {
+      const updatedCompleted = [...alreadyDone, exerciseIndex];
+      
+      // 1. Update the local UI state instantly
+      setSelectedWorkout(prev => ({
+        ...prev,
+        completedExercises: updatedCompleted
+      }));
+
+      // 2. Update the main protocol object
+      const currentWorkoutIndex = workoutsList.findIndex(w => w.title === selectedWorkout.title);
+      const updatedWorkoutsList = [...workoutsList];
+      updatedWorkoutsList[currentWorkoutIndex] = {
+        ...updatedWorkoutsList[currentWorkoutIndex],
+        completedExercises: updatedCompleted
+      };
+      
+      const updatedProtocol = {
+        ...protocol,
+        workouts: updatedWorkoutsList
+      };
+
+      setProtocol(updatedProtocol);
+
+      // 3. Save to Supabase so it persists on refresh
+      try {
+        await supabase
+          .from('profiles')
+          .update({ ai_protocol: updatedProtocol })
+          .eq('id', session.user.id);
+      } catch (err) {
+        console.error("Failed to save exercise progress", err);
       }
-      setActiveTimerEx(null);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerActive, timeLeft, activeTimerEx, selectedWorkout]);
 
-  const formatTime = (secs) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  const toggleTimer = (index, restString) => {
-    if (activeTimerEx === index && isTimerActive) {
-      setIsTimerActive(false);
-    } else {
-      if (activeTimerEx !== index) {
-        const match = restString.match(/\d+/);
-        const time = match ? parseInt(match[0], 10) : 60;
-        setTimeLeft(time); 
-        setTimerTotal(time);
-      }
-      setActiveTimerEx(index);
-      setIsTimerActive(true);
+      setToastMessage("✅ Exercise Completed!");
+      setTimeout(() => setToastMessage(null), 2500);
     }
   };
 
-  const closeWorkoutModal = () => {
-    setSelectedWorkout(null);
-    setActiveTimerEx(null);
-    setIsTimerActive(false);
-    setTimeLeft(0);
-  };
+
+
 
   const handleShare = async () => {
     if (!scanRef.current) return;
@@ -402,7 +400,10 @@ const Dashboard = () => {
     }
     return { week: weekNum, done, max: workoutsPerWeek };
   });
-
+// 🔴 MISSING FUNCTION ADDED BACK
+  const closeWorkoutModal = () => {
+    setSelectedWorkout(null);
+  };
   const handleEndSession = async () => {
     if (!session?.user?.id || !selectedWorkout) return;
 
@@ -1146,8 +1147,10 @@ const Dashboard = () => {
                                             <button
                                               onClick={() => {
                                                 if (!isCardLocked) {
-                                                  // 🔴 MAGIC HERE: If Replaying, mark all exercises as Done already. If new, array is empty.
-                                                  const initialCompleted = isCardCompleted ? workout.exercises.map((_, idx) => idx) : [];
+                                                  // 🔴 THE FIX: Database se bachi hui (saved) exercises load karein!
+                                                  const savedProgress = workout.completedExercises || [];
+                                                  const initialCompleted = isCardCompleted ? workout.exercises.map((_, idx) => idx) : savedProgress;
+                                                  
                                                   setSelectedWorkout({ ...workout, completedExercises: initialCompleted });
                                                 }
                                               }}
@@ -1463,7 +1466,7 @@ const Dashboard = () => {
           )}
         </AnimatePresence>
 
-        {/* EXECUTION HUD MODAL */}
+       {/* EXECUTION HUD MODAL */}
         <AnimatePresence>
           {selectedWorkout && (
             <>
@@ -1551,59 +1554,31 @@ const Dashboard = () => {
                                     </div>
                                   </div>
 
-                                  {/* Interactive Timer Footer */}
-                                  <div className="mt-4 pt-3 border-t border-white/[0.05]">
-                                    {activeTimerEx === i ? (
-                                      <div className="bg-black/40 rounded-xl p-3 border border-[#E71B25]/30 relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-[#E71B25]/5 animate-pulse pointer-events-none"></div>
-                                        <div className="flex items-center justify-between mb-2 relative z-10">
-                                          <div className="flex flex-col">
-                                            <span className="text-[14px] md:text-[16px] font-black text-[#E71B25] tracking-widest font-mono leading-none mb-1">{formatTime(timeLeft)}</span>
-                                            <span className="text-[7px] text-gray-500 uppercase tracking-widest flex items-center gap-1">
-                                              {isTimerActive ? <><div className="w-1 h-1 rounded-full bg-[#E71B25] animate-pulse"></div> ACTIVE</> : <><ZapOff className="w-2 h-2" /> PAUSED</>}
-                                            </span>
-                                          </div>
-                                          <div className="flex gap-1.5">
-                                            <button onClick={() => toggleTimer(i, ex.rest)} className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-[#E71B25] flex items-center justify-center text-white hover:bg-[#C6161F] transition-colors shadow-[0_0_10px_rgba(231,27,37,0.4)]">
-                                              {isTimerActive ? <Pause className="w-4 h-4" fill="currentColor" /> : <PlayCircle className="w-4 h-4" fill="currentColor" />}
-                                            </button>
-                                            <button onClick={() => { setActiveTimerEx(null); setIsTimerActive(false); }} className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-white/[0.05] flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/[0.05]">
-                                              <X className="w-4 h-4" />
-                                            </button>
-                                          </div>
-                                        </div>
-                                        <div className="w-full bg-white/[0.05] rounded-full h-1 overflow-hidden relative z-10">
-                                          <div className="bg-[#E71B25] h-full transition-all duration-1000 ease-linear shadow-[0_0_10px_#E71B25]" style={{ width: `${(timeLeft / timerTotal) * 100}%` }}></div>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center justify-between w-full">
-                                        <div className="flex items-center gap-2">
-                                          <span className={`text-[9px] md:text-[10px] font-mono font-bold flex items-center gap-1 bg-black px-2 py-1 rounded border border-white/[0.05] ${isExerciseDone ? 'text-gray-600' : 'text-gray-500'}`}>
-                                            <Timer className={`w-3 h-3 ${isExerciseDone ? 'text-gray-600' : 'text-[#E71B25]'}`} /> REST: <span className={isExerciseDone ? 'text-gray-600' : 'text-white'}>{ex.rest}</span>
-                                          </span>
-                                          {isExerciseDone && (
-                                            <span className="hidden md:flex text-[9px] font-black text-green-500 uppercase tracking-[0.2em] items-center gap-1">
-                                              <CheckCircle className="w-3 h-3" /> EXERCISE DONE
-                                            </span>
-                                          )}
-                                        </div>
+                                  {/* 🔴 NEW: Aesthetic Action Footer */}
+                                  <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-[9px] md:text-[10px] font-mono font-bold flex items-center gap-1 bg-black px-2 py-1 rounded border border-white/[0.05] ${isExerciseDone ? 'text-gray-600' : 'text-gray-500'}`}>
+                                        <Timer className={`w-3 h-3 ${isExerciseDone ? 'text-gray-600' : 'text-[#E71B25]'}`} /> REST: <span className={isExerciseDone ? 'text-gray-600' : 'text-white'}>{ex.rest}</span>
+                                      </span>
+                                    </div>
 
-                                        <div className="flex items-center gap-2">
-                                          {isExerciseDone && (
-                                            <span className="md:hidden text-[8px] font-black text-green-500 uppercase tracking-[0.2em] flex items-center gap-1">
-                                              <CheckCircle className="w-3 h-3" /> DONE
-                                            </span>
-                                          )}
-
-                                          {/* 🔴 Restart Timer or Start Timer */}
-                                          <button onClick={() => toggleTimer(i, ex.rest)} className={`flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest border shadow-sm ${isExerciseDone ? 'bg-green-500/10 text-green-500 border-green-500/30 hover:bg-green-500 hover:text-white' : 'bg-[#E71B25]/10 hover:bg-[#E71B25] text-[#E71B25] hover:text-white border-[#E71B25]/30'}`}>
-                                            <PlayCircle className="w-3 h-3" /> {isExerciseDone ? 'Restart Timer' : 'Start Timer'}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                      {/* Done Indicator OR Mark Complete Button */}
+                                      {isExerciseDone ? (
+                                        <span className="text-[9px] font-black text-green-500 uppercase tracking-[0.2em] flex items-center gap-1 bg-green-500/10 px-3 py-1.5 rounded-lg border border-green-500/20">
+                                          <CheckCircle className="w-3.5 h-3.5" /> EXERCISE COMPLETED
+                                        </span>
+                                      ) : (
+                                        <button 
+                                          onClick={() => markExerciseComplete(i)} 
+                                          className="flex items-center gap-1.5 transition-colors px-4 py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest border shadow-sm bg-[#E71B25]/10 hover:bg-[#E71B25] text-[#E71B25] hover:text-white border-[#E71B25]/30 hover:shadow-[0_0_15px_rgba(231,27,37,0.3)]"
+                                        >
+                                          MARK COMPLETE <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
+
                                 </div>
                               </div>
                             );

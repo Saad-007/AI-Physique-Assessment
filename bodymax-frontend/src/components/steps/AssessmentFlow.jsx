@@ -1850,27 +1850,25 @@ const AssessmentFlow = ({
                   <motion.h2
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                     className="text-lg md:text-xl font-bold text-white mb-5 flex items-center justify-center gap-2.5 tracking-wide"
                   >
-                    <Users className="w-5 h-5 text-[#E71B25]" /> You're in good
-                    company
+                    <Users className="w-5 h-5 text-[#E71B25]" /> You're in good company
                   </motion.h2>
 
-                  <div className="flex flex-col gap-4 w-full mb-10 perspective-1000">
+                  <div className="flex flex-col gap-4 w-full mb-10">
                     <motion.div
-                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20,
-                      }}
-                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_10px_20px_rgba(0,0,0,0.5)] relative overflow-hidden group transform-gpu"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      // 🔴 FIX: Changed heavy "spring" physics to smooth "easeOut" tweens for 0-lag rendering
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-lg relative overflow-hidden group"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <Users className="absolute -right-4 -bottom-4 w-28 h-28 text-white/[0.02] transition-transform duration-500 group-hover:scale-110 pointer-events-none" />
+                      <div className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <Users className="absolute -right-4 -bottom-4 w-28 h-28 text-white/[0.02] transition-transform duration-300 group-hover:scale-110 pointer-events-none" />
 
-                      <div className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] tracking-tighter leading-none mb-1.5 drop-shadow-[0_0_15px_rgba(231,27,37,0.2)] relative z-10">
+                      {/* 🔴 FIX: Removed expensive CSS drop-shadow filter. The gradient handles the aesthetic fine. */}
+                      <div className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] tracking-tighter leading-none mb-1.5 relative z-10">
                         <AnimatedCounter end={200} suffix="K" />
                       </div>
                       <p className="text-gray-400 text-[13px] md:text-[15px] font-medium relative z-10">
@@ -1879,27 +1877,24 @@ const AssessmentFlow = ({
                     </motion.div>
 
                     <motion.div
-                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{
-                        delay: 0.1,
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20,
-                      }}
-                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_10px_20px_rgba(0,0,0,0.5)] relative overflow-hidden group transform-gpu"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      // 🔴 FIX: Smooth staggered delay without spring jitter
+                      transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
+                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-lg relative overflow-hidden group"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <TrendingUp className="absolute -right-4 -bottom-4 w-28 h-28 text-white/[0.02] transition-transform duration-500 group-hover:scale-110 pointer-events-none" />
+                      <div className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <TrendingUp className="absolute -right-4 -bottom-4 w-28 h-28 text-white/[0.02] transition-transform duration-300 group-hover:scale-110 pointer-events-none" />
 
-                      <div className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] tracking-tighter leading-none mb-1.5 drop-shadow-[0_0_15px_rgba(231,27,37,0.2)] relative z-10">
+                      <div className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] tracking-tighter leading-none mb-1.5 relative z-10">
                         <AnimatedCounter end={91} suffix="%" duration={1200} />
                       </div>
                       <p className="text-gray-400 text-[13px] md:text-[15px] font-medium mb-4 relative z-10">
                         see a visible physique change in 12 weeks
                       </p>
 
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.02] border border-white/[0.05] text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest relative z-10 backdrop-blur-md">
+                      {/* 🔴 FIX: Removed expensive backdrop-blur-md, replaced with solid #111 color */}
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111] border border-white/[0.05] text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest relative z-10">
                         <ShieldCheck className="w-3.5 h-3.5 text-[#E71B25]/80" />
                         *Based on 82,000+ BodyMax Users
                       </div>
@@ -1909,7 +1904,7 @@ const AssessmentFlow = ({
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 }}
+                    transition={{ delay: 0.2, duration: 0.3 }}
                     className="w-full flex justify-center"
                   >
                     <MagneticButton
@@ -1919,47 +1914,41 @@ const AssessmentFlow = ({
                   </motion.div>
                 </div>
               )}
-
               {/* --- ULTRA-PREMIUM AI SCAN INTERSTITIAL --- */}
               {currentStep.type === "scan-interstitial" && (
                 <div className="flex flex-col items-center w-full mt-2">
                   <div className="relative w-36 h-36 mx-auto mb-10 flex items-center justify-center mt-6">
+                    {/* 🔴 OPTIMIZATION 1: Slightly slowed down rotation to save CPU cycles */}
                     <motion.div
                       animate={{ rotate: 360 }}
-                      transition={{
-                        repeat: Infinity,
-                        duration: 8,
-                        ease: "linear",
-                      }}
+                      transition={{ repeat: Infinity, duration: 12, ease: "linear" }}
                       className="absolute inset-0 border-[2px] border-[#E71B25]/40 rounded-full border-dashed"
                     />
                     <motion.div
                       animate={{ rotate: -360 }}
-                      transition={{
-                        repeat: Infinity,
-                        duration: 12,
-                        ease: "linear",
-                      }}
+                      transition={{ repeat: Infinity, duration: 16, ease: "linear" }}
                       className="absolute inset-3 border border-[#E71B25]/30 rounded-full"
                     />
-                    <motion.div
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ repeat: Infinity, duration: 2 }}
-                      className="absolute inset-6 bg-[#E71B25]/15 rounded-full blur-xl"
-                    />
+                    
+                    {/* 🔴 OPTIMIZATION 2: Removed infinite scaling animation on the blur. Made it a static soft glow. */}
+                    <div className="absolute inset-6 bg-[#E71B25]/10 rounded-full blur-[20px] pointer-events-none" />
+                    
+                    {/* 🔴 OPTIMIZATION 3: Removed expensive drop-shadow. The solid color pops nicely on black. */}
                     <User
-                      className="w-12 h-12 text-[#E71B25] relative z-10 drop-shadow-[0_0_15px_rgba(231,27,37,0.8)]"
+                      className="w-12 h-12 text-[#E71B25] relative z-10"
                       strokeWidth={1.5}
                     />
+                    
                     <div className="absolute inset-0 overflow-hidden rounded-full z-20">
                       <motion.div
                         animate={{ y: ["-20%", "120%", "-20%"] }}
                         transition={{
                           repeat: Infinity,
-                          duration: 2,
-                          ease: "easeInOut",
+                          duration: 2.5, // Slightly smoother scanning pace
+                          ease: "linear", // linear is cheaper than easeInOut for infinite loops
                         }}
-                        className="w-full h-[3px] bg-white shadow-[0_0_30px_5px_rgba(231,27,37,0.8)]"
+                        // 🔴 OPTIMIZATION 4: Reduced the extreme shadow spread on the scanner line
+                        className="w-full h-[2px] bg-[#E71B25] shadow-[0_0_8px_#E71B25]"
                       />
                     </div>
                   </div>
@@ -1967,21 +1956,21 @@ const AssessmentFlow = ({
                   <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.5 }}
+                    transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
                     className="text-center w-full"
                   >
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/30 text-[#E71B25] text-[10px] font-black tracking-[0.25em] uppercase mb-6 shadow-[0_0_20px_rgba(231,27,37,0.15)]">
-                      <Sparkles className="w-3.5 h-3.5" /> Initializing AI
-                      Engine
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/30 text-[#E71B25] text-[10px] font-black tracking-[0.25em] uppercase mb-6">
+                      <Sparkles className="w-3.5 h-3.5" /> Initializing AI Engine
                     </div>
-                    <h2 className="text-4xl md:text-[3.25rem] font-black uppercase tracking-tighter mb-4 text-white drop-shadow-lg">
+                    {/* 🔴 Removed drop-shadows from text */}
+                    <h2 className="text-4xl md:text-[3.25rem] font-black uppercase tracking-tighter mb-4 text-white">
                       Scan your body with{" "}
-                      <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] drop-shadow-[0_0_20px_rgba(231,27,37,0.4)]">
+                      <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F]">
                         AI
                       </span>
                     </h2>
                     <p className="text-gray-400 text-[15px] md:text-base mb-10 text-balance max-w-sm mx-auto leading-relaxed">
-                      Discover your body score & see exactly whats holding you
+                      Discover your body score & see exactly what's holding you
                       back from achieving your dream physique
                     </p>
                   </motion.div>
@@ -1993,13 +1982,11 @@ const AssessmentFlow = ({
                       hidden: { opacity: 0 },
                       visible: {
                         opacity: 1,
-                        transition: {
-                          staggerChildren: 0.15,
-                          delayChildren: 0.4,
-                        },
+                        transition: { staggerChildren: 0.1, delayChildren: 0.3 }, // Faster staggering
                       },
                     }}
-                    className="bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] rounded-[2rem] p-7 md:p-10 w-full text-left mb-10 shadow-[0_30px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] relative overflow-hidden"
+                    // 🔴 OPTIMIZATION 5: Removed backdrop-blur-2xl and heavy box-shadows. Replaced with solid #0a0a0a.
+                    className="bg-[#0a0a0a] border border-white/[0.05] rounded-[2rem] p-7 md:p-10 w-full text-left mb-10 shadow-lg relative overflow-hidden"
                   >
                     <div className="absolute top-12 bottom-10 left-[38px] md:left-[50px] w-[2px] bg-gradient-to-b from-[#E71B25] to-transparent z-0" />
                     <h4 className="text-[11px] text-gray-400 font-black uppercase tracking-[0.25em] mb-8 relative z-10 flex items-center gap-2">
@@ -2020,21 +2007,15 @@ const AssessmentFlow = ({
                         <motion.div
                           key={i}
                           variants={{
-                            hidden: { opacity: 0, x: -20 },
-                            visible: {
-                              opacity: 1,
-                              x: 0,
-                              transition: {
-                                type: "spring",
-                                stiffness: 300,
-                                damping: 20,
-                              },
-                            },
+                            hidden: { opacity: 0, x: -15 },
+                            // 🔴 OPTIMIZATION 6: Replaced heavy spring with smooth easeOut
+                            visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
                           }}
                           className="flex items-center gap-5 relative z-10"
                         >
-                          <div className="w-7 h-7 rounded-full bg-[#111] border-[2px] border-[#E71B25]/50 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(231,27,37,0.2)]">
-                            <div className="w-2 h-2 rounded-full bg-[#E71B25] animate-pulse shadow-[0_0_8px_#E71B25]" />
+                          {/* 🔴 Removed shadow from this small wrapper to save paint cycles */}
+                          <div className="w-7 h-7 rounded-full bg-[#111] border border-[#E71B25]/50 flex items-center justify-center shrink-0">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#E71B25] animate-pulse" />
                           </div>
                           <span className="text-[14.5px] md:text-base text-gray-200 font-bold tracking-wide">
                             {item.text}
@@ -2047,7 +2028,8 @@ const AssessmentFlow = ({
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1.2, type: "spring", stiffness: 200 }}
+                    // 🔴 OPTIMIZATION 7: Reduced wait time (delay) so user can proceed faster. Changed to easeOut.
+                    transition={{ delay: 0.8, duration: 0.3, ease: "easeOut" }}
                     className="w-full flex justify-center"
                   >
                     <MagneticButton
@@ -2057,7 +2039,6 @@ const AssessmentFlow = ({
                   </motion.div>
                 </div>
               )}
-
               {/* --- NATIVE OS PHOTO UPLOAD STEP --- */}
               {currentStep.type === "upload-3" && (
                 <div className="flex flex-col items-center w-full mt-2">

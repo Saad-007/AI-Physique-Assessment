@@ -2,28 +2,28 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ScanFace, BrainCircuit, Dumbbell, Cpu } from 'lucide-react';
 import { MagneticButton } from '../ui/MagneticButton';
-import { IoIosArrowRoundBack } from "react-icons/io"; // 🔴 Back Icon Import
+import { IoIosArrowRoundBack } from "react-icons/io";
 
-// --- Mobile-Optimized Animation Variants ---
+// --- Mobile-Optimized Smooth Animation Variants ---
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.15, delayChildren: 0.1 }
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 } // Faster stagger for snappier feel
   }
 };
 
 const stepVariants = {
-  hidden: { opacity: 0, x: -15, scale: 0.98 },
+  hidden: { opacity: 0, x: -10, scale: 0.98 },
   visible: { 
     opacity: 1, 
     x: 0, 
     scale: 1,
-    transition: { type: "spring", stiffness: 120, damping: 20 }
+    // 🔴 FIX: Replaced heavy spring with smooth easeOut tween for 0-lag rendering
+    transition: { duration: 0.3, ease: "easeOut" } 
   }
 };
 
-// 🔴 Added onBack to props
 const HowItWorksStep = ({ onNext, onBack }) => { 
   const steps = [
     {
@@ -48,21 +48,21 @@ const HowItWorksStep = ({ onNext, onBack }) => {
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3 }}
-      // 🔴 Added pt-12 and relative to give space for the Back button
-      className="flex flex-col items-center w-full px-5 max-w-2xl mx-auto transform-gpu relative pt-12" 
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      // 🔴 FIX: Removed transform-gpu from parent. Let the browser optimize layer compositing naturally.
+      className="flex flex-col items-center w-full px-5 max-w-2xl mx-auto relative pt-12" 
     >
       
       {/* 🔴 SLEEK BACK BUTTON (Top Left) */}
       <div className="absolute top-0 left-4 z-50">
         <motion.button
-          whileTap={{ x: -2 }}
+          whileTap={{ scale: 0.95 }}
           onClick={onBack}
-          className="p-2 rounded-full bg-white/[0.03] border border-white/[0.05] backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg opacity-100 block"
+          // 🔴 FIX: Optimized CSS. Removed expensive backdrop-blur for a solid dark background fallback
+          className="p-2 rounded-full bg-[#111]/90 border border-white/[0.05] hover:bg-white/10 transition-colors shadow-md block"
         >
           <IoIosArrowRoundBack
             className="w-6 h-6 text-gray-300 hover:text-white"
-            strokeWidth={1.5}
           />
         </motion.button>
       </div>
@@ -70,13 +70,15 @@ const HowItWorksStep = ({ onNext, onBack }) => {
       {/* High-Tech Header Badge */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} 
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 text-[#E71B25] text-[10px] font-black tracking-[0.2em] uppercase mb-6"
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 text-[#E71B25] text-[10px] font-black tracking-[0.2em] uppercase mb-6 shadow-sm"
       >
         <Cpu className="w-3.5 h-3.5" /> System Architecture
       </motion.div>
       
       <motion.h2 
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="text-3xl md:text-[3.25rem] font-black uppercase tracking-tighter leading-tight mb-12 text-center text-white"
       >
         How BodyMax <br className="hidden md:block" />
@@ -91,13 +93,15 @@ const HowItWorksStep = ({ onNext, onBack }) => {
         {/* The Cybernetic Connecting Line */}
         <div className="absolute left-[28px] md:left-[34px] top-4 bottom-10 w-[2px] bg-white/5 rounded-full z-0 overflow-hidden">
           <motion.div 
-            initial={{ height: 0 }} animate={{ height: "100%" }} transition={{ duration: 1, ease: "easeInOut", delay: 0.5 }}
-            className="w-full bg-[#E71B25] shadow-[0_0_10px_#E71B25] transform-gpu"
+            initial={{ height: 0 }} animate={{ height: "100%" }} 
+            // 🔴 FIX: Sped up line animation slightly so it matches the faster step staggered entrance
+            transition={{ duration: 0.8, ease: "easeInOut", delay: 0.2 }}
+            className="w-full bg-[#E71B25] shadow-[0_0_8px_#E71B25]"
           />
         </div>
 
         {steps.map((step, i) => (
-          <motion.div key={i} variants={stepVariants} className="relative z-10 flex items-start gap-5 md:gap-8 transform-gpu">
+          <motion.div key={i} variants={stepVariants} className="relative z-10 flex items-start gap-5 md:gap-8">
             
             {/* Timeline Node */}
             <div className="relative shrink-0">
@@ -112,7 +116,8 @@ const HowItWorksStep = ({ onNext, onBack }) => {
             </div>
 
             {/* Content Card */}
-            <div className="flex-1 bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 md:p-6 shadow-xl transition-colors duration-300 active:border-[#E71B25]/30">
+            {/* 🔴 FIX: Removed expensive transition-colors for a simpler hover state, and optimized shadow */}
+            <div className="flex-1 bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 md:p-6 shadow-md active:bg-[#111]">
               <h3 className="text-[16px] md:text-[20px] font-black text-white uppercase tracking-tight mb-1.5">
                 {step.title}
               </h3>
@@ -128,7 +133,8 @@ const HowItWorksStep = ({ onNext, onBack }) => {
       <motion.div 
         initial={{ opacity: 0, y: 10 }} 
         animate={{ opacity: 1, y: 0 }} 
-        transition={{ delay: 1, duration: 0.4 }} 
+        // 🔴 FIX: Reduced delay so user doesn't have to wait to click "Next"
+        transition={{ delay: 0.6, duration: 0.3 }} 
         className="w-full flex justify-center"
       >
         <MagneticButton text="Initialize Assessment →" onClick={onNext} />

@@ -17,22 +17,34 @@ const EXPIRATION_TIME = 60 * 60 * 1000;
 
 const BodyMaxFunnel = () => {
 
+  // ==========================================
+  // 1. SMART STEP INITIALIZATION & TIMEOUT LOGIC
+  // ==========================================
   const [step, setStep] = useState(() => {
     if (typeof window !== 'undefined') {
+      // Rule A: Password reset
       if (window.location.pathname === '/reset-password' || window.location.hash.includes('type=recovery')) return 11;
       
-      // 🔴 Rule A: Check if User is already Logged In (Cookies/Session)
-      // Safari PWA shares cookies, so this instantly drops them into the Dashboard
+      // Rule B: Check if User is already Logged In (Cookies/Session)
       const sbToken = localStorage.getItem('sb-qdqlwfchjasdzyopcqby-auth-token'); 
       if (sbToken) {
-         return 10; 
+         return 10; // Seedha Dashboard
       }
 
-      // Rule B: Standalone Mode without Auth Token (Fallback)
+      // Rule C: Standalone Mode (PWA) Checks
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
       const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
+      
+      // 🔴 THE NEW FIX: Agar PWA mein hai aur account ban chuka hai, toh seedha Login Page (Step 9) par bhejo
+      const hasAccount = localStorage.getItem('accountCreated') === 'true';
+      if (isStandalone && hasAccount) {
+         return 9; // 9 = Login Page
+      }
+
+      // Agar PWA handoff ke beech mein PWA add karta hai
       if (isStandalone && needsAccount && localStorage.getItem('savedAssessmentData')) return 8;
 
+      // Rule D: Expiration Logic
       const lastActiveTime = localStorage.getItem('lastActiveTime');
       const isExpired = lastActiveTime && (Date.now() - parseInt(lastActiveTime, 10) > EXPIRATION_TIME);
 
@@ -44,11 +56,12 @@ const BodyMaxFunnel = () => {
         return 1;
       }
 
+      // Resume from where they left off
       const savedStep = localStorage.getItem('currentFunnelStep');
       if (savedStep) return parseInt(savedStep, 10);
     }
     return 1;
-  }); 
+  });
 
   const [formData, setFormData] = useState(() => {
     if (typeof window !== 'undefined') {

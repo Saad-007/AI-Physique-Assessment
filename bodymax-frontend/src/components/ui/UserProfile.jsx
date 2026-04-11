@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, ShieldCheck, Calendar, Clock, Crown, Zap, Lock, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { WhopCheckoutEmbed } from "@whop/checkout/react";
@@ -27,6 +27,7 @@ const UserProfile = ({ profile, currentLevel, rankName, streak }) => {
   // Plan Selection States
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [daysElapsed, setDaysElapsed] = useState(0);
 
   // Safe fallbacks in case profile data is missing
   const userName = profile?.full_name || 'BodyMax Athlete';
@@ -36,13 +37,25 @@ const UserProfile = ({ profile, currentLevel, rankName, streak }) => {
   const assessment = profile?.assessment_data || {};
   const activePlan = assessment?.planDuration || "Free Tier";
   
-  // Calculate Days Left
+  // ==========================================
+  // 🔴 THE FIX: Accurate Time-Based Calculations
+  // ==========================================
   const totalDays = parseInt(activePlan.split('-')[0]) * 7 || 0;
-  const daysCompleted = profile?.current_streak || streak || 0; 
-  const daysLeft = totalDays > 0 ? Math.max(0, totalDays - daysCompleted) : 0;
-  const progressPercentage = totalDays > 0 ? Math.min(100, Math.round((daysCompleted / totalDays) * 100)) : 0;
+  
+  useEffect(() => {
+    if (profile?.created_at) {
+      const accountCreationDate = new Date(profile.created_at);
+      const currentTime = new Date();
+      const timeDifference = currentTime - accountCreationDate;
+      const calculatedDaysElapsed = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+      setDaysElapsed(calculatedDaysElapsed);
+    }
+  }, [profile]);
 
-  const isPro = totalDays > 0;
+  const daysLeft = totalDays > 0 ? Math.max(0, totalDays - daysElapsed) : 0;
+  const progressPercentage = totalDays > 0 ? Math.min(100, Math.round((daysElapsed / totalDays) * 100)) : 0;
+
+  const isPro = totalDays > 0 && daysLeft > 0;
 
   // New State to toggle Pricing Section visibility
   const [showPricing, setShowPricing] = useState(!isPro);
@@ -133,7 +146,7 @@ const UserProfile = ({ profile, currentLevel, rankName, streak }) => {
           </div>
           <div className="flex items-baseline gap-2 relative z-10 mt-auto">
             <span className={`text-[15px] md:text-[18px] font-black tracking-tight leading-none ${isPro ? 'text-white/90' : 'text-gray-500'}`}>
-              {activePlan}
+              {isPro ? activePlan : "Expired / Free"}
             </span>
           </div>
         </div>
@@ -142,30 +155,30 @@ const UserProfile = ({ profile, currentLevel, rankName, streak }) => {
       {/* ==========================================
           SUBSCRIPTION PROGRESS SECTION
           ========================================== */}
-      {isPro && (
+      {totalDays > 0 && (
         <div className="w-full bg-[#0a0a0a] border border-white/[0.05] rounded-[1rem] p-4 shadow-sm relative">
           <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-1.5">
               <Clock className="w-3 h-3 text-gray-400" />
               <h3 className="text-[10px] md:text-[12px] font-bold text-white/90 tracking-wide leading-none">Subscription Progress</h3>
             </div>
-            <span className="bg-[#111] border border-white/5 px-2 py-1 rounded-md text-[7px] font-mono text-gray-400 font-bold uppercase tracking-widest leading-none">
-              {daysLeft} Days Left
+            <span className={`px-2 py-1 rounded-md text-[7px] font-mono font-bold uppercase tracking-widest leading-none border ${daysLeft > 0 ? 'bg-[#111] border-white/5 text-gray-400' : 'bg-[#E71B25]/10 border-[#E71B25]/30 text-[#E71B25]'}`}>
+              {daysLeft > 0 ? `${daysLeft} Days Left` : "Plan Expired"}
             </span>
           </div>
 
           <div className="w-full bg-[#111] rounded-full h-1.5 border border-white/5 overflow-hidden mb-2 relative">
             <motion.div 
               initial={{ width: 0 }} animate={{ width: `${progressPercentage}%` }} transition={{ duration: 1.5, ease: "easeOut" }}
-              className="bg-[#E71B25] h-full rounded-full shadow-[0_0_8px_rgba(231,27,37,0.4)] relative"
+              className={`h-full rounded-full relative ${daysLeft > 0 ? 'bg-[#E71B25] shadow-[0_0_8px_rgba(231,27,37,0.4)]' : 'bg-gray-600'}`}
             >
-              <div className="absolute top-0 right-0 bottom-0 w-3 bg-white/20 blur-[1px] rounded-full"></div>
+              {daysLeft > 0 && <div className="absolute top-0 right-0 bottom-0 w-3 bg-white/20 blur-[1px] rounded-full"></div>}
             </motion.div>
           </div>
           
           <div className="flex justify-between items-center px-0.5">
             <span className="text-[7px] font-bold text-gray-500 uppercase tracking-widest">Day 1</span>
-            <span className="text-[7px] font-bold text-[#E71B25] uppercase tracking-widest">{progressPercentage}% Done</span>
+            <span className={`text-[7px] font-bold uppercase tracking-widest ${daysLeft > 0 ? 'text-[#E71B25]' : 'text-gray-500'}`}>{progressPercentage}% Done</span>
             <span className="text-[7px] font-bold text-gray-500 uppercase tracking-widest">Day {totalDays}</span>
           </div>
 
