@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Target } from 'lucide-react';
 import { MagneticButton } from '../ui/MagneticButton';
+import { IoIosArrowRoundBack } from "react-icons/io"; // 🔴 Added Icon Import
 
 // --- Highly Performant Animation Variants ---
 // Removed blur from word reveal as it chokes mobile CPUs during staggered animations
@@ -22,18 +23,33 @@ const wordVariants = {
   }
 };
 
-const MissionStep = ({ onNext }) => {
+// 🔴 Added onBack prop
+const MissionStep = ({ onNext, onBack }) => {
   const words = ["To", "help", "gym", "guys", "like"];
 
   return (
     <motion.div 
-      className="flex flex-col items-center text-center w-full px-5 md:px-8 max-w-4xl mx-auto transform-gpu"
+      className="flex flex-col items-center text-center w-full px-5 md:px-8 max-w-4xl mx-auto transform-gpu relative pt-12" // 🔴 Added relative & pt-12 for back button spacing
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, y: -10 }} // Removed blur on exit for better mobile performance
       transition={{ duration: 0.3 }}
     >
       
+      {/* 🔴 SLEEK BACK BUTTON (Top Left) */}
+      <div className="absolute top-0 left-4 md:left-8 z-50">
+        <motion.button
+          whileTap={{ x: -2 }}
+          onClick={onBack}
+          className="p-2 rounded-full bg-white/[0.03] border border-white/[0.05] backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg opacity-100 block"
+        >
+          <IoIosArrowRoundBack
+            className="w-6 h-6 text-gray-300 hover:text-white"
+            strokeWidth={1.5}
+          />
+        </motion.button>
+      </div>
+
       {/* 1. Refined Premium Badge */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}

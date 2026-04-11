@@ -75,7 +75,7 @@ app.post('/api/generate-protocol', async (req, res) => {
          - Generate a dynamic "Body Score" (1-100) representing their current state.
          - POTENTIAL: Calculate the user's genetic limit or goal potential (usually 90-98) based on their height and overall goal.
          - DELTAS: Since this is the initial scan, simulate a realistic 'Progression Shift' (e.g., small positive or negative changes like +2.4, -1.2) representing the immediate metabolic or postural adjustments they will experience when starting.
-         - STRENGTHS & LIMITERS: Provide exactly 4 genetic advantages (strengths) and 4 limiters (weaknesses) holding them back from their dream physique.
+         - STRENGTHS & LIMITERS: Carefully analyze the provided images to identify exactly 4 physical genetic advantages and 4 specific physique bottlenecks holding them back from their dream physique.
          - WORST FEATURE: Name the single muscle group holding them back the most (e.g., "chest development").
       
       2. EQUIPMENT: Strictly match exercises to the user's available equipment (Home vs Commercial Gym).
@@ -231,10 +231,13 @@ app.post('/api/generate-protocol', async (req, res) => {
 
     const generatedJSON = JSON.parse(aiContent);
 
-    // --- DATABASE UPDATE ---
+// --- DATABASE UPDATE ---
+    // 🔴 THE FIX: Hum yahan se 'ai_analysis_results' hata rahe hain taake Data 100% save ho jaye!
     const { error: dbError } = await supabase
       .from('profiles')
-      .update({ ai_protocol: generatedJSON })
+      .update({ 
+        ai_protocol: generatedJSON 
+      })
       .eq('id', userId);
 
     if (dbError) {

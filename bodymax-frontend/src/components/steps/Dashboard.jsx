@@ -770,67 +770,64 @@ const Dashboard = () => {
               )}
 
               {/* TAB 2: AI SCANS (Aesthetic UI/UX Upgrade) */}
-              {activeTab === 'photos' && (() => {
-                const muscleScores = [
-                  { name: 'chest development', score: analysis.chest_score || 76 },
-                  { name: 'shoulder width', score: analysis.shoulders_score || 80 },
-                  { name: 'back symmetry', score: analysis.back_score || 78 },
-                  { name: 'core definition', score: analysis.abs_score || 81 },
-                  { name: 'leg base', score: analysis.legs_score || 75 },
-                  { name: 'arm size', score: analysis.arms_score || 79 },
-                ];
-                const weakestMuscle = muscleScores.reduce((prev, curr) => prev.score < curr.score ? prev : curr);
-                const limitingPercentage = 100 - weakestMuscle.score;
-                const dynamicLimiterName = analysis.worst_feature || weakestMuscle.name;
+{activeTab === 'photos' && (() => {
+    // 🔴 THE FIX: Read data directly from ai_protocol
+    // Hum naye column ki bajaye seedha ai_protocol.body_analysis se data utha rahe hain
+    const analysis = profile?.ai_protocol?.body_analysis || {}; 
 
-                // ==========================================
-                // 🔴 POWER MAPPING (SIMPLE & WORKING)
-                // ==========================================
-                const assessment = profile?.assessment_data || {};
-                const photosData = assessment.photos || {};
+    const muscleScores = [
+        { name: 'chest development', score: analysis.chest_score || 76 },
+        { name: 'shoulder width', score: analysis.shoulders_score || 80 },
+        { name: 'back symmetry', score: analysis.back_score || 78 },
+        { name: 'core definition', score: analysis.abs_score || 81 },
+        { name: 'leg base', score: analysis.legs_score || 75 },
+        { name: 'arm size', score: analysis.arms_score || 79 },
+    ];
 
-                // 1. Current Image (Old bulletproof logic)
-                const currentImgUrl = photosData["1"] || photosData[1] || Object.values(photosData)[0] || null;
+    // Strengths aur Weaknesses AI response se
+    const displayStrengths = analysis.strengths && Array.isArray(analysis.strengths) && analysis.strengths.length > 0
+        ? analysis.strengths
+        : ["Analyzing genetics...", "Checking symmetry...", "Mapping frame..."];
 
-                // 2. Target Image (Directly from Database)
-                const dreamImgUrl = assessment.dreamPhysiqueImage || assessment.dreamPhysiquePreview || null;
+    const displayWeaknesses = analysis.weaknesses && Array.isArray(analysis.weaknesses) && analysis.weaknesses.length > 0
+        ? analysis.weaknesses
+        : ["Identifying limiters...", "Scanning body fat...", "Calculating muscle gaps..."];
 
-                const fallbackImg = "https://ui-avatars.com/api/?name=Scan+Missing&background=0a0a0a&color=fff&size=512";
+    const weakestMuscle = muscleScores.reduce((prev, curr) => prev.score < curr.score ? prev : curr);
+    const limitingPercentage = 100 - weakestMuscle.score;
+    const dynamicLimiterName = analysis.worst_feature || weakestMuscle.name;
 
-                // Dynamic Chance Logic
-                let dynamicChance = analysis.dream_body_chances;
-                if (!dynamicChance) {
-                  const calculatedChance = Math.max(82, 98 - Math.floor(limitingPercentage / 2.5));
-                  dynamicChance = `${calculatedChance}%`;
-                }
+    const assessment = profile?.assessment_data || {};
+    const photosData = assessment.photos || {};
+    const currentImgUrl = photosData["1"] || photosData[1] || Object.values(photosData)[0] || null;
+    const dreamImgUrl = assessment.dreamPhysiqueImage || assessment.dreamPhysiquePreview || null;
+    const fallbackImg = "https://ui-avatars.com/api/?name=Scan+Missing&background=0a0a0a&color=fff&size=512";
 
-                // ==========================================
-                // 🔴 NEW: DYNAMIC OVERALL & POTENTIAL SCORE
-                // ==========================================
-                // Current Score calculate karo
-                const currentOverallScore = analysis.overall_score || Math.round(muscleScores.reduce((acc, m) => acc + m.score, 0) / 6);
+    // Smart Calculation for Chance
+    let dynamicChance = analysis.dream_body_chances;
+    if (!dynamicChance) {
+        const calculatedChance = Math.max(82, 98 - Math.floor(limitingPercentage / 2.5));
+        dynamicChance = `${calculatedChance}%`;
+    }
 
-                // Potential Score calculate karo
-                let dynamicPotential = analysis.potential_score;
-                if (!dynamicPotential) {
-                  // Logic: Current score aur 100 ke darmiyan jo gap hai, uska 85% cover kar sakta hai user. (Max 99)
-                  const gap = 100 - currentOverallScore;
-                  dynamicPotential = Math.min(99, currentOverallScore + Math.floor(gap * 0.85));
-                }
+    // Smart Scores
+    const currentOverallScore = analysis.overall_score || Math.round(muscleScores.reduce((acc, m) => acc + m.score, 0) / 6);
+    
+    let dynamicPotential = analysis.potential_score;
+    if (!dynamicPotential) {
+        const gap = 100 - currentOverallScore;
+        dynamicPotential = Math.min(99, currentOverallScore + Math.floor(gap * 0.85));
+    }
 
-                // DYNAMIC STAT CALCULATOR
-                const formatStat = (score, aiDelta, defaultScore) => {
-                  const finalScore = score || defaultScore;
-                  let rawDelta = aiDelta ? parseFloat(aiDelta) : ((finalScore % 5) + 0.8);
-                  if (finalScore < 65) rawDelta = -Math.abs(rawDelta);
-                  else rawDelta = Math.abs(rawDelta);
-
-                  const isNeg = rawDelta < 0;
-                  const deltaString = isNeg ? rawDelta.toFixed(1) : Math.abs(rawDelta).toFixed(1);
-
-                  return { value: finalScore, delta: deltaString, isNegative: isNeg, progress: finalScore };
-                };
-
+    const formatStat = (score, aiDelta, defaultScore) => {
+        const finalScore = score || defaultScore;
+        let rawDelta = aiDelta ? parseFloat(aiDelta) : ((finalScore % 5) + 0.8);
+        if (finalScore < 65) rawDelta = -Math.abs(rawDelta);
+        else rawDelta = Math.abs(rawDelta);
+        const isNeg = rawDelta < 0;
+        const deltaString = isNeg ? rawDelta.toFixed(1) : Math.abs(rawDelta).toFixed(1);
+        return { value: finalScore, delta: deltaString, isNegative: isNeg, progress: finalScore };
+    };
                 return (
                   <motion.div
                     ref={scanRef} key="photos"
@@ -958,57 +955,62 @@ const Dashboard = () => {
                       <ScanStatBlock label="ARMS" {...formatStat(analysis.arms_score || analysis.vectors?.upper_body, analysis.arms_delta, 79)} />
                     </div>
 
-                    {/* ANALYSIS BLOCKS: Unified card design */}
-                    <div className="w-full flex flex-col gap-4 mb-10">
-                      {/* Strengths */}
-                      <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
-                        <div className="flex items-center gap-2 mb-4">
-                          <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center">
-                            <Check className="w-3 h-3 text-green-500" strokeWidth={3} />
-                          </div>
-                          <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Genetic Advantages</h3>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          {(Array.isArray(analysis.strengths) && analysis.strengths.length > 0 ? analysis.strengths : ["Wide shoulder frame", "Good waist structure", "Strong leg base"]).map((item, i) => (
-                            <div key={i} className="flex items-start gap-2.5">
-                              <span className="text-[12px] font-medium text-gray-400 leading-snug">• {item}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                   {/* ANALYSIS BLOCKS: Unified card design */}
+<div className="w-full flex flex-col gap-4 mb-10">
+  
+  {/* Strengths Card - AI Generated */}
+  <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
+    <div className="flex items-center gap-2 mb-4">
+      <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center">
+        <Check className="w-3 h-3 text-green-500" strokeWidth={3} />
+      </div>
+      <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Genetic Advantages</h3>
+    </div>
+    <div className="flex flex-col gap-2">
+      {displayStrengths.map((item, i) => (
+        <div key={i} className="flex items-start gap-2.5">
+          <span className="text-[12px] font-medium text-gray-400 leading-snug">
+            <span className="text-green-500/50 mr-1">•</span> {item}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
 
-                      {/* Weaknesses & Impact */}
-                      <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
-                        <div className="flex items-center gap-2 mb-4">
-                          <div className="w-5 h-5 rounded-full bg-[#E71B25]/10 flex items-center justify-center">
-                            <X className="w-3 h-3 text-[#E71B25]" strokeWidth={3} />
-                          </div>
-                          <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Physique Limiters</h3>
-                        </div>
-                        <div className="flex flex-col gap-2 mb-5">
-                          {(Array.isArray(analysis.weaknesses) && analysis.weaknesses.length > 0 ? analysis.weaknesses : ["Lack of upper chest development", "Higher body fat hiding definition", "Narrow shoulder width"]).map((item, i) => (
-                            <div key={i} className="flex items-start gap-2.5">
-                              <span className="text-[12px] font-medium text-gray-400 leading-snug">• {item}</span>
-                            </div>
-                          ))}
-                        </div>
+  {/* Weaknesses & Impact Card - AI Generated */}
+  <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
+    <div className="flex items-center gap-2 mb-4">
+      <div className="w-5 h-5 rounded-full bg-[#E71B25]/10 flex items-center justify-center">
+        <X className="w-3 h-3 text-[#E71B25]" strokeWidth={3} />
+      </div>
+      <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Physique Limiters</h3>
+    </div>
+    <div className="flex flex-col gap-2 mb-5">
+      {displayWeaknesses.map((item, i) => (
+        <div key={i} className="flex items-start gap-2.5">
+          <span className="text-[12px] font-medium text-gray-400 leading-snug">
+            <span className="text-[#E71B25]/50 mr-1">•</span> {item}
+          </span>
+        </div>
+      ))}
+    </div>
 
-                        {/* Integrated Impact Box */}
-                        <div className="bg-[#111] border border-[#E71B25]/20 rounded-xl p-4">
-                          <div className="flex items-start gap-3">
-                            <Zap className="w-4 h-4 text-[#E71B25] shrink-0 mt-0.5" />
-                            <div>
-                              <div className="text-[11px] md:text-[13px] font-medium text-gray-200 leading-snug mb-1">
-                                Your <span className="text-[#E71B25] font-bold">{dynamicLimiterName}</span> is limiting your potential by <span className="font-bold text-[#E71B25]">{limitingPercentage}%</span>
-                              </div>
-                              <div className="text-[10px] text-gray-500 font-medium leading-relaxed">
-                                Prioritize incline pressing & fly variations to balance your physique.
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+    {/* Integrated Impact Box (Dynamic Tip based on AI) */}
+    <div className="bg-[#111] border border-[#E71B25]/20 rounded-xl p-4">
+      <div className="flex items-start gap-3">
+        <Zap className="w-4 h-4 text-[#E71B25] shrink-0 mt-0.5" />
+        <div>
+          <div className="text-[11px] md:text-[13px] font-medium text-gray-200 leading-snug mb-1">
+            Your <span className="text-[#E71B25] font-bold uppercase">{dynamicLimiterName}</span> is the primary bottleneck.
+          </div>
+          <div className="text-[10px] text-gray-500 font-medium leading-relaxed">
+            {analysis.primary_advice || "Prioritize the specialized movements in your protocol to force adaptation in these specific regions."}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
                     {/* FINAL CALLOUT */}
                     <div className="w-full mb-8">

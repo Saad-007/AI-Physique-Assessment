@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ScanFace, BrainCircuit, Dumbbell, Cpu } from 'lucide-react';
 import { MagneticButton } from '../ui/MagneticButton';
+import { IoIosArrowRoundBack } from "react-icons/io"; // 🔴 Back Icon Import
 
 // --- Mobile-Optimized Animation Variants ---
 const containerVariants = {
@@ -22,7 +23,8 @@ const stepVariants = {
   }
 };
 
-const HowItWorksStep = ({ onNext }) => {
+// 🔴 Added onBack to props
+const HowItWorksStep = ({ onNext, onBack }) => { 
   const steps = [
     {
       icon: ScanFace,
@@ -47,8 +49,24 @@ const HowItWorksStep = ({ onNext }) => {
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-col items-center w-full px-5 max-w-2xl mx-auto transform-gpu"
+      // 🔴 Added pt-12 and relative to give space for the Back button
+      className="flex flex-col items-center w-full px-5 max-w-2xl mx-auto transform-gpu relative pt-12" 
     >
+      
+      {/* 🔴 SLEEK BACK BUTTON (Top Left) */}
+      <div className="absolute top-0 left-4 z-50">
+        <motion.button
+          whileTap={{ x: -2 }}
+          onClick={onBack}
+          className="p-2 rounded-full bg-white/[0.03] border border-white/[0.05] backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg opacity-100 block"
+        >
+          <IoIosArrowRoundBack
+            className="w-6 h-6 text-gray-300 hover:text-white"
+            strokeWidth={1.5}
+          />
+        </motion.button>
+      </div>
+
       {/* High-Tech Header Badge */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} 

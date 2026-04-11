@@ -12,57 +12,103 @@ import Dashboard from './components/steps/Dashboard';
 import LoginPage from './components/ui/Login';
 import ResetPassword from './components/ui/ResetPassword';
 
-const BodyMaxFunnel = () => {
-  const [step, setStep] = useState(1); 
-  const [formData, setFormData] = useState({});
-  const [isInitializing, setIsInitializing] = useState(true);
+// 🔴 SESSION EXPIRATION TIME (1 Hour in milliseconds)
+const EXPIRATION_TIME = 60 * 60 * 1000; 
 
-  // 1. SCROLL TO TOP ON STEP CHANGE
+const BodyMaxFunnel = () => {
+
+  // ==========================================
+  // 1. SMART STEP INITIALIZATION & TIMEOUT LOGIC
+  // ==========================================
+  const [step, setStep] = useState(() => {
+    if (typeof window !== 'undefined') {
+      // Rule A: Password reset
+      if (window.location.pathname === '/reset-password' || window.location.hash.includes('type=recovery')) return 11;
+      
+      // Rule B: PWA Handoff
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
+      if (isStandalone && needsAccount && localStorage.getItem('savedAssessmentData')) return 8;
+
+      // 🔴 Rule C: Check Expiration Time for normal users
+      const lastActiveTime = localStorage.getItem('lastActiveTime');
+      const isExpired = lastActiveTime && (Date.now() - parseInt(lastActiveTime, 10) > EXPIRATION_TIME);
+
+      if (isExpired) {
+        // Agar time poora ho gaya hai toh purana kachra saaf kar dein aur Step 1 se shuru karein
+        localStorage.removeItem('currentFunnelStep');
+        localStorage.removeItem('draftFormData');
+        localStorage.removeItem('assessmentCurrentIndex');
+        return 1;
+      }
+
+      // Agar time abhi bacha hai, toh jahan chora tha wahi se resume karein
+      const savedStep = localStorage.getItem('currentFunnelStep');
+      if (savedStep) return parseInt(savedStep, 10);
+    }
+    return 1;
+  }); 
+
+  // ==========================================
+  // 2. SMART DATA INITIALIZATION
+  // ==========================================
+  const [formData, setFormData] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
+      
+      if (isStandalone && needsAccount) {
+        const savedData = localStorage.getItem('savedAssessmentData');
+        if (savedData) {
+          try { return JSON.parse(savedData); } catch(e) {}
+        }
+      }
+      
+      const lastActiveTime = localStorage.getItem('lastActiveTime');
+      const isExpired = lastActiveTime && (Date.now() - parseInt(lastActiveTime, 10) > EXPIRATION_TIME);
+      
+      // Sirf tab purana data wapis do jab wo expire na hua ho
+      if (!isExpired) {
+        const savedDraftData = localStorage.getItem('draftFormData');
+        if (savedDraftData) {
+          try { return JSON.parse(savedDraftData); } catch(e) {}
+        }
+      }
+    }
+    return {};
+  });
+
+  const [isInitializing, setIsInitializing] = useState(false);
+
+  // SCROLL TO TOP ON STEP CHANGE
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
 
-  // 2. SMART ROUTING & WEB-TO-APP HANDOFF INTERCEPTOR
+  // ==========================================
+  // 3. AUTO-SAVE STATE & TIMESTAMP (LOGOUT BUG FIXED)
+  // ==========================================
   useEffect(() => {
-    const initApp = async () => {
-      // Rule A: Agar password reset link se aaya hai toh seedha Step 11
-      if (window.location.pathname === '/reset-password' || window.location.hash.includes('type=recovery')) {
-        setStep(11);
-        setIsInitializing(false);
-        return; // Routing complete
+    if (!isInitializing) {
+      // 🔴 THE FIX: Sirf Tab Save karo jab user Funnel (Steps 1 to 7) mein ho.
+      // Agar Dashboard (10) ya Login (9) par hai toh memory clear kar do taake logout pr reset ho jaye.
+      if (step < 8) {
+        localStorage.setItem('currentFunnelStep', step.toString());
+        localStorage.setItem('lastActiveTime', Date.now().toString()); 
+      } else {
+        localStorage.removeItem('currentFunnelStep');
       }
+    }
+  }, [step, isInitializing]);
 
-      // Rule B: PWA (Standalone) Mode Check (WEB-TO-APP HANDOFF)
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-      const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
+  useEffect(() => {
+    if (Object.keys(formData).length > 0) {
+      localStorage.setItem('draftFormData', JSON.stringify(formData));
+      localStorage.setItem('lastActiveTime', Date.now().toString());
+    }
+  }, [formData]);
 
-      if (isStandalone && needsAccount) {
-        const savedData = localStorage.getItem('savedAssessmentData');
-        if (savedData) {
-          try {
-            // Data ko safely parse karo aur state mein daalo
-            const parsedData = JSON.parse(savedData);
-            setFormData(parsedData);
-            
-            // Seedha Create Account (SuccessPage) par bhejo
-            setStep(8); 
-            setIsInitializing(false);
-            return; // Routing complete
-          } catch (error) {
-            console.error("Error loading saved data:", error);
-          }
-        }
-      }
-      
-      // Rule C: Normal User (Pehli dafa aaya hai ya browser mein hai)
-      // Step pehle se 1 hai, toh bas initialization false kar do
-      setIsInitializing(false);
-    };
 
-    initApp();
-  }, []);
-
-  // OPTIMIZATION: Simple Y-axis translation is 10x faster for mobile GPUs.
   const pageTransition = {
     initial: { opacity: 0, y: 15 },
     animate: { opacity: 1, y: 0 },
@@ -81,9 +127,7 @@ const BodyMaxFunnel = () => {
   );
 
   return (
-    <div
-      className="relative min-h-[100dvh] bg-[#030303] flex flex-col items-center justify-center overflow-x-hidden font-sans selection:bg-[#E71B25] selection:text-white"
-    >
+    <div className="relative min-h-[100dvh] bg-[#030303] flex flex-col items-center justify-center overflow-x-hidden font-sans selection:bg-[#E71B25] selection:text-white">
       {/* Background Decor */}
       <div className="fixed inset-0 z-0 opacity-20 pointer-events-none bg-[radial-gradient(#333_1px,transparent_1px)] [background-size:32px_32px]"></div>
       
@@ -103,19 +147,21 @@ const BodyMaxFunnel = () => {
 
           {step === 2 && (
             <motion.div key="s2" {...pageTransition} className="w-full">
-              <MissionStep onNext={() => setStep(3)} />
+              <MissionStep onNext={() => setStep(3)} onBack={() => setStep(1)} />
             </motion.div>
           )}
 
+        {/* Step 3 */}
           {step === 3 && (
             <motion.div key="s3" {...pageTransition} className="w-full">
-              <ComparisonStep onNext={() => setStep(4)} />
+              <ComparisonStep onNext={() => setStep(4)} onBack={() => setStep(2)} />
             </motion.div>
           )}
 
+          {/* Step 4 (Social Proof) */}
           {step === 4 && (
             <motion.div key="s4" {...pageTransition} className="w-full">
-              <SocialProofStep onNext={() => setStep(5)} />
+              <SocialProofStep onNext={() => setStep(5)} onBack={() => setStep(3)} />
             </motion.div>
           )}
 
@@ -165,8 +211,13 @@ const BodyMaxFunnel = () => {
                 assessmentData={formData}
                 selectedPlan={formData.planDuration}
                 onGoToDashboard={() => {
+                   // Clear all memory when entering dashboard
                    localStorage.removeItem('pendingAccountCreation');
                    localStorage.removeItem('savedAssessmentData');
+                   localStorage.removeItem('currentFunnelStep');
+                   localStorage.removeItem('draftFormData');
+                   localStorage.removeItem('lastActiveTime');
+                   localStorage.removeItem('assessmentCurrentIndex');
                    setStep(10);
                 }}
               />
@@ -175,7 +226,13 @@ const BodyMaxFunnel = () => {
 
           {step === 9 && (
             <motion.div key="s9" {...pageTransition} className="w-full min-h-[100dvh]">
-              <LoginPage onGoToDashboard={() => setStep(10)} />
+              <LoginPage onGoToDashboard={() => {
+                // Clear memory on login
+                localStorage.removeItem('currentFunnelStep');
+                localStorage.removeItem('draftFormData');
+                localStorage.removeItem('lastActiveTime');
+                setStep(10);
+              }} />
             </motion.div>
           )}
           

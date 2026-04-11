@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Check, Frown, Trophy } from 'lucide-react';
 import { MagneticButton } from '../ui/MagneticButton';
+import { IoIosArrowRoundBack } from "react-icons/io"; // 🔴 Added Icon Import
 
 // --- Mobile-Optimized Animation Variants ---
 const containerVariants = {
@@ -32,15 +33,32 @@ const listItemVariants = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.3 } }
 };
 
-const ComparisonStep = ({ onNext }) => {
+// 🔴 Added onBack prop
+const ComparisonStep = ({ onNext, onBack }) => {
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-col items-center w-full px-5 max-w-4xl mx-auto transform-gpu"
+      // 🔴 Added pt-12 and relative for the back button spacing
+      className="flex flex-col items-center w-full px-5 max-w-4xl mx-auto transform-gpu relative pt-12"
     >
+      
+      {/* 🔴 SLEEK BACK BUTTON (Top Left) */}
+      <div className="absolute top-0 left-4 z-50">
+        <motion.button
+          whileTap={{ x: -2 }}
+          onClick={onBack}
+          className="p-2 rounded-full bg-white/[0.03] border border-white/[0.05] backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg opacity-100 block"
+        >
+          <IoIosArrowRoundBack
+            className="w-6 h-6 text-gray-300 hover:text-white"
+            strokeWidth={1.5}
+          />
+        </motion.button>
+      </div>
+
       <motion.h2 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

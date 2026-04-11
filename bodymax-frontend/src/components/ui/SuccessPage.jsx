@@ -22,7 +22,6 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
         }
     }, []);
 
-    // Helper to upload either a File object or a Base64 string
     const uploadImageToSupabase = async (fileOrBase64, userId, fileNamePrefix) => {
         if (!fileOrBase64) return null;
 
@@ -30,13 +29,10 @@ const SuccessPage = ({ assessmentData = {}, onGoToDashboard }) => {
             const fileName = `${userId}/${fileNamePrefix}_${Date.now()}`;
             let fileToUpload = fileOrBase64;
 
-            // If it's a base64 string (often happens after a page reload when files are lost)
             if (typeof fileOrBase64 === 'string' && fileOrBase64.startsWith('data:image')) {
-                // Convert base64 to Blob
                 const res = await fetch(fileOrBase64);
                 fileToUpload = await res.blob();
             } else if (typeof fileOrBase64 === 'string' && fileOrBase64.startsWith('blob:')) {
-                // We cannot upload a dead blob URL. 
                 console.warn("Dead blob URL detected. Cannot upload.");
                 return null;
             }
@@ -67,7 +63,6 @@ const handleSubmit = async (e) => {
         try {
             console.log("1. Starting Signup for:", formData.email);
             
-            // 1. CREATE USER ACCOUNT IN SUPABASE AUTH
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -80,18 +75,13 @@ const handleSubmit = async (e) => {
             }
 
             if (authData.user) {
-                // =====================================
-                // 🔴 THE FIX: PROTECT IMAGE DATA
-                // =====================================
                 const savedLocalDataStr = localStorage.getItem('savedAssessmentData');
                 const localAssessmentData = savedLocalDataStr ? JSON.parse(savedLocalDataStr) : {};
                 
-                // We remove the keys from localData that might contain "dead" data
                 const localDataClean = { ...localAssessmentData };
                 delete localDataClean.dreamPhysiqueFile;
                 delete localDataClean.photoFiles;
 
-                // Merge: Props (Fresh data) + Clean Local Data
                 const finalAssessmentData = { 
                     ...assessmentData, 
                     ...localDataClean 
@@ -108,16 +98,13 @@ const handleSubmit = async (e) => {
                 
                 let permanentPhotoUrls = { ...(photos || {}) }; 
                 
-                // 🟢 FIX: Prioritize Existing Image > Preview URL > Null
                 let finalGoalImageUrl = dreamPhysiqueImage || dreamPhysiquePreview || null;
 
                 console.log("3. Processing Uploads...");
 
-                // --- UPLOAD CURRENT BODY PHOTOS ---
                 if (photoFiles) {
                     for (const key of [1, 2, 3]) {
                         const file = photoFiles[key];
-                        // Only upload if it's a real File object with a name
                         if (file && file.name && file.size > 0) {
                             const fileExt = file.name.split('.').pop();
                             const filePath = `${authData.user.id}/photo_${key}_${Date.now()}.${fileExt}`;
@@ -130,7 +117,6 @@ const handleSubmit = async (e) => {
                     }
                 }
 
-                // --- 🔴 UPLOAD TARGET IMAGE (The one that was returning null) ---
                 if (dreamPhysiqueFile && dreamPhysiqueFile.name && dreamPhysiqueFile.size > 0) {
                     const fileExt = dreamPhysiqueFile.name.split('.').pop();
                     const filePath = `${authData.user.id}/goal_${Date.now()}.${fileExt}`;
@@ -145,15 +131,13 @@ const handleSubmit = async (e) => {
                     }
                 }
 
-                // FINAL PAYLOAD
                 const dataToSave = {
                     ...cleanAssessmentData,
                     photos: permanentPhotoUrls, 
-                    dreamPhysiqueImage: finalGoalImageUrl, // Guaranteed not to be null if a preview exists
+                    dreamPhysiqueImage: finalGoalImageUrl, 
                     planDuration: cleanAssessmentData.planDuration || "12-Week"
                 };
 
-                // 2. SAVE TO PROFILES
                 const { error: dbError } = await supabase
                     .from('profiles')
                     .upsert([{
@@ -176,43 +160,6 @@ const handleSubmit = async (e) => {
             setIsSubmitting(false);
         }
     };
-
-    // ... Rest of your component (Browser View and PWA View) remains exactly the same ...
-    
-    if (!isStandalone) {
-        return (
-            <div className="min-h-[100dvh] bg-[#030303] flex items-center justify-center p-4 relative overflow-hidden">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#E71B25] mix-blend-screen filter blur-[120px] opacity-[0.05] rounded-full pointer-events-none" />
-
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.98, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="w-full max-w-[380px] bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] p-6 md:p-8 relative z-10 shadow-2xl flex flex-col items-center text-center"
-                >
-                    <div className="w-12 h-12 bg-[#22c55e]/10 border border-[#22c55e]/20 rounded-full flex items-center justify-center mb-4">
-                        <CheckCircle2 className="w-5 h-5 text-[#22c55e]" strokeWidth={2.5} />
-                    </div>
-
-                    <h1 className="text-[18px] md:text-[20px] font-bold text-white/90 mb-1.5 tracking-tight">Payment Confirmed</h1>
-                    <p className="text-gray-400 text-[11px] md:text-[12px] leading-relaxed mb-6 px-2 font-medium">
-                        Your payment was successful. To generate your AI protocol and create your account, please install the Native App.
-                    </p>
-
-                    <div className="w-full flex justify-center mb-5">
-                        <InstallPrompt />
-                    </div>
-
-                    <button 
-                        onClick={() => setIsStandalone(true)} 
-                        className="text-[9px] font-bold text-gray-600 hover:text-gray-400 uppercase tracking-widest transition-colors border-b border-transparent hover:border-gray-500 pb-0.5"
-                    >
-                        Continue in browser (Not Recommended)
-                    </button>
-                </motion.div>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-[100dvh] bg-[#030303] flex items-center justify-center p-4 relative overflow-hidden">
@@ -333,17 +280,37 @@ const handleSubmit = async (e) => {
                             </div>
 
                             <h2 className="text-[18px] md:text-[20px] font-bold text-white/90 mb-2 tracking-tight">Account Secured</h2>
-                            <p className="text-gray-400 text-[11px] font-medium leading-relaxed mb-8 px-2">
-                                Your profile is ready. Your AI-guided BodyMax protocol is waiting for you inside.
-                            </p>
-
-                            <motion.button
-                                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                                onClick={onGoToDashboard}
-                                className="w-full bg-white hover:bg-gray-200 text-black py-3 rounded-lg font-bold text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-md"
-                            >
-                                Enter Hub <ArrowRight className="w-3.5 h-3.5" />
-                            </motion.button>
+                            
+                            {/* 🔴 THE PWA HANDOFF FIX (APP INSTALL PROMPT) */}
+                            {!isStandalone ? (
+                                <>
+                                    <p className="text-gray-400 text-[11px] font-medium leading-relaxed mb-6 px-2">
+                                        Your profile is ready. To generate your AI protocol, please install the Native App below.
+                                    </p>
+                                    <div className="w-full flex justify-center mb-4">
+                                        <InstallPrompt />
+                                    </div>
+                                    <button 
+                                        onClick={onGoToDashboard} 
+                                        className="text-[9px] font-bold text-gray-500 hover:text-gray-300 uppercase tracking-widest transition-colors border-b border-transparent hover:border-gray-500 pb-0.5 mt-2"
+                                    >
+                                        Skip & Continue to Hub (Not Recommended)
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-gray-400 text-[11px] font-medium leading-relaxed mb-8 px-2">
+                                        Your profile is ready. Your AI-guided BodyMax protocol is waiting for you inside.
+                                    </p>
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                                        onClick={onGoToDashboard}
+                                        className="w-full bg-white hover:bg-gray-200 text-black py-3 rounded-lg font-bold text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-md"
+                                    >
+                                        Enter Hub <ArrowRight className="w-3.5 h-3.5" />
+                                    </motion.button>
+                                </>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
