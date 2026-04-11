@@ -82,7 +82,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState(null);
   const [protocol, setProtocol] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('photos'); // Default tab updated
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [isAIGenerating, setIsAIGenerating] = useState(false);
   const [aiLogIndex, setAiLogIndex] = useState(0);
@@ -232,7 +232,7 @@ const Dashboard = () => {
       if (activeTimerEx !== index) {
         const match = restString.match(/\d+/);
         const time = match ? parseInt(match[0], 10) : 60;
-        setTimeLeft(time); // Developer Tip: Change 'time' to 2 seconds for quick testing if needed
+        setTimeLeft(time); 
         setTimerTotal(time);
       }
       setActiveTimerEx(index);
@@ -552,10 +552,10 @@ const Dashboard = () => {
 
   const roadmap = safeProtocol.roadmap || getDefaultRoadmap(planDurationText);
 
+  // 🔴 TABS ARRAY UPDATED: Removed 'overview', relabeled 'photos' to 'AI Scan'
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
-    { id: 'overview', label: 'Report', icon: TrendingUp },
-    { id: 'photos', label: 'Scans', icon: ScanLine },
+    { id: 'photos', label: 'AI Scan', icon: ScanLine },
     { id: 'protocol', label: 'Workouts', icon: LayoutGrid },
     { id: 'analytics', label: 'Telemetry', icon: BarChart2 },
     { id: 'nutrition', label: 'Nutrition', icon: Apple },
@@ -699,135 +699,66 @@ const Dashboard = () => {
                 </motion.div>
               )}
 
-              {/* TAB 1: OVERVIEW */}
-              {activeTab === 'overview' && (
-                <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-5">
-                  <div className="bg-gradient-to-br from-[#0a0a0a] to-[#0f0f0f] border border-white/[0.04] rounded-3xl p-5 md:p-6 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6">
-                    <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-[#E71B25] filter blur-[100px] md:blur-[120px] opacity-[0.06] rounded-full pointer-events-none"></div>
+             {/* 🔴 TAB 2 (NOW RENAMED TO AI SCAN): AI SCANS & REPORT COMBINED */}
+              {activeTab === 'photos' && (() => {
+                // 🔴 THE FIX: 'safeProtocol' use karein jo AI generation ke foran baad update ho jata hai!
+                const analysis = safeProtocol.body_analysis || {};
 
-                    <div className="relative w-24 h-24 md:w-32 md:h-32 shrink-0 flex items-center justify-center cursor-pointer" onClick={() => setActiveTab('photos')}>
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle cx="50%" cy="50%" r="45%" fill="transparent" stroke="#222" strokeWidth="6" />
-                        <motion.circle
-                          cx="50%" cy="50%" r="45%" fill="transparent" stroke="#E71B25" strokeWidth="6" strokeLinecap="round"
-                          strokeDasharray="283" strokeDashoffset={283 - (283 * (analysis.overall_rating || analysis.score || 80)) / 100}
-                          initial={{ strokeDashoffset: 283 }} animate={{ strokeDashoffset: 283 - (283 * (analysis.overall_rating || analysis.score || 80)) / 100 }} transition={{ duration: 2 }}
-                        />
-                      </svg>
-                      <div className="absolute flex flex-col items-center mt-1">
-                        <span className="text-2xl md:text-4xl font-black text-white">{analysis.overall_rating || analysis.score || 80}</span>
-                        <span className="text-[7px] md:text-[8px] text-gray-500 uppercase tracking-widest font-bold mt-[-2px]">Physique</span>
-                      </div>
-                    </div>
+                const muscleScores = [
+                  { name: 'chest development', score: analysis.chest_score || 76 },
+                  { name: 'shoulder width', score: analysis.shoulders_score || 80 },
+                  { name: 'back symmetry', score: analysis.back_score || 78 },
+                  { name: 'core definition', score: analysis.abs_score || 81 },
+                  { name: 'leg base', score: analysis.legs_score || 75 },
+                  { name: 'arm size', score: analysis.arms_score || 79 },
+                ];
 
-                    <div className="text-center md:text-left z-10 flex-1 w-full">
-                      <div className="inline-flex items-center gap-1.5 bg-white/[0.02] border border-white/[0.05] px-2.5 py-1 rounded-full mb-3 shadow-inner">
-                        <Target className="w-3 h-3 text-[#E71B25]" />
-                        <span className="text-[8px] md:text-[9px] font-bold text-gray-300 uppercase tracking-widest">Target: {userGoal}</span>
-                      </div>
-                      <h2 className="text-lg md:text-xl font-bold text-white mb-2 tracking-tight">Gap Analysis Summary</h2>
-                      <p className="text-[11px] md:text-[12px] text-gray-400 leading-relaxed font-medium">{analysis.executive_summary}</p>
-                    </div>
-                  </div>
+                const rawStrengths = analysis.strengths || analysis.body_analysis?.strengths;
+                const rawWeaknesses = analysis.weaknesses || analysis.body_analysis?.weaknesses;
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                    <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5">
-                      <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-2.5">
-                        <Activity className="w-3.5 h-3.5 text-blue-400" />
-                        <h3 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-widest">Metabolic Profile</h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className="bg-[#111] p-3 rounded-2xl border border-white/[0.02]">
-                          <span className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-widest block mb-1">Est. Body Fat</span>
-                          <span className="text-lg md:text-xl font-black text-white">{analysis.body_fat_percentage || analysis.estimated_bf || "18%"}</span>
-                        </div>
-                        <div className="bg-[#111] p-3 rounded-2xl border border-white/[0.02]">
-                          <span className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-widest block mb-1">Base Burn (BMR)</span>
-                          <span className="text-lg md:text-xl font-black text-white">{analysis.bmr} <span className="text-[9px] text-gray-500">kcal</span></span>
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-r from-[#E71B25]/10 to-transparent border-l-[2px] border-[#E71B25] p-3 rounded-r-xl rounded-l-sm">
-                        <span className="text-[8px] md:text-[9px] text-[#E71B25] uppercase font-bold tracking-widest block mb-1">Target Burn (TDEE)</span>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-xl font-black text-white leading-none">{analysis.tdee}</span>
-                          <span className="text-[9px] text-gray-400 font-medium">kcal/day</span>
-                        </div>
-                      </div>
-                    </div>
+                const displayStrengths = Array.isArray(rawStrengths) && rawStrengths.length > 0
+                  ? rawStrengths
+                  : ["High-precision mapping required", "V-Taper symmetry analysis", "Frame structure assessment"];
 
-                    <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5">
-                      <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-2.5">
-                        <Focus className="w-3.5 h-3.5 text-orange-400" />
-                        <h3 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-widest">Target Alignment</h3>
-                      </div>
-                      <ProgressBar label="Chest & Shoulders" value={analysis.chest_score || analysis.vectors?.upper_body || 76} color="bg-blue-500" />
-                      <ProgressBar label="Lower Body Dev." value={analysis.legs_score || analysis.vectors?.lower_body || 75} color="bg-orange-500" />
-                      <ProgressBar label="Core & Posture" value={analysis.abs_score || analysis.vectors?.core || 81} color="bg-yellow-500" />
-                      <ProgressBar label="Back & Symmetry" value={analysis.back_score || analysis.vectors?.symmetry || 78} color="bg-[#E71B25]" />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
+                const displayWeaknesses = Array.isArray(rawWeaknesses) && rawWeaknesses.length > 0
+                  ? rawWeaknesses
+                  : ["Identifying primary bottlenecks", "Muscle insertion analysis", "Metabolic rate estimation"];
 
-              {/* TAB 2: AI SCANS (Aesthetic UI/UX Upgrade) */}
-{activeTab === 'photos' && (() => {
-    // 🔴 THE FIX: Read data directly from ai_protocol
-    // Hum naye column ki bajaye seedha ai_protocol.body_analysis se data utha rahe hain
-    const analysis = profile?.ai_protocol?.body_analysis || {}; 
+                const weakestMuscle = muscleScores.reduce((prev, curr) => prev.score < curr.score ? prev : curr);
+                const dynamicLimiterName = analysis.worst_feature || weakestMuscle.name;
 
-    const muscleScores = [
-        { name: 'chest development', score: analysis.chest_score || 76 },
-        { name: 'shoulder width', score: analysis.shoulders_score || 80 },
-        { name: 'back symmetry', score: analysis.back_score || 78 },
-        { name: 'core definition', score: analysis.abs_score || 81 },
-        { name: 'leg base', score: analysis.legs_score || 75 },
-        { name: 'arm size', score: analysis.arms_score || 79 },
-    ];
+                const limitingPercentage = 100 - weakestMuscle.score;
 
-    // Strengths aur Weaknesses AI response se
-    const displayStrengths = analysis.strengths && Array.isArray(analysis.strengths) && analysis.strengths.length > 0
-        ? analysis.strengths
-        : ["Analyzing genetics...", "Checking symmetry...", "Mapping frame..."];
+                const assessment = profile?.assessment_data || {};
+                const photosData = assessment.photos || {};
+                const currentImgUrl = photosData["1"] || photosData[1] || Object.values(photosData)[0] || null;
+                const dreamImgUrl = assessment.dreamPhysiqueImage || assessment.dreamPhysiquePreview || null;
+                const fallbackImg = "https://ui-avatars.com/api/?name=Scan+Missing&background=0a0a0a&color=fff&size=512";
 
-    const displayWeaknesses = analysis.weaknesses && Array.isArray(analysis.weaknesses) && analysis.weaknesses.length > 0
-        ? analysis.weaknesses
-        : ["Identifying limiters...", "Scanning body fat...", "Calculating muscle gaps..."];
+                let dynamicChance = analysis.dream_body_chances;
+                if (!dynamicChance) {
+                  const calculatedChance = Math.max(82, 98 - Math.floor(limitingPercentage / 2.5));
+                  dynamicChance = `${calculatedChance}%`;
+                }
 
-    const weakestMuscle = muscleScores.reduce((prev, curr) => prev.score < curr.score ? prev : curr);
-    const limitingPercentage = 100 - weakestMuscle.score;
-    const dynamicLimiterName = analysis.worst_feature || weakestMuscle.name;
+                const currentOverallScore = analysis.overall_score || Math.round(muscleScores.reduce((acc, m) => acc + m.score, 0) / 6);
 
-    const assessment = profile?.assessment_data || {};
-    const photosData = assessment.photos || {};
-    const currentImgUrl = photosData["1"] || photosData[1] || Object.values(photosData)[0] || null;
-    const dreamImgUrl = assessment.dreamPhysiqueImage || assessment.dreamPhysiquePreview || null;
-    const fallbackImg = "https://ui-avatars.com/api/?name=Scan+Missing&background=0a0a0a&color=fff&size=512";
+                let dynamicPotential = analysis.potential_score;
+                if (!dynamicPotential) {
+                  const gap = 100 - currentOverallScore;
+                  dynamicPotential = Math.min(99, currentOverallScore + Math.floor(gap * 0.85));
+                }
 
-    // Smart Calculation for Chance
-    let dynamicChance = analysis.dream_body_chances;
-    if (!dynamicChance) {
-        const calculatedChance = Math.max(82, 98 - Math.floor(limitingPercentage / 2.5));
-        dynamicChance = `${calculatedChance}%`;
-    }
+                const formatStat = (score, aiDelta, defaultScore) => {
+                  const finalScore = score || defaultScore;
+                  let rawDelta = aiDelta ? parseFloat(aiDelta) : ((finalScore % 5) + 0.8);
+                  if (finalScore < 65) rawDelta = -Math.abs(rawDelta);
+                  else rawDelta = Math.abs(rawDelta);
+                  const isNeg = rawDelta < 0;
+                  const deltaString = isNeg ? rawDelta.toFixed(1) : Math.abs(rawDelta).toFixed(1);
+                  return { value: finalScore, delta: deltaString, isNegative: isNeg, progress: finalScore };
+                };
 
-    // Smart Scores
-    const currentOverallScore = analysis.overall_score || Math.round(muscleScores.reduce((acc, m) => acc + m.score, 0) / 6);
-    
-    let dynamicPotential = analysis.potential_score;
-    if (!dynamicPotential) {
-        const gap = 100 - currentOverallScore;
-        dynamicPotential = Math.min(99, currentOverallScore + Math.floor(gap * 0.85));
-    }
-
-    const formatStat = (score, aiDelta, defaultScore) => {
-        const finalScore = score || defaultScore;
-        let rawDelta = aiDelta ? parseFloat(aiDelta) : ((finalScore % 5) + 0.8);
-        if (finalScore < 65) rawDelta = -Math.abs(rawDelta);
-        else rawDelta = Math.abs(rawDelta);
-        const isNeg = rawDelta < 0;
-        const deltaString = isNeg ? rawDelta.toFixed(1) : Math.abs(rawDelta).toFixed(1);
-        return { value: finalScore, delta: deltaString, isNegative: isNeg, progress: finalScore };
-    };
                 return (
                   <motion.div
                     ref={scanRef} key="photos"
@@ -841,11 +772,11 @@ const Dashboard = () => {
                       </div>
                       <h2 className="text-[22px] md:text-[28px] font-black text-white tracking-tight uppercase leading-none">Your BodyMax Score</h2>
 
-                      {/* 🔴 NEW: Subtitle Added Here */}
                       <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-[0.15em] font-bold mt-2.5">
                         Your Current Physique <span className="text-[#E71B25] mx-1">VS</span> Your Dream Physique
                       </p>
                     </div>
+
                     {/* IMAGES CONTAINER: Sleek side-by-side with central sync indicator */}
                     <div className="flex justify-center items-center gap-3 w-full mb-10 relative">
 
@@ -892,7 +823,6 @@ const Dashboard = () => {
                     {/* CHANCE SECTION: More integrated look */}
                     <div className="w-full mb-10">
                       <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-2xl border border-green-500/10 p-5 flex items-center gap-4 shadow-lg overflow-hidden relative">
-                        {/* Subtle green glow behind the percentage */}
                         <div className="absolute top-1/2 left-0 -translate-y-1/2 w-24 h-24 bg-green-500/10 rounded-full filter blur-[30px] pointer-events-none"></div>
 
                         <div className="shrink-0 relative z-10">
@@ -907,9 +837,8 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </div>
-                    {/* ==========================================
-                        🔴 RESTORED & UPGRADED: BODYMAX SCORE 
-                        ========================================== */}
+
+                    {/* BODYMAX SCORE */}
                     <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 mb-10 shadow-lg">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="w-5 h-5 rounded-full bg-[#E71B25]/10 flex items-center justify-center">
@@ -919,11 +848,9 @@ const Dashboard = () => {
                       </div>
 
                       <div className="flex items-center justify-between gap-3">
-                        {/* Current Rating */}
                         <div className="flex-1 bg-[#111] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center relative">
                           <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1.5">Current</div>
                           <div className="text-[26px] md:text-[32px] font-black text-white leading-none tracking-tighter">
-                            {/* 🔴 Updated: Using dynamic current score */}
                             {currentOverallScore}
                             <span className="text-[12px] md:text-[14px] text-gray-600 font-bold ml-0.5">/100</span>
                           </div>
@@ -933,18 +860,51 @@ const Dashboard = () => {
                           <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
                         </div>
 
-                        {/* Potential Rating */}
                         <div className="flex-1 bg-[#111] border border-[#22c55e]/20 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(34,197,94,0.05)]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-[#22c55e]/10 rounded-full blur-[20px] pointer-events-none"></div>
                           <div className="text-[9px] text-[#22c55e]/80 uppercase tracking-widest font-bold mb-1.5 relative z-10">Potential</div>
                           <div className="text-[26px] md:text-[32px] font-black text-[#22c55e] leading-none tracking-tighter relative z-10">
-                            {/* 🔴 Updated: Using dynamic potential score */}
                             {dynamicPotential}
                             <span className="text-[12px] md:text-[14px] text-[#22c55e]/40 font-bold ml-0.5">/100</span>
                           </div>
                         </div>
                       </div>
                     </div>
+
+                    {/* ==========================================
+                        🔴 MERGED: GAP ANALYSIS & METABOLIC PROFILE
+                        ========================================== */}
+                    <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 mb-10 shadow-lg">
+                      <div className="inline-flex items-center gap-1.5 bg-white/[0.02] border border-white/[0.05] px-2.5 py-1 rounded-full mb-4 shadow-inner">
+                        <Target className="w-3 h-3 text-[#E71B25]" />
+                        <span className="text-[8px] md:text-[9px] font-bold text-gray-300 uppercase tracking-widest">Target: {userGoal}</span>
+                      </div>
+                      <h2 className="text-lg md:text-xl font-bold text-white mb-2 tracking-tight">Gap Analysis Summary</h2>
+                      <p className="text-[11px] md:text-[12px] text-gray-400 leading-relaxed font-medium mb-6">{analysis.executive_summary}</p>
+
+                      <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-2.5">
+                        <Activity className="w-3.5 h-3.5 text-blue-400" />
+                        <h3 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-widest">Metabolic Profile</h3>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-[#111] p-3 rounded-2xl border border-white/[0.02]">
+                          <span className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-widest block mb-1">Est. Body Fat</span>
+                          <span className="text-lg md:text-xl font-black text-white">{analysis.body_fat_percentage || analysis.estimated_bf || "18%"}</span>
+                        </div>
+                        <div className="bg-[#111] p-3 rounded-2xl border border-white/[0.02]">
+                          <span className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-widest block mb-1">Base Burn (BMR)</span>
+                          <span className="text-lg md:text-xl font-black text-white">{analysis.bmr} <span className="text-[9px] text-gray-500">kcal</span></span>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-r from-[#E71B25]/10 to-transparent border-l-[2px] border-[#E71B25] p-3 rounded-r-xl rounded-l-sm">
+                        <span className="text-[8px] md:text-[9px] text-[#E71B25] uppercase font-bold tracking-widest block mb-1">Target Burn (TDEE)</span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xl font-black text-white leading-none">{analysis.tdee}</span>
+                          <span className="text-[9px] text-gray-400 font-medium">kcal/day</span>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* GRID SECTION: Compact layout */}
                     <div className="grid grid-cols-2 gap-3 w-full mb-10">
                       <ScanStatBlock label="CHEST" {...formatStat(analysis.chest_score || analysis.vectors?.upper_body, analysis.chest_delta, 76)} />
@@ -955,62 +915,62 @@ const Dashboard = () => {
                       <ScanStatBlock label="ARMS" {...formatStat(analysis.arms_score || analysis.vectors?.upper_body, analysis.arms_delta, 79)} />
                     </div>
 
-                   {/* ANALYSIS BLOCKS: Unified card design */}
-<div className="w-full flex flex-col gap-4 mb-10">
-  
-  {/* Strengths Card - AI Generated */}
-  <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
-    <div className="flex items-center gap-2 mb-4">
-      <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center">
-        <Check className="w-3 h-3 text-green-500" strokeWidth={3} />
-      </div>
-      <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Genetic Advantages</h3>
-    </div>
-    <div className="flex flex-col gap-2">
-      {displayStrengths.map((item, i) => (
-        <div key={i} className="flex items-start gap-2.5">
-          <span className="text-[12px] font-medium text-gray-400 leading-snug">
-            <span className="text-green-500/50 mr-1">•</span> {item}
-          </span>
-        </div>
-      ))}
-    </div>
-  </div>
+                    {/* ANALYSIS BLOCKS: Unified card design */}
+                    <div className="w-full flex flex-col gap-4 mb-10">
 
-  {/* Weaknesses & Impact Card - AI Generated */}
-  <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
-    <div className="flex items-center gap-2 mb-4">
-      <div className="w-5 h-5 rounded-full bg-[#E71B25]/10 flex items-center justify-center">
-        <X className="w-3 h-3 text-[#E71B25]" strokeWidth={3} />
-      </div>
-      <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Physique Limiters</h3>
-    </div>
-    <div className="flex flex-col gap-2 mb-5">
-      {displayWeaknesses.map((item, i) => (
-        <div key={i} className="flex items-start gap-2.5">
-          <span className="text-[12px] font-medium text-gray-400 leading-snug">
-            <span className="text-[#E71B25]/50 mr-1">•</span> {item}
-          </span>
-        </div>
-      ))}
-    </div>
+                      {/* Strengths Card - AI Generated */}
+                      <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center">
+                            <Check className="w-3 h-3 text-green-500" strokeWidth={3} />
+                          </div>
+                          <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Genetic Advantages</h3>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {displayStrengths.map((item, i) => (
+                            <div key={i} className="flex items-start gap-2.5">
+                              <span className="text-[12px] font-medium text-gray-400 leading-snug">
+                                <span className="text-green-500/50 mr-1">•</span> {item}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
 
-    {/* Integrated Impact Box (Dynamic Tip based on AI) */}
-    <div className="bg-[#111] border border-[#E71B25]/20 rounded-xl p-4">
-      <div className="flex items-start gap-3">
-        <Zap className="w-4 h-4 text-[#E71B25] shrink-0 mt-0.5" />
-        <div>
-          <div className="text-[11px] md:text-[13px] font-medium text-gray-200 leading-snug mb-1">
-            Your <span className="text-[#E71B25] font-bold uppercase">{dynamicLimiterName}</span> is the primary bottleneck.
-          </div>
-          <div className="text-[10px] text-gray-500 font-medium leading-relaxed">
-            {analysis.primary_advice || "Prioritize the specialized movements in your protocol to force adaptation in these specific regions."}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+                      {/* Weaknesses & Impact Card - AI Generated */}
+                      <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-5 h-5 rounded-full bg-[#E71B25]/10 flex items-center justify-center">
+                            <X className="w-3 h-3 text-[#E71B25]" strokeWidth={3} />
+                          </div>
+                          <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Physique Limiters</h3>
+                        </div>
+                        <div className="flex flex-col gap-2 mb-5">
+                          {displayWeaknesses.map((item, i) => (
+                            <div key={i} className="flex items-start gap-2.5">
+                              <span className="text-[12px] font-medium text-gray-400 leading-snug">
+                                <span className="text-[#E71B25]/50 mr-1">•</span> {item}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Integrated Impact Box (Dynamic Tip based on AI) */}
+                        <div className="bg-[#111] border border-[#E71B25]/20 rounded-xl p-4">
+                          <div className="flex items-start gap-3">
+                            <Zap className="w-4 h-4 text-[#E71B25] shrink-0 mt-0.5" />
+                            <div>
+                              <div className="text-[11px] md:text-[13px] font-medium text-gray-200 leading-snug mb-1">
+                                Your <span className="text-[#E71B25] font-bold uppercase">{dynamicLimiterName}</span> is the primary bottleneck.
+                              </div>
+                              <div className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                                {analysis.primary_advice || "Prioritize the specialized movements in your protocol to force adaptation in these specific regions."}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* FINAL CALLOUT */}
                     <div className="w-full mb-8">
@@ -1035,6 +995,7 @@ const Dashboard = () => {
                   </motion.div>
                 );
               })()}
+
               {/* TAB 3: WORKOUTS */}
               {activeTab === 'protocol' && (
                 <motion.div key="protocol" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-5">
@@ -1214,7 +1175,6 @@ const Dashboard = () => {
                 </motion.div>
               )}
 
-              {/* ... KEEP YOUR TAB 4, TAB 5 AND CHAT COACH CODE HERE UNCHANGED ... */}
               {/* TAB 4: TELEMETRY (ANALYTICS & XP) */}
               {activeTab === 'analytics' && (() => {
                 return (
@@ -1272,8 +1232,8 @@ const Dashboard = () => {
                               <div
                                 key={i}
                                 className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all duration-300 ${isUnlocked
-                                  ? 'bg-[#111] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.5)]'
-                                  : 'bg-[#050505] border-white/[0.02] opacity-50 grayscale'
+                                    ? 'bg-[#111] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.5)]'
+                                    : 'bg-[#050505] border-white/[0.02] opacity-50 grayscale'
                                   }`}
                               >
                                 <div className="flex items-center gap-2.5">
@@ -1374,16 +1334,6 @@ const Dashboard = () => {
                         </div>
                       </div>
 
-                      <div className="bg-[#0a0a0a] border border-white/[0.04] rounded-3xl p-5">
-                        <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-2.5">
-                          <Focus className="w-3.5 h-3.5 text-orange-400" />
-                          <h3 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-widest">Target Alignment</h3>
-                        </div>
-                        <ProgressBar label="Chest & Shoulders" value={analysis.chest_score || analysis.vectors?.upper_body || 76} color="bg-blue-500" />
-                        <ProgressBar label="Lower Body Dev." value={analysis.legs_score || analysis.vectors?.lower_body || 75} color="bg-orange-500" />
-                        <ProgressBar label="Core & Posture" value={analysis.abs_score || analysis.vectors?.core || 81} color="bg-yellow-500" />
-                        <ProgressBar label="Back & Symmetry" value={analysis.back_score || analysis.vectors?.symmetry || 78} color="bg-[#E71B25]" />
-                      </div>
                     </div>
 
                   </motion.div>
