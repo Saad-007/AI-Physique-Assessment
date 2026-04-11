@@ -635,7 +635,7 @@ const Dashboard = () => {
           </div>
         </aside>
 
-        {/* MOBILE TOP HEADER */}
+{/* MOBILE TOP HEADER */}
         <div className="md:hidden fixed top-0 inset-x-0 h-20 bg-[#030303]/90 backdrop-blur-xl border-b border-white/[0.04] z-40 flex items-center justify-between px-5">
           <div className="flex items-center h-full py-3">
             <img src="/logo.png" alt="BodyMax" className="h-12 w-auto object-contain max-h-full" />
@@ -645,6 +645,15 @@ const Dashboard = () => {
               <CurrentRankIcon className={`w-3.5 h-3.5 ${currentBadge.color}`} />
               <span className="text-[11px] font-black text-white">LVL {currentLevel}</span>
             </div>
+            
+            {/* 🔴 THE FIX: Added Mobile Logout Button */}
+            <button 
+              onClick={handleLogout} 
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.02] border border-white/[0.05] text-gray-400 hover:text-[#E71B25] hover:bg-[#E71B25]/10 transition-colors shadow-sm"
+              aria-label="Log Out"
+            >
+              <LogOut className="w-4 h-4" strokeWidth={2.5} />
+            </button>
           </div>
         </div>
 
