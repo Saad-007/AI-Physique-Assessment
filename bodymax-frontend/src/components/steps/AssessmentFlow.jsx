@@ -1844,7 +1844,7 @@ const AssessmentFlow = ({
                 </div>
               )}
 
-              {/* --- COMPACT SOCIAL PROOF SECTION --- */}
+{/* --- COMPACT SOCIAL PROOF SECTION --- */}
               {currentStep.type === "social-proof" && (
                 <div className="flex flex-col items-center w-full mt-2">
                   <motion.h2
@@ -1860,15 +1860,16 @@ const AssessmentFlow = ({
                     <motion.div
                       initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      // 🔴 FIX: Changed heavy "spring" physics to smooth "easeOut" tweens for 0-lag rendering
+                      // 🔴 FIX: Added will-change to force hardware acceleration without layout thrashing
+                      style={{ willChange: "transform, opacity" }}
                       transition={{ duration: 0.4, ease: "easeOut" }}
-                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-lg relative overflow-hidden group"
+                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-md relative overflow-hidden group"
                     >
                       <div className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <Users className="absolute -right-4 -bottom-4 w-28 h-28 text-white/[0.02] transition-transform duration-300 group-hover:scale-110 pointer-events-none" />
 
-                      {/* 🔴 FIX: Removed expensive CSS drop-shadow filter. The gradient handles the aesthetic fine. */}
-                      <div className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] tracking-tighter leading-none mb-1.5 relative z-10">
+                      {/* 🔴 FIX: Removed bg-clip-text. Used a solid hex color for text. bg-clip-text + rapid number changes = MASSIVE lag on mobile. */}
+                      <div className="text-5xl md:text-6xl font-black text-[#E71B25] tracking-tighter leading-none mb-1.5 relative z-10">
                         <AnimatedCounter end={200} suffix="K" />
                       </div>
                       <p className="text-gray-400 text-[13px] md:text-[15px] font-medium relative z-10">
@@ -1879,21 +1880,21 @@ const AssessmentFlow = ({
                     <motion.div
                       initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      // 🔴 FIX: Smooth staggered delay without spring jitter
+                      style={{ willChange: "transform, opacity" }}
                       transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
-                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-lg relative overflow-hidden group"
+                      className="bg-[#0a0a0a] border border-white/[0.05] rounded-[1.5rem] p-6 md:p-8 flex flex-col items-center justify-center text-center shadow-md relative overflow-hidden group"
                     >
                       <div className="absolute inset-0 bg-gradient-to-b from-[#E71B25]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <TrendingUp className="absolute -right-4 -bottom-4 w-28 h-28 text-white/[0.02] transition-transform duration-300 group-hover:scale-110 pointer-events-none" />
 
-                      <div className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] tracking-tighter leading-none mb-1.5 relative z-10">
+                      {/* 🔴 FIX: Solid color text instead of complex gradient clipping */}
+                      <div className="text-5xl md:text-6xl font-black text-[#E71B25] tracking-tighter leading-none mb-1.5 relative z-10">
                         <AnimatedCounter end={91} suffix="%" duration={1200} />
                       </div>
                       <p className="text-gray-400 text-[13px] md:text-[15px] font-medium mb-4 relative z-10">
                         see a visible physique change in 12 weeks
                       </p>
 
-                      {/* 🔴 FIX: Removed expensive backdrop-blur-md, replaced with solid #111 color */}
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111] border border-white/[0.05] text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest relative z-10">
                         <ShieldCheck className="w-3.5 h-3.5 text-[#E71B25]/80" />
                         *Based on 82,000+ BodyMax Users
@@ -1904,6 +1905,7 @@ const AssessmentFlow = ({
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
+                    style={{ willChange: "transform, opacity" }}
                     transition={{ delay: 0.2, duration: 0.3 }}
                     className="w-full flex justify-center"
                   >

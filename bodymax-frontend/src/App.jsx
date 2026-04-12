@@ -17,7 +17,8 @@ const EXPIRATION_TIME = 60 * 60 * 1000;
 
 const BodyMaxFunnel = () => {
 
-  // ==========================================
+
+// ==========================================
   // 1. SMART STEP INITIALIZATION & TIMEOUT LOGIC
   // ==========================================
   const [step, setStep] = useState(() => {
@@ -33,15 +34,20 @@ const BodyMaxFunnel = () => {
 
       // Rule C: Standalone Mode (PWA) Checks
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-      const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
       
-      // 🔴 THE NEW FIX: Agar PWA mein hai aur account ban chuka hai, toh seedha Login Page (Step 9) par bhejo
+      // 🔴 THE iOS FIX: Check for Android (hasAccount) OR iPhone (Fresh Sandbox)
       const hasAccount = localStorage.getItem('accountCreated') === 'true';
-      if (isStandalone && hasAccount) {
+      const isFreshSandbox = !localStorage.getItem('currentFunnelStep') && !localStorage.getItem('lastActiveTime');
+      
+      // Agar App Home Screen se open hui hai (PWA mode) 
+      // AND (Android ki tarah accountCreated flag mojood hai OR iPhone ki tarah memory bilkul fresh hai)
+      // Toh user ko Hamesha Login Page par bhejo!
+      if (isStandalone && (hasAccount || isFreshSandbox)) {
          return 9; // 9 = Login Page
       }
 
-      // Agar PWA handoff ke beech mein PWA add karta hai
+      // Agar PWA handoff ke beech mein Android par PWA add karta hai (Legacy Fallback)
+      const needsAccount = localStorage.getItem('pendingAccountCreation') === 'true';
       if (isStandalone && needsAccount && localStorage.getItem('savedAssessmentData')) return 8;
 
       // Rule D: Expiration Logic
@@ -62,7 +68,6 @@ const BodyMaxFunnel = () => {
     }
     return 1;
   });
-
   const [formData, setFormData] = useState(() => {
     if (typeof window !== 'undefined') {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
