@@ -78,22 +78,44 @@ const AnimatedCounter = ({ end, suffix = "", duration = 1500 }) => {
 };
 
 // ==========================================
-// ULTRA-PREMIUM SLIDER
+// ULTRA-PREMIUM SLIDER (WITH LIVE AUTO-CONVERSION)
 // ==========================================
 const CustomSlider = ({ label, min, max, value, onChange, unit }) => {
   const percentage = ((value - min) / (max - min)) * 100;
+
+  // 🔴 NEW: Smart conversion logic for real-time display
+  const getConvertedValue = () => {
+    if (unit === "CM") {
+      const totalInches = Math.round(value / 2.54);
+      const feet = Math.floor(totalInches / 12);
+      const inches = totalInches % 12;
+      return `${feet}'${inches}"`; // Ex: 5'9"
+    }
+    if (unit === "KG") {
+      const lbs = Math.round(value * 2.20462);
+      return `${lbs} LBS`; // Ex: 165 LBS
+    }
+    return "";
+  };
+
   return (
     <div className="flex flex-col w-full mb-8 group relative z-10">
-      <span className="text-gray-400 text-sm md:text-[15px] font-semibold mb-2 tracking-wide">
+      <span className="text-gray-400 text-sm md:text-[15px] font-semibold mb-2 tracking-wide text-center">
         {label}
       </span>
-      <div className="text-center mb-5">
-        <span className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] tracking-tighter uppercase leading-none drop-shadow-md">
-          {value}{" "}
-          <span className="text-3xl md:text-4xl text-[#E71B25]/80">{unit}</span>
-        </span>
+      
+      <div className="text-center mb-5 flex flex-col items-center justify-center">
+        <div className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] tracking-tighter uppercase leading-none drop-shadow-md">
+          {value} <span className="text-3xl md:text-4xl text-[#E71B25]/80">{unit}</span>
+        </div>
+        
+        {/* 🔴 NEW: Beautiful Badge for Converted Value */}
+        <div className="text-gray-400 font-bold tracking-[0.2em] uppercase text-[11px] md:text-[12px] mt-2.5 bg-white/[0.03] px-3.5 py-1 rounded-full border border-white/[0.05] shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)]">
+          ≈ {getConvertedValue()}
+        </div>
       </div>
-      <div className="relative w-full flex items-center mb-3">
+
+      <div className="relative w-full flex items-center mb-3 mt-2">
         <input
           type="range"
           min={min}
@@ -110,7 +132,8 @@ const CustomSlider = ({ label, min, max, value, onChange, unit }) => {
           }}
         />
       </div>
-      <div className="flex justify-between w-full text-gray-500 text-[11px] font-bold tracking-[0.1em] uppercase">
+      
+      <div className="flex justify-between w-full text-gray-500 text-[10px] md:text-[11px] font-bold tracking-[0.1em] uppercase px-1">
         <span>{min}{unit}</span>
         <span>{max}{unit}</span>
       </div>
