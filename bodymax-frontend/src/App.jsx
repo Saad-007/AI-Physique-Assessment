@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import ReactGA from 'react-ga4'; // 🔴 ADDED: Google Analytics Import
+
 import LandingStep from './components/steps/LandingStep';
 import MissionStep from './components/steps/MissionStep';
 import ComparisonStep from './components/steps/ComparsionStep';
@@ -11,14 +13,18 @@ import SuccessPage from './components/ui/SuccessPage';
 import Dashboard from './components/steps/Dashboard';
 import LoginPage from './components/ui/Login';
 import ResetPassword from './components/ui/ResetPassword';
-import { supabase } from './lib/supabase'; // 🔴 ADDED FOR AUTH CHECK
+import { supabase } from './lib/supabase';
 
 const EXPIRATION_TIME = 60 * 60 * 1000; 
 
+// 🔴 ADDED: Initialize Google Analytics outside the component so it runs once
+// Replace "G-XXXXXXXXXX" with your actual Google Analytics Measurement ID
+const GA_MEASUREMENT_ID = "G-PMZJ6LGCZ3"; 
+ReactGA.initialize(GA_MEASUREMENT_ID);
+
 const BodyMaxFunnel = () => {
 
-
-// ==========================================
+  // ==========================================
   // 1. SMART STEP INITIALIZATION & TIMEOUT LOGIC
   // ==========================================
   const [step, setStep] = useState(() => {
@@ -35,13 +41,11 @@ const BodyMaxFunnel = () => {
       // Rule C: Standalone Mode (PWA) Checks
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
       
-      // 🔴 THE iOS FIX: Check for Android (hasAccount) OR iPhone (Fresh Sandbox)
+      // THE iOS FIX: Check for Android (hasAccount) OR iPhone (Fresh Sandbox)
       const hasAccount = localStorage.getItem('accountCreated') === 'true';
       const isFreshSandbox = !localStorage.getItem('currentFunnelStep') && !localStorage.getItem('lastActiveTime');
       
       // Agar App Home Screen se open hui hai (PWA mode) 
-      // AND (Android ki tarah accountCreated flag mojood hai OR iPhone ki tarah memory bilkul fresh hai)
-      // Toh user ko Hamesha Login Page par bhejo!
       if (isStandalone && (hasAccount || isFreshSandbox)) {
          return 9; // 9 = Login Page
       }
@@ -68,6 +72,7 @@ const BodyMaxFunnel = () => {
     }
     return 1;
   });
+
   const [formData, setFormData] = useState(() => {
     if (typeof window !== 'undefined') {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -95,8 +100,22 @@ const BodyMaxFunnel = () => {
 
   const [isInitializing, setIsInitializing] = useState(false);
 
+  // 🔴 ADDED: Google Analytics Page View Tracker
+  // Jab bhi 'step' change hoga, ye block GA4 ko batayega ke naya page open hua hai
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Track Funnel Steps in Google Analytics
+    let stepName = `Step ${step}`;
+    if (step === 1) stepName = "Landing Page";
+    if (step === 5) stepName = "Assessment Flow";
+    if (step === 7) stepName = "Paywall Modal";
+    if (step === 8) stepName = "Success/Checkout";
+    if (step === 9) stepName = "Login Page";
+    if (step === 10) stepName = "Dashboard";
+
+    ReactGA.send({ hitType: "pageview", page: `/step-${step}`, title: stepName });
+    
   }, [step]);
 
   useEffect(() => {
