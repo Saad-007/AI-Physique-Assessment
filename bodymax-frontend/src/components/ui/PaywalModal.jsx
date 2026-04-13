@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactGA from 'react-ga4'; // Make sure you import this at the top of your file!
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, CreditCard, X, Lock, Sparkles, Zap, Target, Timer, Star, User, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
@@ -129,6 +130,9 @@ const PricingWidget = ({ id, onCheckout, onSuccess }) => {
   const handlePlanClick = (planId) => {
     setSelectedPlan(planId);
     setIsCheckoutOpen(true); 
+    
+    // 🔴 FIXED: Fire the event correctly inside the handler
+    ReactGA.event({ category: "Funnel", action: "checkout_started" });
   };
 
   return (
@@ -143,6 +147,7 @@ const PricingWidget = ({ id, onCheckout, onSuccess }) => {
           return (
             <div
               key={plan.id}
+              // 🔴 FIXED: Now we just call the helper function
               onClick={() => handlePlanClick(plan.id)}
               className={`relative w-full rounded-2xl cursor-pointer transition-all duration-200 border-[1.5px] overflow-visible flex h-[105px] md:h-[115px] ${
                 isSelected

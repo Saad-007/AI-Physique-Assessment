@@ -19,7 +19,7 @@ const EXPIRATION_TIME = 60 * 60 * 1000;
 
 // 🔴 ADDED: Initialize Google Analytics outside the component so it runs once
 // Replace "G-XXXXXXXXXX" with your actual Google Analytics Measurement ID
-const GA_MEASUREMENT_ID = "G-PMZJ6LGCZ3"; 
+const GA_MEASUREMENT_ID = "G-M3423551QG"; 
 ReactGA.initialize(GA_MEASUREMENT_ID);
 
 const BodyMaxFunnel = () => {
@@ -164,9 +164,15 @@ const BodyMaxFunnel = () => {
       <div className={`w-full flex-1 flex flex-col items-center relative z-10 ${step >= 5 ? 'p-0' : 'py-12 md:py-20'}`}>
         <AnimatePresence mode="wait">
 
-          {step === 1 && (
+         {step === 1 && (
             <motion.div key="s1" {...pageTransition} className="w-full">
-              <LandingStep onNext={() => setStep(2)} onLoginClick={() => setStep(9)} />
+              <LandingStep 
+                onNext={() => {
+                  ReactGA.event({ category: "Funnel", action: "onboarding_started" });
+                  setStep(2);
+                }} 
+                onLoginClick={() => setStep(9)} 
+              />
             </motion.div>
           )}
 
@@ -194,7 +200,10 @@ const BodyMaxFunnel = () => {
                 formData={formData}
                 setFormData={setFormData}
                 onBack={() => setStep(4)}
-                onComplete={() => setStep(6)} 
+                onComplete={() => {
+                  ReactGA.event({ category: "Funnel", action: "onboarding_completed" });
+                  setStep(6);
+                }} 
               />
             </motion.div>
           )}
@@ -203,7 +212,10 @@ const BodyMaxFunnel = () => {
             <motion.div key="s6" {...pageTransition} className="w-full min-h-[100dvh] flex items-center justify-center">
               <AnalyzingStep 
                 formData={formData} 
-                onComplete={() => setStep(7)} 
+                onComplete={() => {
+                  ReactGA.event({ category: "Funnel", action: "paywall_viewed" });
+                  setStep(7);
+                }} 
               />
             </motion.div>
           )}
@@ -215,6 +227,9 @@ const BodyMaxFunnel = () => {
                 formData={formData} 
                 onClose={() => setStep(5)} 
                 onSuccess={(plan) => {
+                  // 🔴 WAQAS REQUIREMENT: Event 4
+                  ReactGA.event({ category: "Funnel", action: "purchase_completed" });
+                  
                   const updatedFormData = { ...formData, planDuration: plan };
                   setFormData(updatedFormData);
                   
