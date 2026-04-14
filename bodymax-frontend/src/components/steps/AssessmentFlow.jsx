@@ -56,11 +56,11 @@ const AnimatedCounter = ({ end, suffix = "", duration = 1500 }) => {
     const animate = (timestamp) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      
+
       // easeOutQuart for smooth slow-down at the end
       const easeProgress = 1 - Math.pow(1 - progress, 4);
       const currentVal = Math.floor(easeProgress * end);
-      
+
       if (nodeRef.current) {
         nodeRef.current.textContent = currentVal + suffix;
       }
@@ -103,12 +103,12 @@ const CustomSlider = ({ label, min, max, value, onChange, unit }) => {
       <span className="text-gray-400 text-sm md:text-[15px] font-semibold mb-2 tracking-wide text-center">
         {label}
       </span>
-      
+
       <div className="text-center mb-5 flex flex-col items-center justify-center">
         <div className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#E71B25] to-[#C6161F] tracking-tighter uppercase leading-none drop-shadow-md">
           {value} <span className="text-3xl md:text-4xl text-[#E71B25]/80">{unit}</span>
         </div>
-        
+
         {/* 🔴 NEW: Beautiful Badge for Converted Value */}
         <div className="text-gray-400 font-bold tracking-[0.2em] uppercase text-[11px] md:text-[12px] mt-2.5 bg-white/[0.03] px-3.5 py-1 rounded-full border border-white/[0.05] shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)]">
           ≈ {getConvertedValue()}
@@ -132,7 +132,7 @@ const CustomSlider = ({ label, min, max, value, onChange, unit }) => {
           }}
         />
       </div>
-      
+
       <div className="flex justify-between w-full text-gray-500 text-[10px] md:text-[11px] font-bold tracking-[0.1em] uppercase px-1">
         <span>{min}{unit}</span>
         <span>{max}{unit}</span>
@@ -592,7 +592,7 @@ const AssessmentFlow = ({
 
   const [direction, setDirection] = useState(1);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [isFinished, setIsFinished] = useState(false); 
+  const [isFinished, setIsFinished] = useState(false);
 
   const galleryRef = useRef(null);
   const cameraRef = useRef(null);
@@ -787,7 +787,7 @@ const AssessmentFlow = ({
               transition={{ duration: 0.3, ease: "easeOut" }} // Replaced heavy spring with easeOut
               className="w-full flex flex-col h-full"
             >
-              
+
               {/* --- REVIEW STEP --- */}
               {currentStep.type === "review" && (
                 <ReviewStep review={currentStep.review} onNext={handleNext} />
@@ -937,9 +937,9 @@ const AssessmentFlow = ({
                       <line x1="170" y1="20" x2="170" y2="210" stroke="#333" strokeWidth="1" />
                       <line x1="260" y1="20" x2="260" y2="210" stroke="#333" strokeWidth="1" />
                       <line x1="350" y1="20" x2="350" y2="210" stroke="#333" strokeWidth="1" />
-                      
+
                       <path d="M 20 210 C 50 190, 65 180, 80 170 C 120 155, 140 140, 170 125 C 210 105, 230 90, 260 70 C 300 40, 320 25, 350 15" fill="none" stroke="url(#lineGrad)" strokeWidth="5" strokeLinecap="round" />
-                      
+
                       <circle cx="80" cy="170" r="6" fill="#020202" stroke="#4ade80" strokeWidth="3" />
                       <circle cx="170" cy="125" r="6" fill="#020202" stroke="#4ade80" strokeWidth="3" />
                       <circle cx="260" cy="70" r="6" fill="#020202" stroke="#4ade80" strokeWidth="3" />
@@ -985,7 +985,7 @@ const AssessmentFlow = ({
 
               {/* --- REGULAR TYPOGRAPHY HEADERS --- */}
               {![
-                "interstitial", "comparison", "scan-interstitial", "social-proof", 
+                "interstitial", "comparison", "scan-interstitial", "social-proof",
                 "upload-3", "review", "before-after-comparison", "results-projection"
               ].includes(currentStep.type) && (
                   <div className="mb-10 text-center md:text-left">
@@ -1017,56 +1017,61 @@ const AssessmentFlow = ({
 
               {/* --- STANDARD OPTIONS (SINGLE / MULTIPLE) --- */}
               {(currentStep.type === "single" || currentStep.type === "multiple") && !currentStep.layout && (
-                  <div className="flex flex-col gap-3.5">
-                    {currentStep.options.map((option, idx) => {
-                      const isSelected = currentStep.type === "multiple"
-                          ? (formData[currentStep.id] || []).includes(option.label)
-                          : formData[currentStep.id] === option.label;
-                      return (
-                        <motion.button
-                          whileHover={{ scale: 1.01 }}
-                          whileTap={{ scale: 0.98 }}
-                          key={idx}
-                          onClick={() => handleSelect(option.label)}
-                          className={`group relative flex items-center justify-between p-4 md:p-5 rounded-[1.25rem] transition-all duration-300 text-left overflow-hidden ${
-                              isSelected
-                              ? "border border-[#E71B25] bg-[#110505]/90 shadow-md"
-                              : "border border-white/[0.05] bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/10"
-                            }`}
-                        >
-                          <div className="flex items-center gap-4 relative z-10">
-                            <motion.div
-                              animate={{ scale: isSelected ? 1.1 : 1, color: isSelected ? "#E71B25" : "#888" }}
-                              transition={{ duration: 0.2, ease: "easeOut" }}
-                              className={`p-2.5 rounded-[0.8rem] transition-colors ${isSelected ? "bg-black/50" : "bg-black/20"}`}
-                            >
-                              <option.icon className="w-5 h-5" strokeWidth={isSelected ? 2.5 : 2} />
-                            </motion.div>
-                            <span className={`text-[14.5px] md:text-base font-bold tracking-wide transition-colors ${isSelected ? "text-white" : "text-gray-300 group-hover:text-white"}`}>
-                              {option.label}
-                            </span>
-                          </div>
-                          
-                          <div className="relative z-10 pr-1">
-                            {currentStep.type === "multiple" ? (
-                              isSelected ? (
-                                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.2 }}>
-                                  <CheckSquare className="w-6 h-6 text-[#E71B25]" strokeWidth={2.5} />
-                                </motion.div>
-                              ) : (
-                                <Square className="w-6 h-6 text-gray-700/50" strokeWidth={1.5} />
-                              )
+                <div className="flex flex-col gap-3 sm:gap-3.5">
+                  {currentStep.options.map((option, idx) => {
+                    const isSelected = currentStep.type === "multiple"
+                      ? (formData[currentStep.id] || []).includes(option.label)
+                      : formData[currentStep.id] === option.label;
+                    return (
+                      <motion.button
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
+                        key={idx}
+                        onClick={() => handleSelect(option.label)}
+                        // 🔴 FIX: Added 'w-full gap-2', adjusted responsive padding (p-3.5 on mobile)
+                        className={`group relative flex items-center justify-between w-full gap-2 p-3.5 sm:p-4 md:p-5 rounded-[1.25rem] transition-all duration-300 text-left overflow-hidden ${isSelected
+                          ? "border border-[#E71B25] bg-[#110505]/90 shadow-md"
+                          : "border border-white/[0.05] bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/10"
+                          }`}
+                      >
+                        {/* 🔴 FIX: Added 'flex-1 min-w-0' to keep text inside the box safely */}
+                        <div className="flex items-center gap-3 sm:gap-4 relative z-10 flex-1 min-w-0">
+                          {/* 🔴 FIX: Added 'shrink-0' so the icon never gets squeezed by long text */}
+                          <motion.div
+                            animate={{ scale: isSelected ? 1.1 : 1, color: isSelected ? "#E71B25" : "#888888" }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className={`p-2 sm:p-2.5 rounded-[0.8rem] transition-colors shrink-0 ${isSelected ? "bg-black/50" : "bg-black/20"}`}
+                          >
+                            <option.icon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={isSelected ? 2.5 : 2} />
+                          </motion.div>
+
+                          {/* 🔴 FIX: Adjusted text size for mobile, added 'break-words leading-snug' for neat multi-line text */}
+                          <span className={`text-[13px] sm:text-[14.5px] md:text-base font-bold tracking-wide transition-colors break-words leading-snug ${isSelected ? "text-white" : "text-gray-300 group-hover:text-white"}`}>
+                            {option.label}
+                          </span>
+                        </div>
+
+                        {/* 🔴 FIX: Added 'shrink-0' so the right-side checkbox/radio doesn't distort */}
+                        <div className="relative z-10 shrink-0">
+                          {currentStep.type === "multiple" ? (
+                            isSelected ? (
+                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.2 }}>
+                                <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6 text-[#E71B25]" strokeWidth={2.5} />
+                              </motion.div>
                             ) : (
-                              <div className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center transition-colors ${isSelected ? "border-[#E71B25] bg-black/50" : "border-gray-700/50 bg-black/20"}`}>
-                                {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#E71B25]" />}
-                              </div>
-                            )}
-                          </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                )}
+                              <Square className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700/50" strokeWidth={1.5} />
+                            )
+                          ) : (
+                            <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-[1.5px] flex items-center justify-center transition-colors ${isSelected ? "border-[#E71B25] bg-black/50" : "border-gray-700/50 bg-black/20"}`}>
+                              {isSelected && <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#E71B25]" />}
+                            </div>
+                          )}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* --- IMAGE GRID --- */}
               {currentStep.layout === "grid-image" && (
@@ -1079,19 +1084,18 @@ const AssessmentFlow = ({
                         whileTap={{ scale: 0.98 }}
                         key={idx}
                         onClick={() => handleSelect(option.label)}
-                        className={`${option.fullWidth ? "col-span-2 aspect-[21/9]" : "aspect-square"} relative group rounded-[1.25rem] transition-all overflow-hidden border ${
-                            isSelected ? "border-[#E71B25] shadow-lg" : "border-white/[0.05]"
+                        className={`${option.fullWidth ? "col-span-2 aspect-[21/9]" : "aspect-square"} relative group rounded-[1.25rem] transition-all overflow-hidden border ${isSelected ? "border-[#E71B25] shadow-lg" : "border-white/[0.05]"
                           }`}
                       >
                         <img src={option.img} alt={option.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                         <div className={`absolute inset-0 transition-opacity ${isSelected ? "bg-gradient-to-t from-[#E71B25]/80 to-transparent" : "bg-gradient-to-t from-[#050505]/90 to-transparent"}`} />
-                        
+
                         {isSelected && (
                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.2 }} className="absolute top-3 right-3 bg-green-500 rounded-full p-1 z-20">
                             <Check className="w-4 h-4 text-black" strokeWidth={4} />
                           </motion.div>
                         )}
-                        
+
                         <div className="absolute bottom-4 left-0 right-0 px-3 flex justify-center z-10">
                           <span className={`font-bold leading-tight text-center ${option.fullWidth ? "text-[15px]" : "text-[13px]"} ${isSelected ? "text-white" : "text-gray-200"}`}>
                             {option.label}
@@ -1105,77 +1109,97 @@ const AssessmentFlow = ({
 
               {/* --- MIXED ICONS GRID --- */}
               {(currentStep.layout === "grid-mixed" || currentStep.layout === "grid-2") && (
-                  <div className="grid grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-2 gap-3.5">
+                  {currentStep.options.map((option, idx) => {
+                    const isSelected = formData[currentStep.id] === option.label;
+                    return (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        key={idx}
+                        onClick={() => handleSelect(option.label)}
+                        className={`${option.fullWidth ? "col-span-2 flex items-center gap-4 p-5" : "flex flex-col items-center justify-center p-7 text-center"} relative group rounded-[1.25rem] transition-all border ${isSelected ? "border-[#E71B25] bg-[#110505]/80" : "border-white/[0.05] bg-white/[0.03]"
+                          }`}
+                      >
+                        {isSelected && !option.fullWidth && (
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.2 }} className="absolute top-3 right-3 bg-[#E71B25] rounded-full p-1">
+                            <Check className="w-3 h-3 text-white" strokeWidth={4} />
+                          </motion.div>
+                        )}
+                        <motion.div animate={{ scale: isSelected ? 1.1 : 1, color: isSelected ? "#E71B25" : "#888" }} transition={{ duration: 0.2 }} className={`${option.fullWidth ? "" : "bg-black/30 p-3 rounded-2xl mb-4"}`}>
+                          <option.icon className={`${option.fullWidth ? "w-6 h-6" : "w-8 h-8"}`} strokeWidth={isSelected ? 2.5 : 2} />
+                        </motion.div>
+                        <span className={`font-bold leading-tight z-10 ${option.fullWidth ? "text-[14px]" : "text-[13px]"} ${isSelected ? "text-white" : "text-gray-300"}`}>
+                          {option.label}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* --- GRID-5 LAYOUT (EMOTION / RATING SCALE) --- */}
+              {currentStep.layout === "grid-5" && (
+                <div className="w-full flex flex-col gap-6">
+
+                  {/* 🔴 FIX: Responsive Grid -> Mobile pe 2/3 columns, Tab/Desktop pe 5 columns */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 w-full">
                     {currentStep.options.map((option, idx) => {
                       const isSelected = formData[currentStep.id] === option.label;
                       return (
                         <motion.button
                           whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          key={idx}
-                          onClick={() => handleSelect(option.label)}
-                          className={`${option.fullWidth ? "col-span-2 flex items-center gap-4 p-5" : "flex flex-col items-center justify-center p-7 text-center"} relative group rounded-[1.25rem] transition-all border ${
-                              isSelected ? "border-[#E71B25] bg-[#110505]/80" : "border-white/[0.05] bg-white/[0.03]"
-                            }`}
-                        >
-                          {isSelected && !option.fullWidth && (
-                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.2 }} className="absolute top-3 right-3 bg-[#E71B25] rounded-full p-1">
-                              <Check className="w-3 h-3 text-white" strokeWidth={4} />
-                            </motion.div>
-                          )}
-                          <motion.div animate={{ scale: isSelected ? 1.1 : 1, color: isSelected ? "#E71B25" : "#888" }} transition={{ duration: 0.2 }} className={`${option.fullWidth ? "" : "bg-black/30 p-3 rounded-2xl mb-4"}`}>
-                            <option.icon className={`${option.fullWidth ? "w-6 h-6" : "w-8 h-8"}`} strokeWidth={isSelected ? 2.5 : 2} />
-                          </motion.div>
-                          <span className={`font-bold leading-tight z-10 ${option.fullWidth ? "text-[14px]" : "text-[13px]"} ${isSelected ? "text-white" : "text-gray-300"}`}>
-                            {option.label}
-                          </span>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                )}
-
-              {/* --- GRID 5 EMOTIONS --- */}
-              {currentStep.layout === "grid-5" && (
-                <div className="flex flex-col w-full">
-                  <div className="grid grid-cols-5 gap-2 md:gap-3 mb-8">
-                    {currentStep.options.map((option, idx) => {
-                      const isSelected = formData[currentStep.id] === option.label;
-                      return (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           key={idx}
                           onClick={() => handleSelect(option.label)}
-                          className={`flex flex-col items-center justify-center p-2 rounded-[1.25rem] transition-all text-center h-24 md:h-28 border ${
-                              isSelected ? "border-[#E71B25] bg-[#E71B25]/10" : "border-white/[0.05] bg-white/[0.02]"
+                          // 🔴 FIX: flex-col lagaya taake icon upar aur text niche aaye
+                          className={`relative flex flex-col items-center justify-center gap-2.5 p-4 md:p-5 rounded-[1.25rem] transition-all duration-300 border ${isSelected
+                              ? "border-[#E71B25] bg-[#110505]/90 shadow-md"
+                              : "border-white/[0.05] bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/10"
                             }`}
                         >
-                          <motion.div animate={{ scale: isSelected ? 1.2 : 1, color: isSelected ? "#E71B25" : "#888" }} transition={{ duration: 0.2 }}>
-                            <option.icon className="w-6 h-6 mb-2" strokeWidth={isSelected ? 2.5 : 2} />
+                          <motion.div
+                            animate={{ scale: isSelected ? 1.1 : 1, color: isSelected ? "#E71B25" : "#888" }}
+                            transition={{ duration: 0.2 }}
+                            className={`p-3 rounded-full transition-colors ${isSelected ? "bg-[#E71B25]/10" : "bg-black/20"}`}
+                          >
+                            {/* 🔴 FIX: Icon ka size mobile par thora chota (w-6), desktop par bada (md:w-7) */}
+                            <option.icon className="w-6 h-6 md:w-7 md:h-7" strokeWidth={isSelected ? 2.5 : 2} />
                           </motion.div>
-                          <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest ${isSelected ? "text-white" : "text-gray-400"}`}>
+
+                          {/* 🔴 FIX: Text size responsive aur center aligned */}
+                          <span className={`text-[13px] md:text-sm font-bold text-center leading-tight tracking-wide transition-colors ${isSelected ? "text-white" : "text-gray-400 group-hover:text-gray-200"}`}>
                             {option.label}
                           </span>
                         </motion.button>
                       );
                     })}
                   </div>
+
+                  {/* --- RESPONSIVE INFO BOX --- */}
                   {currentStep.infoBox && (
-                    <div className="bg-white/[0.03] border border-white/[0.05] rounded-[1.25rem] p-5 flex gap-4 text-left relative overflow-hidden">
-                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-l-full"></div>
-                      <div className="bg-yellow-500/10 p-2.5 rounded-xl h-fit border border-yellow-500/20">
-                        <currentStep.infoBox.icon className="w-5 h-5 text-yellow-400" />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      // 🔴 FIX: InfoBox ki padding aur gap mobile ke hisaab se adjust ki
+                      className="mt-2 p-4 md:p-5 rounded-2xl bg-[#E71B25]/[0.03] border border-[#E71B25]/10 flex items-start gap-3.5"
+                    >
+                      <div className="p-2 rounded-xl bg-[#E71B25]/10 shrink-0 mt-0.5">
+                        <currentStep.infoBox.icon className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25]" />
                       </div>
-                      <p className="text-gray-300 text-sm leading-relaxed">
-                        <strong className="text-white font-black tracking-wide block mb-1">{currentStep.infoBox.title}</strong>
-                        {currentStep.infoBox.text}
-                      </p>
-                    </div>
+                      <div>
+                        <h4 className="text-[#E71B25] text-[13px] md:text-sm font-bold mb-1 tracking-wide uppercase">
+                          {currentStep.infoBox.title}
+                        </h4>
+                        <p className="text-gray-400 text-[13px] md:text-[14.5px] leading-relaxed">
+                          {currentStep.infoBox.text}
+                        </p>
+                      </div>
+                    </motion.div>
                   )}
                 </div>
               )}
-
               {/* --- MULTIPLE CTA & SLIDERS --- */}
               {currentStep.type === "multiple" && (
                 <div className="mt-8 flex justify-center">
@@ -1210,8 +1234,7 @@ const AssessmentFlow = ({
                         whileTap={{ scale: 0.98 }}
                         key={i}
                         onClick={() => setFormData((prev) => ({ ...prev, location: opt.l }))}
-                        className={`group relative flex items-center gap-4 p-4 md:p-5 rounded-[1.25rem] transition-all border ${
-                            formData.location === opt.l ? "border-[#E71B25] bg-[#110505]/90" : "border-white/[0.05] bg-white/[0.03]"
+                        className={`group relative flex items-center gap-4 p-4 md:p-5 rounded-[1.25rem] transition-all border ${formData.location === opt.l ? "border-[#E71B25] bg-[#110505]/90" : "border-white/[0.05] bg-white/[0.03]"
                           }`}
                       >
                         <motion.div animate={{ scale: formData.location === opt.l ? 1.1 : 1, color: formData.location === opt.l ? "#E71B25" : "#888" }} transition={{ duration: 0.2 }} className={`p-2.5 rounded-[0.8rem] ${formData.location === opt.l ? "bg-black/50" : "bg-black/20"}`}>
@@ -1248,7 +1271,7 @@ const AssessmentFlow = ({
                           {paragraph.split(/(exactly what to fix\.)/gi).map((part, j) =>
                             part.toLowerCase() === "exactly what to fix." ? (
                               <span key={j} className="text-[#E71B25] font-black tracking-wide">{part}</span>
-                            ) : ( part )
+                            ) : (part)
                           )}
                         </p>
                       ))}
@@ -1354,11 +1377,11 @@ const AssessmentFlow = ({
                     <h2 className="text-4xl md:text-[3.25rem] font-black uppercase tracking-tighter mb-4 text-white">Scan your body with <span className="text-[#E71B25]">AI</span></h2>
                     <p className="text-gray-400 text-[15px] md:text-base mb-10 text-balance max-w-sm mx-auto leading-relaxed">Discover your body score & see exactly what's holding you back from achieving your dream physique</p>
                   </motion.div>
-                  <motion.div initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.2 }}}} className="bg-[#0a0a0a] border border-white/[0.05] rounded-[2rem] p-7 md:p-10 w-full text-left mb-10 relative overflow-hidden">
+                  <motion.div initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.2 } } }} className="bg-[#0a0a0a] border border-white/[0.05] rounded-[2rem] p-7 md:p-10 w-full text-left mb-10 relative overflow-hidden">
                     <div className="absolute top-12 bottom-10 left-[38px] md:left-[50px] w-[2px] bg-gradient-to-b from-[#E71B25] to-transparent z-0" />
                     <h4 className="text-[11px] text-gray-400 font-black uppercase tracking-[0.25em] mb-8 relative z-10 flex items-center gap-2"><Scan className="w-4 h-4 text-[#E71B25]" strokeWidth={2.5} /> Analysis Parameters:</h4>
                     <div className="flex flex-col gap-6">
-                      {[ { text: "Body proportions & V-taper", icon: Scale }, { text: "Muscle development tracking", icon: Dumbbell }, { text: "Estimated body fat mapping", icon: Activity }, { text: "Symmetry & balance score", icon: Search }, { text: "Gap vs dream physique", icon: Target }].map((item, i) => (
+                      {[{ text: "Body proportions & V-taper", icon: Scale }, { text: "Muscle development tracking", icon: Dumbbell }, { text: "Estimated body fat mapping", icon: Activity }, { text: "Symmetry & balance score", icon: Search }, { text: "Gap vs dream physique", icon: Target }].map((item, i) => (
                         <motion.div key={i} variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0, transition: { duration: 0.25, ease: "easeOut" } } }} style={{ willChange: "transform, opacity" }} className="flex items-center gap-5 relative z-10">
                           <div className="w-7 h-7 rounded-full bg-[#111] border border-[#E71B25]/50 flex items-center justify-center shrink-0">
                             <div className="w-1.5 h-1.5 rounded-full bg-[#E71B25]" />
@@ -1382,7 +1405,7 @@ const AssessmentFlow = ({
                   </motion.h2>
 
                   <div className="flex flex-row justify-center gap-3 md:gap-5 w-full mb-10">
-                    {[ { label: "Front photo", img: "/Front.jpeg", num: 1 }, { label: "Side photo", img: "/Side.jpeg", num: 2 }, { label: "Back photo", img: "/Back.jpeg", num: 3 } ].map((card, i) => {
+                    {[{ label: "Front photo", img: "/Front.jpeg", num: 1 }, { label: "Side photo", img: "/Side.jpeg", num: 2 }, { label: "Back photo", img: "/Back.jpeg", num: 3 }].map((card, i) => {
                       const displayImg = (formData.photos && formData.photos[card.num]) || card.img;
                       const isUploaded = !!(formData.photos && formData.photos[card.num]);
                       return (
@@ -1409,13 +1432,13 @@ const AssessmentFlow = ({
 
                   <AnimatePresence>
                     {formData.photos && Object.values(formData.photos).some((v) => v !== null) && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="w-full flex flex-col items-center mb-6">
-                          <MagneticButton text="Analyse My Body →" onClick={handleNext} />
-                          <button onClick={() => setFormData((prev) => ({ ...prev, photos: null }))} className="mt-4 text-gray-500 text-[11px] font-bold uppercase tracking-widest hover:text-white transition-colors">
-                            Reset Photos
-                          </button>
-                        </motion.div>
-                      )}
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="w-full flex flex-col items-center mb-6">
+                        <MagneticButton text="Analyse My Body →" onClick={handleNext} />
+                        <button onClick={() => setFormData((prev) => ({ ...prev, photos: null }))} className="mt-4 text-gray-500 text-[11px] font-bold uppercase tracking-widest hover:text-white transition-colors">
+                          Reset Photos
+                        </button>
+                      </motion.div>
+                    )}
                   </AnimatePresence>
 
                   <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="w-full flex flex-col gap-3.5 mb-6">
@@ -1428,10 +1451,10 @@ const AssessmentFlow = ({
                   </motion.div>
 
                   {(!formData.photos || !Object.values(formData.photos).some((v) => v !== null)) && (
-                      <button onClick={handleNext} className="text-gray-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors pb-0.5 border-b border-transparent hover:border-white">
-                        Use demo (skip for now)
-                      </button>
-                    )}
+                    <button onClick={handleNext} className="text-gray-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors pb-0.5 border-b border-transparent hover:border-white">
+                      Use demo (skip for now)
+                    </button>
+                  )}
                 </div>
               )}
 
