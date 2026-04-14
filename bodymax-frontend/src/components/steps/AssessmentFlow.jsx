@@ -1139,68 +1139,68 @@ const AssessmentFlow = ({
               )}
 
               {/* --- GRID-5 LAYOUT (EMOTION / RATING SCALE) --- */}
-              {currentStep.layout === "grid-5" && (
-                <div className="w-full flex flex-col gap-6">
+{currentStep.layout === "grid-5" && (
+  <div className="w-full flex flex-col gap-6">
 
-                  {/* 🔴 FIX: Responsive Grid -> Mobile pe 2/3 columns, Tab/Desktop pe 5 columns */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 w-full">
-                    {currentStep.options.map((option, idx) => {
-                      const isSelected = formData[currentStep.id] === option.label;
-                      return (
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.95 }}
-                          key={idx}
-                          onClick={() => handleSelect(option.label)}
-                          // 🔴 FIX: flex-col lagaya taake icon upar aur text niche aaye
-                          className={`relative flex flex-col items-center justify-center gap-2.5 p-4 md:p-5 rounded-[1.25rem] transition-all duration-300 border ${isSelected
-                              ? "border-[#E71B25] bg-[#110505]/90 shadow-md"
-                              : "border-white/[0.05] bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/10"
-                            }`}
-                        >
-                          <motion.div
-                            animate={{ scale: isSelected ? 1.1 : 1, color: isSelected ? "#E71B25" : "#888" }}
-                            transition={{ duration: 0.2 }}
-                            className={`p-3 rounded-full transition-colors ${isSelected ? "bg-[#E71B25]/10" : "bg-black/20"}`}
-                          >
-                            {/* 🔴 FIX: Icon ka size mobile par thora chota (w-6), desktop par bada (md:w-7) */}
-                            <option.icon className="w-6 h-6 md:w-7 md:h-7" strokeWidth={isSelected ? 2.5 : 2} />
-                          </motion.div>
+    {/* Responsive Grid -> Mobile pe 2/3 columns, Tab/Desktop pe 5 columns */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 w-full">
+      {currentStep.options.map((option, idx) => {
+        const isSelected = formData[currentStep.id] === option.label;
+        return (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
+            key={idx}
+            onClick={() => handleSelect(option.label)}
+            // 🔴 FIX: Added 'w-full h-full overflow-hidden' and adjusted padding to 'p-3' for small mobiles
+            className={`relative flex flex-col items-center justify-center w-full h-full overflow-hidden gap-2 sm:gap-2.5 p-3 sm:p-4 md:p-5 rounded-[1.25rem] transition-all duration-300 border ${
+              isSelected
+                ? "border-[#E71B25] bg-[#110505]/90 shadow-md"
+                : "border-white/[0.05] bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/10"
+            }`}
+          >
+            <motion.div
+              animate={{ scale: isSelected ? 1.1 : 1, color: isSelected ? "#E71B25" : "#888" }}
+              transition={{ duration: 0.2 }}
+              className={`p-2.5 sm:p-3 rounded-full transition-colors shrink-0 ${isSelected ? "bg-[#E71B25]/10" : "bg-black/20"}`}
+            >
+              <option.icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" strokeWidth={isSelected ? 2.5 : 2} />
+            </motion.div>
 
-                          {/* 🔴 FIX: Text size responsive aur center aligned */}
-                          <span className={`text-[13px] md:text-sm font-bold text-center leading-tight tracking-wide transition-colors ${isSelected ? "text-white" : "text-gray-400 group-hover:text-gray-200"}`}>
-                            {option.label}
-                          </span>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
+            {/* 🔴 FIX: Added 'w-full break-words whitespace-normal px-1' and scaled down text for small mobile */}
+            <span className={`w-full px-1 break-words whitespace-normal text-[12px] sm:text-[13px] md:text-sm font-bold text-center leading-tight tracking-wide transition-colors ${
+              isSelected ? "text-white" : "text-gray-400 group-hover:text-gray-200"
+            }`}>
+              {option.label}
+            </span>
+          </motion.button>
+        );
+      })}
+    </div>
 
-                  {/* --- RESPONSIVE INFO BOX --- */}
-                  {currentStep.infoBox && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      // 🔴 FIX: InfoBox ki padding aur gap mobile ke hisaab se adjust ki
-                      className="mt-2 p-4 md:p-5 rounded-2xl bg-[#E71B25]/[0.03] border border-[#E71B25]/10 flex items-start gap-3.5"
-                    >
-                      <div className="p-2 rounded-xl bg-[#E71B25]/10 shrink-0 mt-0.5">
-                        <currentStep.infoBox.icon className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25]" />
-                      </div>
-                      <div>
-                        <h4 className="text-[#E71B25] text-[13px] md:text-sm font-bold mb-1 tracking-wide uppercase">
-                          {currentStep.infoBox.title}
-                        </h4>
-                        <p className="text-gray-400 text-[13px] md:text-[14.5px] leading-relaxed">
-                          {currentStep.infoBox.text}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-              )}
-              {/* --- MULTIPLE CTA & SLIDERS --- */}
+    {/* --- RESPONSIVE INFO BOX --- */}
+    {currentStep.infoBox && (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mt-2 p-4 md:p-5 rounded-2xl bg-[#E71B25]/[0.03] border border-[#E71B25]/10 flex items-start gap-3.5"
+      >
+        <div className="p-2 rounded-xl bg-[#E71B25]/10 shrink-0 mt-0.5">
+          <currentStep.infoBox.icon className="w-4 h-4 md:w-5 md:h-5 text-[#E71B25]" />
+        </div>
+        <div>
+          <h4 className="text-[#E71B25] text-[13px] md:text-sm font-bold mb-1 tracking-wide uppercase">
+            {currentStep.infoBox.title}
+          </h4>
+          <p className="text-gray-400 text-[13px] md:text-[14.5px] leading-relaxed">
+            {currentStep.infoBox.text}
+          </p>
+        </div>
+      </motion.div>
+    )}
+  </div>
+)}              {/* --- MULTIPLE CTA & SLIDERS --- */}
               {currentStep.type === "multiple" && (
                 <div className="mt-8 flex justify-center">
                   <MagneticButton text="Continue →" onClick={handleNext} />

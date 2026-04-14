@@ -673,15 +673,17 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                     </div>
                     
                     {/* Dark Fade Overlay & Active Button */}
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent">
-                      <button 
-                        onClick={scrollToPricing}
-                        className="mt-14 bg-[#E71B25] hover:bg-[#c2141d] text-white w-[90%] md:w-[80%] py-3.5 rounded-xl font-black text-[13px] md:text-[14px] uppercase tracking-wide shadow-[0_10px_30px_rgba(231,27,37,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 border border-white/20"
-                      >
-                        <Lock className="w-4 h-4" strokeWidth={2.5} />
-                        Unlock Full BodyMax Report
-                      </button>
-                    </div>
+<div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent">
+  <button 
+    onClick={scrollToPricing}
+    // 🔴 FIX: Added max-w-sm, responsive margins (mt-8 md:mt-14), and adjusted text/icon sizes
+    className="mt-8 md:mt-14 bg-[#E71B25] hover:bg-[#c2141d] text-white w-[92%] sm:w-[80%] max-w-sm py-3.5 md:py-4 rounded-xl font-black text-[12px] sm:text-[13px] md:text-[14px] uppercase tracking-wide shadow-[0_8px_25px_rgba(231,27,37,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 border border-white/20"
+  >
+    {/* 🔴 FIX: Icon size slightly bigger on desktop for better proportions */}
+    <Lock className="w-4 h-4 md:w-4.5 md:h-4.5 shrink-0" strokeWidth={2.5} />
+    <span className="truncate">Unlock Full BodyMax Report</span>
+  </button>
+</div>
                   </div>
 
                   {/* --- NEW GOOD NEWS SECTION --- */}
