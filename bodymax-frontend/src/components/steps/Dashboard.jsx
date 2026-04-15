@@ -54,24 +54,32 @@ const MacroRing = ({ label, value, max, color, hex, icon: Icon }) => {
 };
 
 // --- Mini Component: Scan Results Stat Block ---
-const ScanStatBlock = ({ label, value, delta, isNegative, progress }) => (
+const ScanStatBlock = ({ label, value, delta, isNegative, progress, textColor, bgColor }) => (
   <div className="flex flex-col mb-6">
     <div className="flex items-center gap-1.5 mb-0.5">
       <span className="text-[10px] md:text-[11px] font-medium text-[#a1a1aa] uppercase tracking-wider">{label}</span>
       <div className="w-3.5 h-3.5 rounded-full border border-[#3f3f46] flex items-center justify-center text-[7px] text-[#a1a1aa]">?</div>
     </div>
+    
     <div className="flex items-baseline gap-1.5 mb-2">
-      <span className={`text-[36px] md:text-[42px] font-bold leading-none ${isNegative ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>{value}</span>
+      {/* 🔴 MAIN SCORE: Uses Red/Orange/Green rating color */}
+      <span className={`text-[36px] md:text-[42px] font-bold leading-none ${textColor || 'text-white'}`}>
+        {value}
+      </span>
+      
+      {/* 🔴 DELTA (+/-): Always Red for negative, Green for positive improvement */}
       <span className={`text-[14px] md:text-[16px] font-bold ${isNegative ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
         {isNegative ? '' : '+'}{delta}
       </span>
     </div>
+    
     <div className="w-full h-1.5 bg-[#27272a] rounded-full overflow-hidden">
       <motion.div
         initial={{ width: 0 }}
         animate={{ width: `${progress}%` }}
         transition={{ duration: 1.5, ease: "easeOut" }}
-        className={`h-full rounded-full ${isNegative ? 'bg-[#ef4444]' : 'bg-[#22c55e]'}`}
+        // 🔴 PROGRESS BAR: Uses Red/Orange/Green rating color
+        className={`h-full rounded-full ${bgColor || 'bg-white'}`}
       />
     </div>
   </div>
@@ -98,6 +106,11 @@ const Dashboard = () => {
 
   const [expandedWeek, setExpandedWeek] = useState(1);
 
+  // Progress Photos States
+  const [progressPhotos, setProgressPhotos] = useState([]); // [{week, url, date, scores}]
+  const [isAnalyzingProgress, setIsAnalyzingProgress] = useState(false);
+  const [progressView, setProgressView] = useState('scan'); // 'scan' | 'compare'
+  const [uploadedProgressFile, setUploadedProgressFile] = useState(null);
 
 
   // AI Chat State
@@ -129,6 +142,21 @@ const Dashboard = () => {
   const workoutsPerWeek = workoutsList.length || 1;
   const programTotalWorkouts = maxWeeks > 0 ? (maxWeeks * workoutsPerWeek) : 0;
 
+
+  useEffect(() => {
+    const fetchProgressPhotos = async () => {
+      if (!session?.user?.id) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('progress_photos')
+        .eq('id', session.user.id)
+        .single();
+      if (data?.progress_photos) {
+        setProgressPhotos(data.progress_photos);
+      }
+    };
+    if (session) fetchProgressPhotos();
+  }, [session]);
   // EXPIRATION LOGIC
   useEffect(() => {
     if (!isLoading && profile) {
@@ -139,12 +167,12 @@ const Dashboard = () => {
       } else {
         // Plan ke total din (e.g. "12-Week" = 12 * 7 = 84 days)
         const totalPlanDays = parseInt(activePlan.split('-')[0]) * 7 || 0;
-        
+
         // 🔴 THE FIX: Check actual days passed since account creation
         const accountCreationDate = new Date(profile.created_at || Date.now());
         const currentTime = new Date();
         const timeDifference = currentTime - accountCreationDate;
-        
+
         // Convert milliseconds to total days passed
         const daysElapsed = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
 
@@ -195,8 +223,85 @@ const Dashboard = () => {
     if (session) fetchProgress();
   }, [session]);
 
-  
-// ==========================================
+  const handleProgressUpdate = async (file) => {
+    if (!file || !session?.user?.id) return;
+    setIsAnalyzingProgress(true);
+
+    try {
+      // 1. Supabase Storage mein upload karein
+      const fileName = `progress_${session.user.id}_week${currentWeek}_${Date.now()}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('progress-photos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('progress-photos')
+        .getPublicUrl(fileName);
+
+      // 2. AI se re-analysis karein (existing backend endpoint use karein)
+      const backendUrl = window.location.hostname === "localhost"
+        ? "http://localhost:5000"
+        : "https://ai-physique-assessment.onrender.com";
+
+      // Image ko base64 mein convert karein
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      const base64Image = await new Promise(res => { reader.onload = () => res(reader.result.split(',')[1]); });
+
+      const response = await fetch(`${backendUrl}/api/analyze-progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: session.user.id,
+          progressImageBase64: base64Image,
+          weekNumber: currentWeek,
+          originalScores: {
+            overall: analysis.overall_score,
+            chest: analysis.chest_score,
+            shoulders: analysis.shoulders_score,
+            back: analysis.back_score,
+            abs: analysis.abs_score,
+            legs: analysis.legs_score,
+            arms: analysis.arms_score,
+          }
+        })
+      });
+
+      const result = await response.json();
+
+      // 3. New progress entry banao
+      const newEntry = {
+        week: currentWeek,
+        url: publicUrl,
+        date: new Date().toISOString(),
+        scores: result.updated_scores || null,
+      };
+
+      const updatedPhotos = [...progressPhotos, newEntry];
+      setProgressPhotos(updatedPhotos);
+
+      // 4. Supabase profiles table mein save karein
+      await supabase
+        .from('profiles')
+        .update({ progress_photos: updatedPhotos })
+        .eq('id', session.user.id);
+
+      setProgressView('compare');
+      setToastMessage('📸 Progress logged! AI has updated your scores.');
+      setTimeout(() => setToastMessage(null), 3000);
+
+    } catch (err) {
+      console.error('Progress update failed:', err);
+      setToastMessage('❌ Upload failed. Try again.');
+      setTimeout(() => setToastMessage(null), 3000);
+    } finally {
+      setIsAnalyzingProgress(false);
+    }
+  };
+
+  // ==========================================
   // 🔴 NEW: Aesthetic "Mark Complete" Logic
   // ==========================================
   const markExerciseComplete = async (exerciseIndex) => {
@@ -205,7 +310,7 @@ const Dashboard = () => {
     const alreadyDone = selectedWorkout.completedExercises || [];
     if (!alreadyDone.includes(exerciseIndex)) {
       const updatedCompleted = [...alreadyDone, exerciseIndex];
-      
+
       // 1. Update the local UI state instantly
       setSelectedWorkout(prev => ({
         ...prev,
@@ -219,7 +324,7 @@ const Dashboard = () => {
         ...updatedWorkoutsList[currentWorkoutIndex],
         completedExercises: updatedCompleted
       };
-      
+
       const updatedProtocol = {
         ...protocol,
         workouts: updatedWorkoutsList
@@ -400,7 +505,7 @@ const Dashboard = () => {
     }
     return { week: weekNum, done, max: workoutsPerWeek };
   });
-// 🔴 MISSING FUNCTION ADDED BACK
+  // 🔴 MISSING FUNCTION ADDED BACK
   const closeWorkoutModal = () => {
     setSelectedWorkout(null);
   };
@@ -636,7 +741,7 @@ const Dashboard = () => {
           </div>
         </aside>
 
-{/* MOBILE TOP HEADER */}
+        {/* MOBILE TOP HEADER */}
         <div className="md:hidden fixed top-0 inset-x-0 h-20 bg-[#030303]/90 backdrop-blur-xl border-b border-white/[0.04] z-40 flex items-center justify-between px-5">
           <div className="flex items-center h-full py-3">
             <img src="/logo.png" alt="BodyMax" className="h-12 w-auto object-contain max-h-full" />
@@ -646,10 +751,10 @@ const Dashboard = () => {
               <CurrentRankIcon className={`w-3.5 h-3.5 ${currentBadge.color}`} />
               <span className="text-[11px] font-black text-white">LVL {currentLevel}</span>
             </div>
-            
+
             {/* 🔴 THE FIX: Added Mobile Logout Button */}
-            <button 
-              onClick={handleLogout} 
+            <button
+              onClick={handleLogout}
               className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.02] border border-white/[0.05] text-gray-400 hover:text-[#E71B25] hover:bg-[#E71B25]/10 transition-colors shadow-sm"
               aria-label="Log Out"
             >
@@ -709,7 +814,7 @@ const Dashboard = () => {
                 </motion.div>
               )}
 
-             {/* 🔴 TAB 2 (NOW RENAMED TO AI SCAN): AI SCANS & REPORT COMBINED */}
+              {/* 🔴 TAB 2 (NOW RENAMED TO AI SCAN): AI SCANS & REPORT COMBINED */}
               {activeTab === 'photos' && (() => {
                 // 🔴 THE FIX: 'safeProtocol' use karein jo AI generation ke foran baad update ho jata hai!
                 const analysis = safeProtocol.body_analysis || {};
@@ -766,7 +871,26 @@ const Dashboard = () => {
                   else rawDelta = Math.abs(rawDelta);
                   const isNeg = rawDelta < 0;
                   const deltaString = isNeg ? rawDelta.toFixed(1) : Math.abs(rawDelta).toFixed(1);
-                  return { value: finalScore, delta: deltaString, isNegative: isNeg, progress: finalScore };
+
+                  // 🔴 RATINGS K COLOR LOGIC ADDED HERE
+                  let textColor = "text-[#22c55e]"; // Default Green (70-100)
+                  let bgColor = "bg-[#22c55e]";
+                  if (finalScore < 50) {
+                    textColor = "text-[#E71B25]"; // Red (0-49)
+                    bgColor = "bg-[#E71B25]";
+                  } else if (finalScore < 70) {
+                    textColor = "text-orange-500"; // Orange (50-69)
+                    bgColor = "bg-orange-500";
+                  }
+
+                  return {
+                    value: finalScore,
+                    delta: deltaString,
+                    isNegative: isNeg,
+                    progress: finalScore,
+                    textColor,
+                    bgColor
+                  };
                 };
 
                 return (
@@ -786,48 +910,230 @@ const Dashboard = () => {
                         Your Current Physique <span className="text-[#E71B25] mx-1">VS</span> Your Dream Physique
                       </p>
                     </div>
-
                     {/* IMAGES CONTAINER: Sleek side-by-side with central sync indicator */}
-                    <div className="flex justify-center items-center gap-3 w-full mb-10 relative">
+                    {progressView === 'scan' && (
+                      <div className="flex justify-center items-center gap-3 w-full mb-10 relative">
 
-                      {/* CURRENT STATE */}
-                      <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl md:rounded-[2rem] border border-white/[0.05] overflow-hidden relative shadow-lg">
-                        <img
-                          src={currentImgUrl || fallbackImg}
-                          className="absolute inset-0 w-full h-full object-cover filter grayscale-[15%]"
-                          alt="Current State"
-                          onError={(e) => { e.target.onerror = null; e.target.src = fallbackImg; }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
-                        <div className="absolute bottom-3 left-0 w-full flex justify-center">
-                          <span className="bg-black/50 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
-                            <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div> Your current physique
-                          </span>
+                        {/* CURRENT STATE */}
+                        <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl md:rounded-[2rem] border border-white/[0.05] overflow-hidden relative shadow-lg">
+                          <img
+                            src={currentImgUrl || fallbackImg}
+                            className="absolute inset-0 w-full h-full object-cover filter grayscale-[15%]"
+                            alt="Current State"
+                            onError={(e) => { e.target.onerror = null; e.target.src = fallbackImg; }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+                          <div className="absolute bottom-3 left-0 w-full flex justify-center">
+                            <span className="bg-black/50 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
+                              <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div> Your current physique
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* VS Divider */}
+                        <div className="flex flex-col items-center shrink-0 opacity-50">
+                          <div className="w-[1px] h-6 bg-gradient-to-b from-transparent to-white/20"></div>
+                          <span className="text-[8px] font-black text-gray-500 my-1 uppercase tracking-widest">VS</span>
+                          <div className="w-[1px] h-6 bg-gradient-to-t from-transparent to-white/20"></div>
+                        </div>
+
+                        {/* TARGET GOAL */}
+                        <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl md:rounded-[2rem] border border-[#E71B25]/30 overflow-hidden relative shadow-[0_5px_20px_rgba(231,27,37,0.1)]">
+                          <img
+                            src={dreamImgUrl || fallbackImg}
+                            className="absolute inset-0 w-full h-full object-cover filter grayscale-[5%]"
+                            alt="Target Goal"
+                            onError={(e) => { e.target.onerror = null; e.target.src = fallbackImg; }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+                          <div className="absolute bottom-3 left-0 w-full flex justify-center">
+                            <span className="bg-[#E71B25]/20 backdrop-blur-md border border-[#E71B25]/50 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
+                              <Target className="w-2.5 h-2.5 text-[#ff8a8a]" /> your dream physique
+                            </span>
+                          </div>
                         </div>
                       </div>
+                    )}
 
-                      {/* VS Divider */}
-                      <div className="flex flex-col items-center shrink-0 opacity-50">
-                        <div className="w-[1px] h-6 bg-gradient-to-b from-transparent to-white/20"></div>
-                        <span className="text-[8px] font-black text-gray-500 my-1 uppercase tracking-widest">VS</span>
-                        <div className="w-[1px] h-6 bg-gradient-to-t from-transparent to-white/20"></div>
-                      </div>
+                    {/* PROGRESS COMPARE VIEW */}
+                    {progressView === 'compare' && progressPhotos.length > 0 && (() => {
+                      const latestProgress = progressPhotos[progressPhotos.length - 1];
+                      const latestScores = latestProgress.scores;
+                      const weeksPassed = latestProgress.week;
 
-                      {/* TARGET GOAL */}
-                      <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl md:rounded-[2rem] border border-[#E71B25]/30 overflow-hidden relative shadow-[0_5px_20px_rgba(231,27,37,0.1)]">
-                        <img
-                          src={dreamImgUrl || fallbackImg}
-                          className="absolute inset-0 w-full h-full object-cover filter grayscale-[5%]"
-                          alt="Target Goal"
-                          onError={(e) => { e.target.onerror = null; e.target.src = fallbackImg; }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
-                        <div className="absolute bottom-3 left-0 w-full flex justify-center">
-                          <span className="bg-[#E71B25]/20 backdrop-blur-md border border-[#E71B25]/50 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
-                            <Target className="w-2.5 h-2.5 text-[#ff8a8a]" /> your dream physique
-                          </span>
+                      const scoreDelta = (newScore, oldScore) => {
+                        if (!newScore || !oldScore) return null;
+                        return newScore - oldScore;
+                      };
+
+                      const comparisonMetrics = [
+                        { label: 'Overall', old: analysis.overall_score, new: latestScores?.overall },
+                        { label: 'Chest', old: analysis.chest_score, new: latestScores?.chest },
+                        { label: 'Shoulders', old: analysis.shoulders_score, new: latestScores?.shoulders },
+                        { label: 'Back', old: analysis.back_score, new: latestScores?.back },
+                        { label: 'Core', old: analysis.abs_score, new: latestScores?.abs },
+                        { label: 'Arms', old: analysis.arms_score, new: latestScores?.arms },
+                      ].filter(m => m.old && m.new);
+
+                      return (
+                        <div className="flex flex-col gap-6 w-full mb-10">
+                          {/* Side-by-side progress photos */}
+                          <div className="flex justify-center items-center gap-3 w-full relative">
+                            {/* Day 1 Photo */}
+                            <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl border border-white/[0.05] overflow-hidden relative shadow-lg">
+                              <img src={currentImgUrl || fallbackImg} className="absolute inset-0 w-full h-full object-cover filter grayscale-[15%]" alt="Day 1" onError={(e) => { e.target.src = fallbackImg; }} />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                              <div className="absolute bottom-3 left-0 w-full flex justify-center">
+                                <span className="bg-black/50 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase">Day 1</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-center shrink-0 opacity-50">
+                              <div className="w-[1px] h-6 bg-gradient-to-b from-transparent to-white/20" />
+                              <span className="text-[8px] font-black text-gray-500 my-1 uppercase tracking-widest">VS</span>
+                              <div className="w-[1px] h-6 bg-gradient-to-t from-transparent to-white/20" />
+                            </div>
+
+                            {/* Latest Progress Photo */}
+                            <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl border border-[#E71B25]/30 overflow-hidden relative shadow-[0_5px_20px_rgba(231,27,37,0.1)]">
+                              <img src={latestProgress.url} className="absolute inset-0 w-full h-full object-cover" alt="Latest" onError={(e) => { e.target.src = fallbackImg; }} />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                              <div className="absolute bottom-3 left-0 w-full flex justify-center">
+                                <span className="bg-[#E71B25]/20 backdrop-blur-md border border-[#E71B25]/50 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5">
+                                  <TrendingUp className="w-2.5 h-2.5 text-[#ff8a8a]" /> Week {weeksPassed}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Score Comparison */}
+                          {comparisonMetrics.length > 0 && (() => {
+                            // 🔴 FIX 1: Delta logic ko update kiya taake exact decimals dikhay
+                            const scoreDelta = (newScore, oldScore) => {
+                              if (newScore == null || oldScore == null) return null;
+                              const diff = newScore - oldScore;
+                              // Agar decimal hai toh 1 decimal place tak dikhao warna simple number
+                              return diff % 1 !== 0 ? diff.toFixed(1) : diff;
+                            };
+
+                            // 🔴 FIX 2: Legs aur Overall ko theek se shamil kiya
+                            const comparisonMetrics = [
+                              { label: 'Overall', old: analysis.overall_score || currentOverallScore, new: latestScores?.overall },
+                              { label: 'Chest', old: analysis.chest_score, new: latestScores?.chest },
+                              { label: 'Shoulders', old: analysis.shoulders_score, new: latestScores?.shoulders },
+                              { label: 'Back', old: analysis.back_score, new: latestScores?.back },
+                              { label: 'Core', old: analysis.abs_score, new: latestScores?.abs },
+                              { label: 'Legs', old: analysis.legs_score, new: latestScores?.legs }, // 👈 LEGS ADDED HERE
+                              { label: 'Arms', old: analysis.arms_score, new: latestScores?.arms },
+                            ].filter(m => m.old != null && m.new != null); // filter condition behtar ki
+
+                            return (
+                              <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
+                                <div className="flex items-center gap-2 mb-4">
+                                  <TrendingUp className="w-4 h-4 text-[#22c55e]" />
+                                  <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Score Delta — Week {weeksPassed}</h3>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  {comparisonMetrics.map((metric, i) => {
+                                    const delta = scoreDelta(metric.new, metric.old);
+                                    // String ko number mein convert kar ke check karein ke positive hai ya nahi
+                                    const isPositive = parseFloat(delta) >= 0;
+
+                                    // 🔴 NEW COLOR LOGIC: New Score ki base par Red, Orange, Green
+                                    let ratingTextColor = "text-[#22c55e]";
+                                    let ratingBgColor = "bg-[#22c55e]";
+                                    if (metric.new < 50) {
+                                      ratingTextColor = "text-[#E71B25]"; // Red
+                                      ratingBgColor = "bg-[#E71B25]";
+                                    } else if (metric.new < 70) {
+                                      ratingTextColor = "text-orange-500"; // Orange
+                                      ratingBgColor = "bg-orange-500";
+                                    }
+
+                                    return (
+                                      <div key={i} className="bg-[#111] rounded-xl p-3 border border-white/[0.03]">
+                                        <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold block mb-2">{metric.label}</span>
+                                        <div className="flex items-baseline gap-2">
+                                          <span className="text-[9px] text-gray-500 line-through">
+                                            {/* Agar purana score float ho toh usay format karein */}
+                                            {Number.isInteger(metric.old) ? metric.old : Number(metric.old).toFixed(1)}
+                                          </span>
+                                          {/* 🔴 Naya score Rating Color ke sath */}
+                                          <span className={`font-black text-[16px] ${ratingTextColor}`}>
+                                            {Number.isInteger(metric.new) ? metric.new : Number(metric.new).toFixed(1)}
+                                          </span>
+                                          {delta !== null && (
+                                            <span className={`text-[11px] font-black ${isPositive ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                                              {isPositive ? '+' : ''}{delta}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="w-full h-1 bg-[#222] rounded-full mt-2 overflow-hidden">
+                                          <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${metric.new}%` }}
+                                            transition={{ duration: 1.2, ease: "easeOut" }}
+                                            // 🔴 Progress Bar Rating Color ke sath
+                                            className={`h-full rounded-full ${ratingBgColor}`}
+                                          />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          {/* No AI scores yet message */}
+                          {comparisonMetrics.length === 0 && (
+                            <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 flex flex-col items-center gap-2 text-center">
+                              <RefreshCw className="w-5 h-5 text-gray-500" />
+                              <p className="text-[11px] text-gray-400 font-medium">Photo uploaded! AI score comparison will appear here once backend processes the image.</p>
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      );
+                    })()}
+                    {/* 🔴 UPDATED: Upload Weekly Progress Button */}
+                    <div className="w-full flex flex-col items-center gap-3 mb-10">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="progress-upload"
+                        disabled={isAnalyzingProgress}
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) handleProgressUpdate(file);
+                        }}
+                      />
+                      <label
+                        htmlFor="progress-upload"
+                        className={`cursor-pointer border px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all active:scale-95 shadow-lg
+      ${isAnalyzingProgress
+                            ? 'bg-white/[0.02] border-white/5 opacity-50 cursor-wait'
+                            : 'bg-white/[0.05] hover:bg-white/[0.1] border-white/10'}`}
+                      >
+                        {isAnalyzingProgress
+                          ? <><RefreshCw className="w-4 h-4 text-[#E71B25] animate-spin" /><span className="text-[11px] font-bold text-white uppercase tracking-widest">AI Analyzing...</span></>
+                          : <><Camera className="w-4 h-4 text-gray-300" /><span className="text-[11px] font-bold text-white uppercase tracking-widest">Upload Weekly Progress</span></>
+                        }
+                      </label>
+
+                      {progressPhotos.length > 0 && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setProgressView('scan')}
+                            className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all
+          ${progressView === 'scan' ? 'bg-[#E71B25]/20 border-[#E71B25]/40 text-[#E71B25]' : 'bg-white/[0.03] border-white/10 text-gray-500'}`}
+                          >Original Scan</button>
+                          <button
+                            onClick={() => setProgressView('compare')}
+                            className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all
+          ${progressView === 'compare' ? 'bg-[#E71B25]/20 border-[#E71B25]/40 text-[#E71B25]' : 'bg-white/[0.03] border-white/10 text-gray-500'}`}
+                          >Progress Compare</button>
+                        </div>
+                      )}
                     </div>
 
                     {/* CHANCE SECTION: More integrated look */}
@@ -917,6 +1223,7 @@ const Dashboard = () => {
 
                     {/* GRID SECTION: Compact layout */}
                     <div className="grid grid-cols-2 gap-3 w-full mb-10">
+                      {/* 🔴 formatStat passes textColor and bgColor now */}
                       <ScanStatBlock label="CHEST" {...formatStat(analysis.chest_score || analysis.vectors?.upper_body, analysis.chest_delta, 76)} />
                       <ScanStatBlock label="SHOULDERS" {...formatStat(analysis.shoulders_score || analysis.vectors?.upper_body, analysis.shoulders_delta, 80)} />
                       <ScanStatBlock label="BACK" {...formatStat(analysis.back_score || analysis.vectors?.symmetry, analysis.back_delta, 78)} />
@@ -924,7 +1231,6 @@ const Dashboard = () => {
                       <ScanStatBlock label="LEGS" {...formatStat(analysis.legs_score || analysis.vectors?.lower_body, analysis.legs_delta, 75)} />
                       <ScanStatBlock label="ARMS" {...formatStat(analysis.arms_score || analysis.vectors?.upper_body, analysis.arms_delta, 79)} />
                     </div>
-
                     {/* ANALYSIS BLOCKS: Unified card design */}
                     <div className="w-full flex flex-col gap-4 mb-10">
 
@@ -1005,7 +1311,6 @@ const Dashboard = () => {
                   </motion.div>
                 );
               })()}
-
               {/* TAB 3: WORKOUTS */}
               {activeTab === 'protocol' && (
                 <motion.div key="protocol" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 md:gap-5">
@@ -1150,7 +1455,7 @@ const Dashboard = () => {
                                                   // 🔴 THE FIX: Database se bachi hui (saved) exercises load karein!
                                                   const savedProgress = workout.completedExercises || [];
                                                   const initialCompleted = isCardCompleted ? workout.exercises.map((_, idx) => idx) : savedProgress;
-                                                  
+
                                                   setSelectedWorkout({ ...workout, completedExercises: initialCompleted });
                                                 }
                                               }}
@@ -1244,8 +1549,8 @@ const Dashboard = () => {
                               <div
                                 key={i}
                                 className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all duration-300 ${isUnlocked
-                                    ? 'bg-[#111] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.5)]'
-                                    : 'bg-[#050505] border-white/[0.02] opacity-50 grayscale'
+                                  ? 'bg-[#111] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.5)]'
+                                  : 'bg-[#050505] border-white/[0.02] opacity-50 grayscale'
                                   }`}
                               >
                                 <div className="flex items-center gap-2.5">
@@ -1466,7 +1771,7 @@ const Dashboard = () => {
           )}
         </AnimatePresence>
 
-       {/* EXECUTION HUD MODAL */}
+        {/* EXECUTION HUD MODAL */}
         <AnimatePresence>
           {selectedWorkout && (
             <>
@@ -1569,8 +1874,8 @@ const Dashboard = () => {
                                           <CheckCircle className="w-3.5 h-3.5" /> EXERCISE COMPLETED
                                         </span>
                                       ) : (
-                                        <button 
-                                          onClick={() => markExerciseComplete(i)} 
+                                        <button
+                                          onClick={() => markExerciseComplete(i)}
                                           className="flex items-center gap-1.5 transition-colors px-4 py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest border shadow-sm bg-[#E71B25]/10 hover:bg-[#E71B25] text-[#E71B25] hover:text-white border-[#E71B25]/30 hover:shadow-[0_0_15px_rgba(231,27,37,0.3)]"
                                         >
                                           MARK COMPLETE <Check className="w-3.5 h-3.5" strokeWidth={3} />
