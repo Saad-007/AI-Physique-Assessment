@@ -513,74 +513,15 @@ app.post('/api/analyze-progress', async (req, res) => {
 
     console.log(`[PROGRESS AI] Analyzing week ${weekNumber} for user ${userId}`);
 
-    // Max realistic improvement per muscle group based on weeks elapsed
-    // Human bodies cannot change faster than this naturally
-    const maxDeltaPerWeek = 0.6; // ~0.6 points per week is aggressive but realistic
-    const maxAllowedDelta = Math.min(weekNumber * maxDeltaPerWeek, 12); // Hard cap at 12 points total
+    // 🔴 FIX 1: Backend ki sakht limit hata di. Ab +50 tak ka jump bhi allow hai!
+    const maxAllowedDelta = 50; 
 
+    // 🔴 FIX 2: Naya "Unbiased & Scale-Aware" Prompt
     const prompt = `
-You are a BRUTALLY HONEST, professional physique assessment judge with 20 years of experience in competitive bodybuilding, sports science, and body composition analysis.
+You are a BRUTALLY HONEST, professional physique assessment judge.
+Your job is to analyze the NEW progress photo and compare it to the Baseline Scores.
 
-Your job is to give UNBIASED, ACCURATE scores based ONLY on what you can visually observe in this photo. You must NOT give inflated scores to make the user feel good.
-
-=== SCORING SYSTEM (MANDATORY - READ CAREFULLY) ===
-
-SCORE ANCHORS (use these as your calibration):
-- 30-40: Severely untrained, very high body fat (>30%), no visible muscle definition, soft appearance
-- 41-50: Average/sedentary person, some muscle mass but hidden under fat, little to no definition
-- 51-60: Beginner gym-goer (6-12 months training), slightly above average, muscles present but not defined
-- 61-70: Intermediate (1-3 years training), decent muscle mass, some definition in good lighting, 15-20% body fat range
-- 71-80: Advanced (3-5 years), clear muscle definition, visible separation, 12-15% body fat, looks noticeably athletic
-- 81-90: Elite/competitive level, sharp definition, visible striations, vascularity present, 8-12% body fat
-- 91-100: ONLY for world-class physiques (pro athletes, IFBB competitors, Olympic sprinters)
-
-CRITICAL ANTI-INFLATION RULES:
-1. If you CANNOT see clear muscle separation/definition → score CANNOT exceed 62
-2. If the person has visible excess body fat → subtract 10-15 points from where they'd otherwise land
-3. If lighting/pose is poor, give benefit of doubt of maximum +3 points only
-4. A "normal" person off the street scores 40-50. Do NOT give 70+ unless they genuinely look like a serious athlete
-5. Most gym beginners (under 2 years) score between 50-65. NOT higher.
-6. Reserve scores of 80+ for people who would turn heads at a beach or gym
-
-=== MUSCLE GROUP SPECIFIC SCORING CRITERIA ===
-
-CHEST (look for):
-- Pectoral muscle fullness and roundness
-- Upper/lower pec separation
-- Inner chest definition (cleavage line)
-- Low score if: flat chest, no pec-delt separation, man-boobs from fat
-
-SHOULDERS (look for):
-- Capped/round deltoid appearance (3D look)
-- Front/side/rear delt separation
-- Width relative to waist (V-taper contribution)
-- Low score if: narrow, flat, no roundness, sloping shoulders
-
-BACK (look for):
-- V-taper (wide lats, narrow waist)
-- Visible lat spread
-- Spinal erector definition (for back poses)
-- Low score if: straight lines, no taper, no lat flare
-
-ABS (look for):
-- Visible rectus abdominis (6-pack lines)
-- External oblique separation
-- Serratus anterior visibility
-- Low score if: belly fat covering abs, no lines visible, soft midsection
-
-LEGS (look for):
-- Quadricep sweep and separation
-- Hamstring/glute tie-in
-- Overall leg mass relative to upper body
-- Low score if: skinny legs, no definition, stick legs vs big upper body
-
-ARMS (look for):
-- Bicep peak and separation (long/short head)
-- Tricep horseshoe definition
-- Forearm vascularity/definition
-- Low score if: no peak, smooth arms, no tricep definition
-
-=== ORIGINAL SCORES (WEEK 1 BASELINE) ===
+=== ORIGINAL SCORES (BASELINE) ===
 Overall: ${originalScores.overall}
 Chest: ${originalScores.chest}
 Shoulders: ${originalScores.shoulders}
@@ -589,177 +530,119 @@ Abs: ${originalScores.abs}
 Legs: ${originalScores.legs}
 Arms: ${originalScores.arms}
 
-=== CURRENT ASSESSMENT: WEEK ${weekNumber} ===
+=== THE RULE OF UNBIASED SCALING (CRITICAL) ===
+You must calculate the DELTA (difference) purely based on VISUAL EVIDENCE, regardless of the time elapsed.
+- If the new photo shows a physique that belongs in the 75-85 range (advanced/elite), but the baseline was 30, you MUST output a massive delta (e.g., +45.0) to correct the score.
+- Do NOT restrict your deltas just because it says "Week 1" or "Week 2". Judge the body as it is NOW.
+- If the body is small/average, give a small realistic delta (e.g., +0.5 to +1.5).
+- If the body is massive, highly defined, and clearly advanced, give whatever large delta is required to bring the baseline score up to its TRUE visual level.
 
-REALISTIC CHANGE LIMITS:
-- This is Week ${weekNumber} of training
-- Maximum realistic total improvement since Week 1: ${maxAllowedDelta.toFixed(1)} points per muscle group
-- If someone's original score was already accurate, improvements should be: ${(weekNumber * 0.3).toFixed(1)} to ${maxAllowedDelta.toFixed(1)} points per muscle
-- Scores CAN go DOWN if the person looks worse (gained fat, lost muscle, bad lighting reveals more issues)
-- Do NOT automatically increase all scores just because time has passed. Only increase if you VISUALLY see improvement.
-
-=== YOUR TASK ===
-
-1. Carefully examine the provided progress photo
-2. Score each muscle group independently based on what you SEE
-3. Cross-reference with original scores — if the original score seems too generous compared to what you see now, you may ALSO correct downward
-4. Write a 2-sentence summary that is honest (mention both positives and areas to improve)
-
-RETURN ONLY THIS JSON (no markdown, no explanation outside JSON):
-
+RETURN ONLY THIS JSON (no extra text):
 {
-  "overall": <integer 0-100 based on whole-body assessment>,
-  "chest": <integer 0-100>,
-  "shoulders": <integer 0-100>,
-  "back": <integer 0-100>,
-  "abs": <integer 0-100>,
-  "legs": <integer 0-100>,
-  "arms": <integer 0-100>,
-  "body_fat_estimate": "<e.g., '~18-20%'>",
-  "visible_improvements": "<specific visual change you can see vs baseline, or 'None visible yet'>",
-  "primary_concern": "<the single biggest area still needing work>",
-  "summary": "<Sentence 1: honest assessment of current state>. <Sentence 2: specific actionable advice for the weakest area.>"
+  "overall_delta": <float>,
+  "chest_delta": <float>,
+  "shoulders_delta": <float>,
+  "back_delta": <float>,
+  "abs_delta": <float>,
+  "legs_delta": <float>,
+  "arms_delta": <float>,
+  "body_fat_estimate": "<e.g., '~12-14%'>",
+  "visible_improvements": "<specific visual change seen>",
+  "summary": "<honest assessment of progress>"
 }
 `;
 
-    let completion;
-    
-    try {
-      completion = await openai.chat.completions.create({
-        model: "gpt-4o",
-        response_format: { type: "json_object" },
-        max_tokens: 500,
-        temperature: 0.3, // Low temperature = more consistent, less random inflation
-        messages: [
-          {
-            role: "system",
-            content: `You are an unbiased physique judge. Your reputation depends on accuracy, not kindness. 
-You will lose credibility if you give inflated scores. 
-Score what you SEE, not what the person wants to hear.
-A score of 70 means "genuinely impressive" — it should NOT be a default "decent" score.
-Most photos you receive will score between 45-68. Scores above 75 are rare and earned.`
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${progressImageBase64}`,
-                  detail: "high" // Use high detail for accurate body assessment
-                }
-              }
-            ]
-          }
-        ]
-      });
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      response_format: { type: "json_object" },
+      max_tokens: 500,
+      temperature: 0.2, 
+      messages: [
+        { 
+          role: "system", 
+          content: "You strictly output precise progress deltas as floats. You scale your deltas unrestrictedly based on the true visual level of the physique provided." 
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${progressImageBase64}`, detail: "high" } }
+          ]
+        }
+      ]
+    });
 
-      // Check for content filter
-      if (!completion.choices?.[0]?.message?.content || completion.choices?.[0]?.finish_reason === "content_filter") {
-        throw new Error("content_filter_triggered");
-      }
-
-    } catch (aiError) {
-      console.log("⚠️ Vision failed, falling back to score estimation:", aiError.message);
-      
-      // Fallback: Use original scores with minimal change
-      const fallbackScores = {
-        overall: originalScores.overall,
-        chest: originalScores.chest,
-        shoulders: originalScores.shoulders,
-        back: originalScores.back,
-        abs: originalScores.abs,
-        legs: originalScores.legs,
-        arms: originalScores.arms,
-        body_fat_estimate: "Unable to assess",
-        visible_improvements: "Photo could not be analyzed",
-        primary_concern: "Please upload a clearer photo for accurate assessment",
-        summary: "We couldn't analyze your photo properly this week. Please ensure good lighting and a clear full-body shot for accurate scoring."
-      };
-
-      return res.status(200).json({ success: true, updated_scores: fallbackScores, fallback: true });
+    // Handle Content Filter
+    if (!completion.choices?.[0]?.message?.content || completion.choices?.[0]?.finish_reason === "content_filter") {
+      throw new Error("content_filter_triggered");
     }
 
-    const rawContent = completion?.choices?.[0]?.message?.content;
-
-    if (!rawContent) {
-      throw new Error("AI returned empty response");
-    }
-
-    let cleanContent = rawContent.trim();
+    let cleanContent = completion.choices[0].message.content.trim();
     if (cleanContent.startsWith("```json")) {
       cleanContent = cleanContent.replace(/^```json/, "").replace(/```$/, "").trim();
     }
 
-    const updated_scores = JSON.parse(cleanContent);
+    const aiDeltas = JSON.parse(cleanContent);
+    const updated_scores = {};
 
-    // ✅ SERVER-SIDE DELTA VALIDATION
-    // Prevents AI from giving impossible improvements even if it ignores instructions
+    // 🔴 FIX 3: Math.round() completely removed. Decimals are kept intact.
     const muscleKeys = ['chest', 'shoulders', 'back', 'abs', 'legs', 'arms'];
     
     muscleKeys.forEach(muscle => {
-      if (updated_scores[muscle] && originalScores[muscle]) {
-        const delta = updated_scores[muscle] - originalScores[muscle];
+      if (originalScores[muscle]) {
+        let aiDelta = parseFloat(aiDeltas[`${muscle}_delta`]) || 0;
         
-        // Cap maximum improvement based on weeks
-        if (delta > maxAllowedDelta) {
-          console.log(`[DELTA CAP] ${muscle}: AI gave +${delta.toFixed(1)}, capping at +${maxAllowedDelta.toFixed(1)}`);
-          updated_scores[muscle] = Math.round(originalScores[muscle] + maxAllowedDelta);
+        // Capping extreme impossible numbers (e.g., over +50)
+        if (aiDelta > maxAllowedDelta) {
+          console.log(`[DELTA CAP] ${muscle}: AI gave +${aiDelta}, capping at +${maxAllowedDelta}`);
+          aiDelta = maxAllowedDelta;
         }
+
+        // Add delta to original, keeping 1 decimal place (e.g., 29 + 1.2 = 30.2)
+        updated_scores[muscle] = Number((originalScores[muscle] + aiDelta).toFixed(1));
         
-        // Allow realistic decline (no cap on negative)
-        // But don't let scores go below 20 or above 95
-        updated_scores[muscle] = Math.max(20, Math.min(95, updated_scores[muscle]));
+        // Strict Bounds: Don't let scores go below 20 or above 95
+        updated_scores[muscle] = Number(Math.max(20, Math.min(95, updated_scores[muscle])).toFixed(1));
       }
     });
 
-    // Recalculate overall as weighted average after capping
+    // Overall Calculation (Weighted Average to keep logic intact)
     if (updated_scores.chest && updated_scores.shoulders && updated_scores.back) {
-      const avg = Math.round(
-        (updated_scores.chest * 0.18 +
-         updated_scores.shoulders * 0.18 +
-         updated_scores.back * 0.18 +
-         updated_scores.abs * 0.16 +
-         updated_scores.legs * 0.15 +
-         updated_scores.arms * 0.15) 
-      );
+      const avg = Number((
+        updated_scores.chest * 0.18 +
+        updated_scores.shoulders * 0.18 +
+        updated_scores.back * 0.18 +
+        updated_scores.abs * 0.16 +
+        updated_scores.legs * 0.15 +
+        updated_scores.arms * 0.15
+      ).toFixed(1));
       
-      // Overall should be close to weighted average (AI overall can be ±3 of calculated)
-      const overallDelta = Math.abs(updated_scores.overall - avg);
-      if (overallDelta > 5) {
-        console.log(`[OVERALL CAP] AI overall: ${updated_scores.overall}, Calculated avg: ${avg}. Correcting.`);
-        updated_scores.overall = avg;
-      }
+      // Calculate overall delta directly from the new average
+      updated_scores.overall = avg;
     }
 
+    // Extra Details mapping
+    updated_scores.body_fat_estimate = aiDeltas.body_fat_estimate || "~18%";
+    updated_scores.visible_improvements = aiDeltas.visible_improvements || "Processing improvements...";
+    updated_scores.summary = aiDeltas.summary || "Consistent effort applied.";
+
     // Save to Supabase
-    const { error: dbError } = await supabase
-      .from('progress_scans')
-      .insert({
-        user_id: userId,
-        week_number: weekNumber,
-        scores: updated_scores,
-        created_at: new Date().toISOString()
-      });
+    const { error: dbError } = await supabase.from('progress_scans').insert({
+      user_id: userId,
+      week_number: weekNumber,
+      scores: updated_scores,
+      created_at: new Date().toISOString()
+    });
 
     if (dbError) {
       console.error("Supabase Save Error:", dbError);
-      // Don't throw — still return scores to user even if DB save fails
     }
 
-    res.status(200).json({
-      success: true,
-      updated_scores,
-      delta_cap_applied: maxAllowedDelta
-    });
+    res.status(200).json({ success: true, updated_scores, delta_cap_applied: maxAllowedDelta });
 
   } catch (error) {
     console.error("[PROGRESS ANALYSIS ERROR]:", error);
-    res.status(500).json({
-      error: "Progress analysis failed",
-      details: error.message
-    });
+    res.status(500).json({ error: "Progress analysis failed", details: error.message });
   }
 });
 const PORT = process.env.PORT || 5000;
