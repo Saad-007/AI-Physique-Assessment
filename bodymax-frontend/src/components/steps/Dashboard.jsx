@@ -143,20 +143,40 @@ const Dashboard = () => {
   const programTotalWorkouts = maxWeeks > 0 ? (maxWeeks * workoutsPerWeek) : 0;
 
 
-  useEffect(() => {
-    const fetchProgressPhotos = async () => {
-      if (!session?.user?.id) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('progress_photos')
-        .eq('id', session.user.id)
-        .single();
-      if (data?.progress_photos) {
-        setProgressPhotos(data.progress_photos);
+ useEffect(() => {
+  const fetchProgressPhotos = async () => {
+    if (!session?.user?.id) return;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('progress_photos')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error) {
+      console.error("Progress photos fetch error:", error);
+      return;
+    }
+
+    // ✅ FIX: Array check + scores populated check
+    if (
+      data?.progress_photos &&
+      Array.isArray(data.progress_photos) &&
+      data.progress_photos.length > 0
+    ) {
+      console.log("✅ Loaded progress photos:", data.progress_photos.length);
+      setProgressPhotos(data.progress_photos);
+
+      // ✅ FIX: Agar latest entry mein scores hain toh compare view dikhao
+      const latest = data.progress_photos[data.progress_photos.length - 1];
+      if (latest?.scores?.overall) {
+        setProgressView('compare');
       }
-    };
-    if (session) fetchProgressPhotos();
-  }, [session]);
+    }
+  };
+
+  if (session) fetchProgressPhotos();
+}, [session]);
   // EXPIRATION LOGIC
   useEffect(() => {
     if (!isLoading && profile) {
@@ -224,83 +244,118 @@ const Dashboard = () => {
   }, [session]);
 
   const handleProgressUpdate = async (file) => {
-    if (!file || !session?.user?.id) return;
-    setIsAnalyzingProgress(true);
+  if (!file || !session?.user?.id) return;
+  setIsAnalyzingProgress(true);
 
-    try {
-      // 1. Supabase Storage mein upload karein
-      const fileName = `progress_${session.user.id}_week${currentWeek}_${Date.now()}.jpg`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('progress-photos')
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('progress-photos')
-        .getPublicUrl(fileName);
-
-      // 2. AI se re-analysis karein (existing backend endpoint use karein)
-      const backendUrl = window.location.hostname === "localhost"
-        ? "http://localhost:5000"
-        : "https://ai-physique-assessment.onrender.com";
-
-      // Image ko base64 mein convert karein
+  try {
+    // ✅ FIX: base64 conversion pehle, properly awaited
+    const base64Image = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      const base64Image = await new Promise(res => { reader.onload = () => res(reader.result.split(',')[1]); });
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error("File read failed"));
+    });
 
-      const response = await fetch(`${backendUrl}/api/analyze-progress`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: session.user.id,
-          progressImageBase64: base64Image,
-          weekNumber: currentWeek,
-          originalScores: {
-            overall: analysis.overall_score,
-            chest: analysis.chest_score,
-            shoulders: analysis.shoulders_score,
-            back: analysis.back_score,
-            abs: analysis.abs_score,
-            legs: analysis.legs_score,
-            arms: analysis.arms_score,
-          }
-        })
-      });
+    // ✅ Upload to Supabase Storage
+    const fileName = `progress_${session.user.id}_week${currentWeek}_${Date.now()}.jpg`;
+    const { error: uploadError } = await supabase.storage
+      .from('progress-photos')
+      .upload(fileName, file, { upsert: true, contentType: file.type });
 
-      const result = await response.json();
+    if (uploadError) throw uploadError;
 
-      // 3. New progress entry banao
-      const newEntry = {
-        week: currentWeek,
-        url: publicUrl,
-        date: new Date().toISOString(),
-        scores: result.updated_scores || null,
-      };
+    const { data: { publicUrl } } = supabase.storage
+      .from('progress-photos')
+      .getPublicUrl(fileName);
 
-      const updatedPhotos = [...progressPhotos, newEntry];
-      setProgressPhotos(updatedPhotos);
+    const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://localhost:5000"
+      : "https://ai-physique-assessment.onrender.com";
 
-      // 4. Supabase profiles table mein save karein
-      await supabase
-        .from('profiles')
-        .update({ progress_photos: updatedPhotos })
-        .eq('id', session.user.id);
+    // ✅ FIX: Correct key names — analysis object mein 'overall_rating' hai, 'overall_score' nahi
+    const currentAnalysis = safeProtocol.body_analysis || {};
+    const overallScore = currentAnalysis.overall_rating || 
+                         currentAnalysis.overall_score || 
+                         currentOverallScore;
 
-      setProgressView('compare');
-      setToastMessage('📸 Progress logged! AI has updated your scores.');
-      setTimeout(() => setToastMessage(null), 3000);
+    const response = await fetch(`${backendUrl}/api/analyze-progress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: session.user.id,
+        progressImageBase64: base64Image,
+        weekNumber: currentWeek,
+        // ✅ FIX: Backend 'overall', 'chest' etc expect karta hai — yahi bhejo
+        originalScores: {
+          overall:   overallScore,
+          chest:     currentAnalysis.chest_score     || 60,
+          shoulders: currentAnalysis.shoulders_score || 60,
+          back:      currentAnalysis.back_score      || 60,
+          abs:       currentAnalysis.abs_score       || 60,
+          legs:      currentAnalysis.legs_score      || 60,
+          arms:      currentAnalysis.arms_score      || 60,
+        }
+      })
+    });
 
-    } catch (err) {
-      console.error('Progress update failed:', err);
-      setToastMessage('❌ Upload failed. Try again.');
-      setTimeout(() => setToastMessage(null), 3000);
-    } finally {
-      setIsAnalyzingProgress(false);
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error || `Server error: ${response.status}`);
     }
-  };
 
+    const result = await response.json();
+
+    // ✅ FIX: result.updated_scores check karo — agar nahi aaya toh throw karo
+    if (!result.updated_scores) {
+      throw new Error("AI returned no scores. Please try again.");
+    }
+
+    const aiScores = result.updated_scores;
+    console.log("✅ AI Progress Scores received:", aiScores);
+
+    // ✅ FIX: Exact structure store karo jo compare view mein read hoti hai
+    const newEntry = {
+      week: currentWeek,
+      url: publicUrl,
+      date: new Date().toISOString(),
+      scores: {
+        overall:           aiScores.overall   || overallScore,
+        chest:             aiScores.chest     || currentAnalysis.chest_score,
+        shoulders:         aiScores.shoulders || currentAnalysis.shoulders_score,
+        back:              aiScores.back      || currentAnalysis.back_score,
+        abs:               aiScores.abs       || currentAnalysis.abs_score,
+        legs:              aiScores.legs      || currentAnalysis.legs_score,
+        arms:              aiScores.arms      || currentAnalysis.arms_score,
+        body_fat_estimate:   aiScores.body_fat_estimate   || null,
+        visible_improvements: aiScores.visible_improvements || null,
+        primary_concern:     aiScores.primary_concern     || null,
+        summary:             aiScores.summary             || null,
+      }
+    };
+
+    const updatedPhotos = [...progressPhotos, newEntry];
+    setProgressPhotos(updatedPhotos);
+    setProgressView('compare'); // ✅ Auto switch to compare view
+
+    // ✅ Save to Supabase profiles table
+    const { error: saveError } = await supabase
+      .from('profiles')
+      .update({ progress_photos: updatedPhotos })
+      .eq('id', session.user.id);
+
+    if (saveError) console.error("Profile save error (non-fatal):", saveError);
+
+    setToastMessage(`📸 Week ${currentWeek} progress analyzed!`);
+    setTimeout(() => setToastMessage(null), 3000);
+
+  } catch (err) {
+    console.error('Progress update failed:', err);
+    setToastMessage(`❌ ${err.message}`);
+    setTimeout(() => setToastMessage(null), 4000);
+  } finally {
+    setIsAnalyzingProgress(false);
+  }
+};
   // ==========================================
   // 🔴 NEW: Aesthetic "Mark Complete" Logic
   // ==========================================
@@ -957,143 +1012,196 @@ const Dashboard = () => {
 
                     {/* PROGRESS COMPARE VIEW */}
                     {progressView === 'compare' && progressPhotos.length > 0 && (() => {
-                      const latestProgress = progressPhotos[progressPhotos.length - 1];
-                      const latestScores = latestProgress.scores;
-                      const weeksPassed = latestProgress.week;
+  const latestProgress = progressPhotos[progressPhotos.length - 1];
+  const latestScores   = latestProgress?.scores;
+  const weeksPassed    = latestProgress?.week;
 
-                      const scoreDelta = (newScore, oldScore) => {
-                        if (!newScore || !oldScore) return null;
-                        return newScore - oldScore;
-                      };
+  // ✅ FIX: analysis object se correct keys — overall_rating NOT overall_score
+  const currentAnalysis = safeProtocol.body_analysis || {};
+  const baseOverall = currentAnalysis.overall_rating || currentAnalysis.overall_score || currentOverallScore;
 
-                      const comparisonMetrics = [
-                        { label: 'Overall', old: analysis.overall_score, new: latestScores?.overall },
-                        { label: 'Chest', old: analysis.chest_score, new: latestScores?.chest },
-                        { label: 'Shoulders', old: analysis.shoulders_score, new: latestScores?.shoulders },
-                        { label: 'Back', old: analysis.back_score, new: latestScores?.back },
-                        { label: 'Core', old: analysis.abs_score, new: latestScores?.abs },
-                        { label: 'Arms', old: analysis.arms_score, new: latestScores?.arms },
-                      ].filter(m => m.old && m.new);
+  const scoreDelta = (newScore, oldScore) => {
+    if (newScore == null || oldScore == null) return null;
+    const diff = newScore - oldScore;
+    return diff % 1 !== 0 ? parseFloat(diff.toFixed(1)) : diff;
+  };
 
-                      return (
-                        <div className="flex flex-col gap-6 w-full mb-10">
-                          {/* Side-by-side progress photos */}
-                          <div className="flex justify-center items-center gap-3 w-full relative">
-                            {/* Day 1 Photo */}
-                            <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl border border-white/[0.05] overflow-hidden relative shadow-lg">
-                              <img src={currentImgUrl || fallbackImg} className="absolute inset-0 w-full h-full object-cover filter grayscale-[15%]" alt="Day 1" onError={(e) => { e.target.src = fallbackImg; }} />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                              <div className="absolute bottom-3 left-0 w-full flex justify-center">
-                                <span className="bg-black/50 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase">Day 1</span>
-                              </div>
-                            </div>
+  // ✅ FIX: Correct old keys from analysis object
+  const comparisonMetrics = [
+    { label: 'Overall',   old: baseOverall,                    new: latestScores?.overall   },
+    { label: 'Chest',     old: currentAnalysis.chest_score,     new: latestScores?.chest     },
+    { label: 'Shoulders', old: currentAnalysis.shoulders_score, new: latestScores?.shoulders },
+    { label: 'Back',      old: currentAnalysis.back_score,      new: latestScores?.back      },
+    { label: 'Core',      old: currentAnalysis.abs_score,       new: latestScores?.abs       },
+    { label: 'Legs',      old: currentAnalysis.legs_score,      new: latestScores?.legs      },
+    { label: 'Arms',      old: currentAnalysis.arms_score,      new: latestScores?.arms      },
+  ].filter(m => m.old != null && m.new != null);
 
-                            <div className="flex flex-col items-center shrink-0 opacity-50">
-                              <div className="w-[1px] h-6 bg-gradient-to-b from-transparent to-white/20" />
-                              <span className="text-[8px] font-black text-gray-500 my-1 uppercase tracking-widest">VS</span>
-                              <div className="w-[1px] h-6 bg-gradient-to-t from-transparent to-white/20" />
-                            </div>
+  return (
+    <div className="flex flex-col gap-6 w-full mb-10">
 
-                            {/* Latest Progress Photo */}
-                            <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl border border-[#E71B25]/30 overflow-hidden relative shadow-[0_5px_20px_rgba(231,27,37,0.1)]">
-                              <img src={latestProgress.url} className="absolute inset-0 w-full h-full object-cover" alt="Latest" onError={(e) => { e.target.src = fallbackImg; }} />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                              <div className="absolute bottom-3 left-0 w-full flex justify-center">
-                                <span className="bg-[#E71B25]/20 backdrop-blur-md border border-[#E71B25]/50 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5">
-                                  <TrendingUp className="w-2.5 h-2.5 text-[#ff8a8a]" /> Week {weeksPassed}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+      {/* Side-by-side photos */}
+      <div className="flex justify-center items-center gap-3 w-full relative">
+        {/* Day 1 */}
+        <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl border border-white/[0.05] overflow-hidden relative shadow-lg">
+          <img
+            src={currentImgUrl || fallbackImg}
+            className="absolute inset-0 w-full h-full object-cover filter grayscale-[15%]"
+            alt="Day 1"
+            onError={(e) => { e.target.src = fallbackImg; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+          <div className="absolute bottom-3 left-0 w-full flex justify-center">
+            <span className="bg-black/50 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase">
+              Day 1
+            </span>
+          </div>
+        </div>
 
-                          {/* Score Comparison */}
-                          {comparisonMetrics.length > 0 && (() => {
-                            // 🔴 FIX 1: Delta logic ko update kiya taake exact decimals dikhay
-                            const scoreDelta = (newScore, oldScore) => {
-                              if (newScore == null || oldScore == null) return null;
-                              const diff = newScore - oldScore;
-                              // Agar decimal hai toh 1 decimal place tak dikhao warna simple number
-                              return diff % 1 !== 0 ? diff.toFixed(1) : diff;
-                            };
+        <div className="flex flex-col items-center shrink-0 opacity-50">
+          <div className="w-[1px] h-6 bg-gradient-to-b from-transparent to-white/20" />
+          <span className="text-[8px] font-black text-gray-500 my-1 uppercase tracking-widest">VS</span>
+          <div className="w-[1px] h-6 bg-gradient-to-t from-transparent to-white/20" />
+        </div>
 
-                            // 🔴 FIX 2: Legs aur Overall ko theek se shamil kiya
-                            const comparisonMetrics = [
-                              { label: 'Overall', old: analysis.overall_score || currentOverallScore, new: latestScores?.overall },
-                              { label: 'Chest', old: analysis.chest_score, new: latestScores?.chest },
-                              { label: 'Shoulders', old: analysis.shoulders_score, new: latestScores?.shoulders },
-                              { label: 'Back', old: analysis.back_score, new: latestScores?.back },
-                              { label: 'Core', old: analysis.abs_score, new: latestScores?.abs },
-                              { label: 'Legs', old: analysis.legs_score, new: latestScores?.legs }, // 👈 LEGS ADDED HERE
-                              { label: 'Arms', old: analysis.arms_score, new: latestScores?.arms },
-                            ].filter(m => m.old != null && m.new != null); // filter condition behtar ki
+        {/* Latest Progress Photo */}
+        <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl border border-[#E71B25]/30 overflow-hidden relative shadow-[0_5px_20px_rgba(231,27,37,0.1)]">
+          <img
+            src={latestProgress.url}
+            className="absolute inset-0 w-full h-full object-cover"
+            alt="Latest Progress"
+            onError={(e) => { e.target.src = fallbackImg; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+          <div className="absolute bottom-3 left-0 w-full flex justify-center">
+            <span className="bg-[#E71B25]/20 backdrop-blur-md border border-[#E71B25]/50 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5">
+              <TrendingUp className="w-2.5 h-2.5 text-[#ff8a8a]" /> Week {weeksPassed}
+            </span>
+          </div>
+        </div>
+      </div>
 
-                            return (
-                              <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                  <TrendingUp className="w-4 h-4 text-[#22c55e]" />
-                                  <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Score Delta — Week {weeksPassed}</h3>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  {comparisonMetrics.map((metric, i) => {
-                                    const delta = scoreDelta(metric.new, metric.old);
-                                    // String ko number mein convert kar ke check karein ke positive hai ya nahi
-                                    const isPositive = parseFloat(delta) >= 0;
+      {/* Score Comparison Grid */}
+      {comparisonMetrics.length > 0 ? (
+        <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-4 h-4 text-[#22c55e]" />
+            <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">
+              Score Delta — Week {weeksPassed}
+            </h3>
+          </div>
 
-                                    // 🔴 NEW COLOR LOGIC: New Score ki base par Red, Orange, Green
-                                    let ratingTextColor = "text-[#22c55e]";
-                                    let ratingBgColor = "bg-[#22c55e]";
-                                    if (metric.new < 50) {
-                                      ratingTextColor = "text-[#E71B25]"; // Red
-                                      ratingBgColor = "bg-[#E71B25]";
-                                    } else if (metric.new < 70) {
-                                      ratingTextColor = "text-orange-500"; // Orange
-                                      ratingBgColor = "bg-orange-500";
-                                    }
+          <div className="grid grid-cols-2 gap-3">
+            {comparisonMetrics.map((metric, i) => {
+              const delta = scoreDelta(metric.new, metric.old);
+              const isPositive = parseFloat(delta) >= 0;
 
-                                    return (
-                                      <div key={i} className="bg-[#111] rounded-xl p-3 border border-white/[0.03]">
-                                        <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold block mb-2">{metric.label}</span>
-                                        <div className="flex items-baseline gap-2">
-                                          <span className="text-[9px] text-gray-500 line-through">
-                                            {/* Agar purana score float ho toh usay format karein */}
-                                            {Number.isInteger(metric.old) ? metric.old : Number(metric.old).toFixed(1)}
-                                          </span>
-                                          {/* 🔴 Naya score Rating Color ke sath */}
-                                          <span className={`font-black text-[16px] ${ratingTextColor}`}>
-                                            {Number.isInteger(metric.new) ? metric.new : Number(metric.new).toFixed(1)}
-                                          </span>
-                                          {delta !== null && (
-                                            <span className={`text-[11px] font-black ${isPositive ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
-                                              {isPositive ? '+' : ''}{delta}
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="w-full h-1 bg-[#222] rounded-full mt-2 overflow-hidden">
-                                          <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${metric.new}%` }}
-                                            transition={{ duration: 1.2, ease: "easeOut" }}
-                                            // 🔴 Progress Bar Rating Color ke sath
-                                            className={`h-full rounded-full ${ratingBgColor}`}
-                                          />
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })()}
-                          {/* No AI scores yet message */}
-                          {comparisonMetrics.length === 0 && (
-                            <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 flex flex-col items-center gap-2 text-center">
-                              <RefreshCw className="w-5 h-5 text-gray-500" />
-                              <p className="text-[11px] text-gray-400 font-medium">Photo uploaded! AI score comparison will appear here once backend processes the image.</p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+              // Color based on new score value
+              let ratingTextColor = "text-[#22c55e]";
+              let ratingBgColor   = "bg-[#22c55e]";
+              if (metric.new < 50) {
+                ratingTextColor = "text-[#E71B25]";
+                ratingBgColor   = "bg-[#E71B25]";
+              } else if (metric.new < 70) {
+                ratingTextColor = "text-orange-500";
+                ratingBgColor   = "bg-orange-500";
+              }
+
+              return (
+                <div key={i} className="bg-[#111] rounded-xl p-3 border border-white/[0.03]">
+                  <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold block mb-2">
+                    {metric.label}
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    {/* Old score — strikethrough */}
+                    <span className="text-[9px] text-gray-500 line-through">
+                      {Number.isInteger(metric.old)
+                        ? metric.old
+                        : Number(metric.old).toFixed(1)}
+                    </span>
+                    {/* New score — colored */}
+                    <span className={`font-black text-[16px] ${ratingTextColor}`}>
+                      {Number.isInteger(metric.new)
+                        ? metric.new
+                        : Number(metric.new).toFixed(1)}
+                    </span>
+                    {/* Delta */}
+                    {delta !== null && (
+                      <span className={`text-[11px] font-black ${isPositive ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                        {isPositive ? '+' : ''}{delta}
+                      </span>
+                    )}
+                  </div>
+                  <div className="w-full h-1 bg-[#222] rounded-full mt-2 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${metric.new}%` }}
+                      transition={{ duration: 1.2, ease: "easeOut" }}
+                      className={`h-full rounded-full ${ratingBgColor}`}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ✅ AI Written Summary */}
+          {latestScores?.summary && (
+            <div className="mt-4 bg-[#111] border border-white/[0.05] rounded-xl p-4">
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-[#E71B25] shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[10px] font-bold text-white uppercase tracking-widest mb-1.5">
+                    AI Assessment
+                  </p>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    {latestScores.summary}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ Visible Improvements */}
+          {latestScores?.visible_improvements &&
+           latestScores.visible_improvements !== "None visible yet" && (
+            <div className="mt-3 bg-[#22c55e]/5 border border-[#22c55e]/10 rounded-xl p-3 flex items-start gap-2">
+              <Check className="w-3.5 h-3.5 text-[#22c55e] shrink-0 mt-0.5" strokeWidth={3} />
+              <p className="text-[10px] text-gray-400 leading-relaxed">
+                <span className="text-[#22c55e] font-bold">Visible progress: </span>
+                {latestScores.visible_improvements}
+              </p>
+            </div>
+          )}
+
+          {/* ✅ Primary Concern */}
+          {latestScores?.primary_concern && (
+            <div className="mt-3 bg-[#E71B25]/5 border border-[#E71B25]/10 rounded-xl p-3 flex items-start gap-2">
+              <Zap className="w-3.5 h-3.5 text-[#E71B25] shrink-0 mt-0.5" />
+              <p className="text-[10px] text-gray-400 leading-relaxed">
+                <span className="text-[#E71B25] font-bold">Still needs work: </span>
+                {latestScores.primary_concern}
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* No scores state — photo uploaded but AI scores missing */
+        <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 flex flex-col items-center gap-3 text-center">
+          <div className="w-10 h-10 rounded-full bg-[#E71B25]/10 border border-[#E71B25]/20 flex items-center justify-center">
+            <RefreshCw className="w-5 h-5 text-[#E71B25]" />
+          </div>
+          <div>
+            <p className="text-[12px] font-bold text-white mb-1">Scores pending</p>
+            <p className="text-[10px] text-gray-500 leading-relaxed max-w-[240px]">
+              Photo uploaded but AI scores not found. Try re-uploading with good lighting and a clear full-body shot.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+})()}
                     {/* 🔴 UPDATED: Upload Weekly Progress Button */}
                     <div className="w-full flex flex-col items-center gap-3 mb-10">
                       <input
