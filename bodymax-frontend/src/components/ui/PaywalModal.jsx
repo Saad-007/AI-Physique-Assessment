@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import ReactGA from 'react-ga4'; // Make sure you import this at the top of your file!
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, CreditCard, X, Lock, Sparkles, Zap, Target, Timer, Star, User, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, CreditCard, X, Lock, Sparkles, Zap, Target, Timer, Star, Tag ,Loader2 ,User, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 // WHOP KA OFFICIAL PACKAGE
 import { WhopCheckoutEmbed } from "@whop/checkout/react";
+import { supabase } from '../../lib/supabase';
 
 // ==========================================
 // MAP CONFIGURATION
@@ -127,14 +128,72 @@ const PricingWidget = ({ id, onCheckout, onSuccess }) => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
+  // 🔴 NEW PROMO CODE STATES
+  const [showPromoField, setShowPromoField] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoError, setPromoError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  
   const handlePlanClick = (planId) => {
     setSelectedPlan(planId);
     setIsCheckoutOpen(true); 
-    
-    // 🔴 FIXED: Fire the event correctly inside the handler
     ReactGA.event({ category: "Funnel", action: "checkout_started" });
   };
+  // 🔴 NEW PROMO CODE VERIFICATION LOGIC
+  const handleVerifyPromo = async (e) => {
+    e.preventDefault();
+    if (!promoCode.trim()) return;
 
+    setIsVerifying(true);
+    setPromoError("");
+
+    try {
+      // 1. Check if code exists and is valid in Supabase
+      const { data, error } = await supabase
+        .from('access_codes')
+        .select('*')
+        .eq('code', promoCode.trim().toUpperCase()) // Case insensitive search
+        .eq('is_used', false)
+        .single();
+
+      if (error || !data) {
+        setPromoError("Invalid or already used promo code.");
+        setIsVerifying(false);
+        return;
+      }
+
+      // 2. Mark code as used
+      const { error: updateError } = await supabase
+        .from('access_codes')
+        .update({ is_used: true })
+        .eq('id', data.id);
+
+      if (updateError) {
+        console.error("Error updating promo code:", updateError);
+        setPromoError("Something went wrong. Please try again.");
+        setIsVerifying(false);
+        return;
+      }
+
+      // 3. Success! Bypass paywall
+      ReactGA.event({ category: "Marketing", action: "creator_access_unlocked" });
+      console.log(`Creator Access Unlocked with code: ${data.code}`);
+      
+      const planName = data.assigned_to ? `Creator_${data.assigned_to}` : "Creator_Access";
+      
+      if (onCheckout) {
+        onCheckout(planName);
+      } else if (onSuccess) {
+        onSuccess(planName);
+      }
+
+    } catch (err) {
+      console.error(err);
+      setPromoError("An error occurred verifying the code.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
   return (
     <div id={id} className="flex flex-col items-center text-center w-full mb-12 mt-12 scroll-mt-24">
       <h2 className="text-[20px] md:text-[24px] font-bold text-white leading-[1.1] tracking-tight mb-6">
@@ -149,11 +208,10 @@ const PricingWidget = ({ id, onCheckout, onSuccess }) => {
               key={plan.id}
               // 🔴 FIXED: Now we just call the helper function
               onClick={() => handlePlanClick(plan.id)}
-              className={`relative w-full rounded-2xl cursor-pointer transition-all duration-200 border-[1.5px] overflow-visible flex h-[105px] md:h-[115px] ${
-                isSelected
+              className={`relative w-full rounded-2xl cursor-pointer transition-all duration-200 border-[1.5px] overflow-visible flex h-[105px] md:h-[115px] ${isSelected
                   ? 'border-[#E71B25] bg-[#120a09] shadow-[0_0_20px_rgba(231,27,37,0.15)]'
                   : 'border-[#2C2C2E] bg-[#161618] hover:border-[#3C3C3E]'
-              }`}
+                }`}
             >
               {plan.badge && (
                 <div className={`absolute text-[10px] font-bold tracking-wider z-30 ${plan.badge.style}`}>
@@ -235,15 +293,53 @@ const PricingWidget = ({ id, onCheckout, onSuccess }) => {
           <Lock className="w-3 h-3" />
           <span className="text-[10px] font-bold uppercase tracking-widest">SSL Encrypted Checkout</span>
         </div>
+        
 
-        <button
+        {/* 🔴 NEW: PROMO CODE SECTION */}
+        <div className="mt-8 w-full max-w-[420px] flex flex-col items-center">
+          {!showPromoField ? (
+            <button 
+              onClick={() => setShowPromoField(true)}
+              className="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 hover:text-white transition-colors border-b border-dashed border-gray-600 hover:border-gray-400 pb-0.5"
+            >
+              <Tag className="w-3 h-3" /> Have a creator promo code?
+            </button>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full bg-[#111] border border-white/10 rounded-xl p-3 flex flex-col gap-2"
+            >
+              <div className="flex gap-2 w-full">
+                <input 
+                  type="text" 
+                  placeholder="Enter Code"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  className="flex-1 bg-[#1a1a1a] border border-white/5 rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-[#E71B25]/50 uppercase tracking-wide"
+                />
+                <button 
+                  onClick={handleVerifyPromo}
+                  disabled={isVerifying || !promoCode}
+                  className="bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white text-[11px] font-bold uppercase tracking-wider px-4 rounded-lg transition-colors flex items-center justify-center min-w-[80px]"
+                >
+                  {isVerifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Apply"}
+                </button>
+              </div>
+              {promoError && (
+                <span className="text-[10px] text-[#ef4444] font-medium text-left px-1">{promoError}</span>
+              )}
+            </motion.div>
+          )}
+        </div>
+        {/* <button
           onClick={(e) => {
             e.preventDefault();
             const rawPlan = selectedPlan || "12-weeks";
             let formattedPlan = "12-Week";
             if (rawPlan === '1-week') formattedPlan = "1-Week";
             if (rawPlan === '4-weeks') formattedPlan = "4-Week";
-            
+
             console.log("Developer Bypass Triggered. Sending Plan:", formattedPlan);
 
             if (onCheckout) {
@@ -255,7 +351,7 @@ const PricingWidget = ({ id, onCheckout, onSuccess }) => {
           className="mt-6 text-[10px] text-gray-500 uppercase tracking-[0.2em] border-b border-transparent hover:text-white hover:border-white transition-all z-50 cursor-pointer relative"
         >
           🛠 Dev: Bypass Payment & Proceed
-        </button>
+        </button> */}
       </div>
     </div>
   );
@@ -386,7 +482,7 @@ const ReviewCarousel = () => {
         </div>
         <div className="text-center mt-3">
           <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold flex items-center justify-center gap-1 animate-pulse">
-             Swipe to see more <ChevronRight className="w-3 h-3 inline" />
+            Swipe to see more <ChevronRight className="w-3 h-3 inline" />
           </span>
         </div>
       </div>
@@ -414,7 +510,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  const currentPhoto = formData?.photoPreviewUrls?.[1] || formData?.photos?.[1] || '/Today3.png'; 
+  const currentPhoto = formData?.photoPreviewUrls?.[1] || formData?.photos?.[1] || '/Today3.png';
   const goalPhoto = formData?.dreamPhysiquePreview || formData?.dreamPhysiqueImage || '/Future1.png';
   const hours = Math.floor(timeLeft / 3600);
   const minutes = Math.floor((timeLeft % 3600) / 60);
@@ -432,7 +528,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
           `}} />
 
           {/* URGENCY BAR */}
-          <motion.div 
+          <motion.div
             initial={{ x: 50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 50, opacity: 0 }}
@@ -448,13 +544,13 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
             </span>
           </motion.div>
 
-        
+
 
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
             className="fixed inset-0 z-[999] flex items-start justify-center bg-[#050505]/95 backdrop-blur-xl overflow-y-auto hide-scrollbar px-4 py-8 md:py-12"
           >
-            
+
             <motion.div
               initial={{ opacity: 0, y: 30, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.96 }} transition={{ type: "spring", stiffness: 350, damping: 25 }}
               className="w-full max-w-[440px] flex flex-col items-center mt-2 mb-12"
@@ -464,7 +560,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                   SECTION 1: TOP HOOK & OFFER
                   ========================================== */}
               <div className="w-full flex flex-col items-center mb-10 px-1">
-                
+
                 <div className="bg-[#f05c4a] text-white text-[10px] md:text-[11px] font-black uppercase tracking-wider py-1.5 px-4 rounded-full mb-6">
                   BodyMax Analysis Complete
                 </div>
@@ -482,7 +578,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent"></div>
                     <span className="absolute bottom-4 left-0 w-full text-center text-white text-[13px] md:text-[14px] font-semibold tracking-wide z-10">Before BodyMax</span>
                   </div>
-                  
+
                   <div className="flex-1 relative bg-gradient-to-b from-[#2e7d32] to-[#1b5e20]">
                     <img src="/Future.png" alt="After" className="absolute inset-0 w-full h-full object-cover object-top opacity-90 mix-blend-luminosity" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent"></div>
@@ -492,7 +588,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
 
                 <div className="w-full bg-[#111] border border-white/5 rounded-[1.5rem] p-6 md:p-7 flex flex-col items-center shadow-lg">
                   <h2 className="text-[20px] md:text-[22px] font-black text-white mb-5 tracking-tight">Start Your Journey Today</h2>
-                  
+
                   <div className="w-full flex flex-col gap-3.5 mb-2">
                     {[
                       "Get your complete Full-Body Score & detailed report.",
@@ -513,12 +609,12 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                   FIRST WIDGET INSTANCE (TOP)
                   ========================================== */}
               <PricingWidget id="pricing-section-top" onCheckout={onCheckout} onSuccess={onSuccess} />
-                    
+
               {/* ==========================================
                   NEW: BLURRED CURIOSITY WIDGET
                   ========================================== */}
               <div className="w-full relative mb-12 rounded-[1.5rem] overflow-hidden border border-white/5 bg-[#0a0a0a] shadow-2xl pt-6 md:pt-8">
-                
+
                 {/* --- UPGRADED: UNBLURRED IMAGES SECTION --- */}
                 <div className="w-full flex items-center justify-center mb-8 px-4 md:px-6 relative">
                   <div className="relative flex-1 aspect-[3/4] max-w-[160px] md:max-w-[180px] rounded-[1rem] md:rounded-[1.2rem] overflow-hidden border border-white/10 shadow-2xl group bg-[#1c1c1e]">
@@ -542,7 +638,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* --- AI PREDICTION BANNER --- */}
                 <div className="w-full px-4 md:px-6 mb-8">
                   <div className="w-full bg-gradient-to-r from-[#22c55e]/15 to-transparent border border-[#22c55e]/20 rounded-2xl p-4 md:p-5 flex items-center gap-4 md:gap-5 shadow-[0_0_20px_rgba(34,197,94,0.05)] relative overflow-hidden">
@@ -626,10 +722,10 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                   </div>
                 </div>
 
-               {/* NEGATIVES & IMPACT CARD */}
+                {/* NEGATIVES & IMPACT CARD */}
                 <div className="relative bg-gradient-to-b from-[#1c1c1e] to-[#0a0a0a] border border-white/10 rounded-[1.5rem] p-6 md:p-7 shadow-2xl overflow-hidden group">
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#ef4444] to-transparent opacity-40"></div>
-                  
+
                   <div className="flex items-center gap-4 mb-6 relative z-10">
                     <div className="bg-[#ef4444]/10 p-2.5 rounded-xl border border-[#ef4444]/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
                       <AlertTriangle className="w-5 h-5 text-[#ef4444]" />
@@ -639,7 +735,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                       <p className="text-gray-500 text-[10px] md:text-[11px] uppercase tracking-widest font-bold">What's Holding You Back</p>
                     </div>
                   </div>
-                  
+
                   <div className="relative mt-2">
                     {/* Blurred Content Wrap */}
                     <div className="filter blur-[6px] opacity-70 select-none pointer-events-none pb-4">
@@ -671,19 +767,19 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Dark Fade Overlay & Active Button */}
-<div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent">
-  <button 
-    onClick={scrollToPricing}
-    // 🔴 FIX: Added max-w-sm, responsive margins (mt-8 md:mt-14), and adjusted text/icon sizes
-    className="mt-8 md:mt-14 bg-[#E71B25] hover:bg-[#c2141d] text-white w-[92%] sm:w-[80%] max-w-sm py-3.5 md:py-4 rounded-xl font-black text-[12px] sm:text-[13px] md:text-[14px] uppercase tracking-wide shadow-[0_8px_25px_rgba(231,27,37,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 border border-white/20"
-  >
-    {/* 🔴 FIX: Icon size slightly bigger on desktop for better proportions */}
-    <Lock className="w-4 h-4 md:w-4.5 md:h-4.5 shrink-0" strokeWidth={2.5} />
-    <span className="truncate">Unlock Full BodyMax Report</span>
-  </button>
-</div>
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent">
+                      <button
+                        onClick={scrollToPricing}
+                        // 🔴 FIX: Added max-w-sm, responsive margins (mt-8 md:mt-14), and adjusted text/icon sizes
+                        className="mt-8 md:mt-14 bg-[#E71B25] hover:bg-[#c2141d] text-white w-[92%] sm:w-[80%] max-w-sm py-3.5 md:py-4 rounded-xl font-black text-[12px] sm:text-[13px] md:text-[14px] uppercase tracking-wide shadow-[0_8px_25px_rgba(231,27,37,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 border border-white/20"
+                      >
+                        {/* 🔴 FIX: Icon size slightly bigger on desktop for better proportions */}
+                        <Lock className="w-4 h-4 md:w-4.5 md:h-4.5 shrink-0" strokeWidth={2.5} />
+                        <span className="truncate">Unlock Full BodyMax Report</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* --- NEW GOOD NEWS SECTION --- */}
@@ -695,7 +791,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                       by following <span className="text-[#22c55e]">bodymax hyper-personalized plan</span> you'll crush every obstacle in your way, & achieve your dream physique faster than you ever thought possible.
                     </p>
                   </div>
-                  
+
                 </div>
               </div>
 
@@ -719,7 +815,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                 </div>
 
                 <div className="w-full bg-[#111] border border-white/5 rounded-[1rem] overflow-hidden flex flex-col p-1.5 mb-8 shadow-2xl">
-                  
+
                   {/* Week 1 Row (Visible) */}
                   <div className="flex w-full mb-1">
                     <div className="w-6 md:w-8 flex items-center justify-center bg-[#1a1a1a] rounded-l-lg border-r border-black">
@@ -752,7 +848,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Glowing Lock Overlay */}
                     <div className="absolute top-1/2 -translate-y-1/2 left-0 w-full flex items-center justify-center z-10 pl-4">
                       <div className="w-[95%] bg-gradient-to-r from-transparent via-[#4a0508]/90 to-transparent py-2 md:py-2.5 flex justify-center items-center gap-2 backdrop-blur-[1px]">
@@ -771,7 +867,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                 </div>
 
                 <div className="w-full bg-[#111] border border-white/5 rounded-[1rem] overflow-hidden flex flex-col p-1.5 mb-10 shadow-2xl">
-                  
+
                   {/* Week 1 Row (Visible) */}
                   <div className="flex w-full mb-1">
                     <div className="w-6 md:w-8 flex items-center justify-center bg-[#1a1a1a] rounded-l-lg border-r border-black">
@@ -804,7 +900,7 @@ const PaywallModal = ({ isOpen, onClose, onSuccess, onCheckout, formData }) => {
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Glowing Lock Overlay */}
                     <div className="absolute top-1/2 -translate-y-1/2 left-0 w-full flex items-center justify-center z-10 pl-4">
                       <div className="w-[95%] bg-gradient-to-r from-transparent via-[#4a0508]/90 to-transparent py-2 md:py-2.5 flex justify-center items-center gap-2 backdrop-blur-[1px]">
