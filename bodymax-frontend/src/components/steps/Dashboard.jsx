@@ -5,13 +5,15 @@ import {
   Cpu, Camera, ChevronRight, Zap, ScanLine, XCircle, Utensils,
   Timer, CheckCircle, Apple, Coffee, Moon, TrendingUp, Star, BicepsFlexed, Clock, X,
   Crosshair, Focus, MessageCircle, Droplets, Footprints, Send, PlayCircle, LayoutGrid,
-  Flame, Lock, Pause, ZapOff, BarChart2, ShieldCheck, Sparkles, ArrowRight, Hexagon, Check, Award, BarChart, Crown, RefreshCw
+  Flame, Lock, Pause, ZapOff, BarChart2, ShieldCheck,Loader2, Sparkles, ArrowRight, Hexagon, Check, Award, BarChart, Crown, RefreshCw
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { updateDailyStreak } from '../../utils/streakUtils';
 import { toBlob } from 'html-to-image';
 import UserProfile from '../ui/UserProfile';
+import { toPng } from 'html-to-image';
 import PaywallModal from '../ui/PaywalModal';
+
 
 // --- Mini Component: Premium Progress Bar ---
 const ProgressBar = ({ label, value, color, showPercentage = true }) => (
@@ -405,64 +407,87 @@ const Dashboard = () => {
 
 
 
-  const handleShare = async () => {
-    if (!scanRef.current) return;
-    setIsSharing(true);
+const handleShare = async () => {
+  if (!scanRef.current) return;
+  setIsSharing(true);
 
-    const currentScore = analysis.overall_rating || analysis.score || 82;
-    const potentialScore = analysis.potential_rating || analysis.potential || 95;
-    const bodyFat = analysis.body_fat_percentage || "18%";
+  const analysis = safeProtocol.body_analysis || {};
+  const currentScore = analysis.overall_score || analysis.overall_rating || 82;
+  const potentialScore = analysis.potential_score || analysis.potential_rating || 95;
+  const bodyFat = analysis.body_fat_percentage || analysis.estimated_bf || "18%";
 
-    const shareText = `🤖 BodyMax AI Physique Scan 🤖\n\n` +
-      `📊 OVERALL SCORE: ${currentScore}/100\n` +
-      `🔥 GENETIC POTENTIAL: ${potentialScore}/100\n` +
-      `💧 BODY FAT: ${bodyFat}\n\n` +
-      `Think you can beat my genetics? Get your AI scan here:\n` +
-      `🔗 https://ai-physique-assessment.vercel.app`;
+  const shareText =
+    `🤖 BodyMax AI Physique Scan 🤖\n\n` +
+    `📊 OVERALL SCORE: ${currentScore}/100\n` +
+    `🔥 GENETIC POTENTIAL: ${potentialScore}/100\n` +
+    `💧 BODY FAT: ${bodyFat}\n\n` +
+    `Think you can beat my genetics? Get your AI scan here:\n` +
+    `🔗 https://ai-physique-assessment.vercel.app`;
 
-    try {
-      const blob = await toBlob(scanRef.current, {
-        quality: 0.95,
+  try {
+    // ✅ 3 baar try karo — pehli baar fonts load nahi hoti
+    const generateImage = async () => {
+      return await toPng(scanRef.current, {
         backgroundColor: '#030303',
-        pixelRatio: 2
-      });
-
-      if (!blob) throw new Error("Image generation failed");
-      const file = new File([blob], 'BodyMax-Scan.png', { type: 'image/png' });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'My BodyMax Scan',
-          text: shareText,
-          files: [file]
-        });
-      } else {
-        try {
-          await navigator.clipboard.writeText(shareText);
-        } catch (clipErr) {
-          console.log("Clipboard copy failed", clipErr);
+        pixelRatio: 2,
+        skipFonts: true, // ✅ Font loading skip — CORS aur oklab/oklch dono fix
+        filter: (node) => {
+          // Google fonts links remove karo
+          if (node.tagName === 'LINK' && node.href?.includes('fonts.goog')) return false;
+          if (node.tagName === 'LINK' && node.href?.includes('fonts.gsta')) return false;
+          // Style tags jo oklch/oklab contain karein remove karo
+          if (node.tagName === 'STYLE' && (
+            node.textContent?.includes('oklch') ||
+            node.textContent?.includes('oklab')
+          )) return false;
+          return true;
         }
+      });
+    };
 
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'BodyMax-Scan.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    // Pehli call warmup ke liye, doosri actual image ke liye
+    await generateImage();
+    const dataUrl = await generateImage();
 
-        setToastMessage('📸 Image Saved & Text Copied! Just Paste (Ctrl+V) anywhere.');
-        setTimeout(() => setToastMessage(null), 4000);
-      }
-      setIsSharing(false);
-    } catch (err) {
-      console.error('Sharing failed', err);
-      setIsSharing(false);
-      setToastMessage('Failed to generate share image.');
+    // dataUrl se blob banao
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+
+    if (!blob) throw new Error("Blob generation failed");
+
+    const file = new File([blob], 'BodyMax-Scan.png', { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: 'My BodyMax Scan',
+        text: shareText,
+        files: [file]
+      });
+    } else {
+      try { await navigator.clipboard.writeText(shareText); } catch {}
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'BodyMax-Scan.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setToastMessage('📸 Image Saved & Text Copied!');
+      setTimeout(() => setToastMessage(null), 4000);
     }
-  };
 
+    setIsSharing(false);
+
+  } catch (err) {
+    console.error('Share failed:', err);
+    setIsSharing(false);
+    setToastMessage('❌ Share failed. Try again.');
+    setTimeout(() => setToastMessage(null), 3000);
+  }
+};
   const fetchUserDataAndProtocol = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
