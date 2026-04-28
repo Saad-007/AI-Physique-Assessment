@@ -511,17 +511,22 @@ Return ONLY this JSON structure:
 // ==========================================
 app.post('/api/analyze-ad', async (req, res) => {
   try {
-    const { currentImage, dreamImage } = req.body;
+    // 🔴 FIX: Yahan 'currentImage' ki jagah 'currentImages' (array) wapas laga diya hai
+    const { currentImages, dreamImage } = req.body;
     
-    if (!currentImage) {
-      return res.status(400).json({ error: "Missing image" });
+    if (!currentImages || !Array.isArray(currentImages) || currentImages.length === 0) {
+      return res.status(400).json({ error: "Missing current images" });
     }
 
-    console.log("[AD SCAN] Processing instant, brutally honest physique analysis...");
+    console.log(`[AD SCAN] Processing instant, brutally honest analysis using ${currentImages.length} photos...`);
 
-    const imageContentArray = [
-      { type: "image_url", image_url: { url: currentImage, detail: "high" } }
-    ];
+    const imageContentArray = [];
+
+    // 🔴 Teeno images (Front, Side, Back) ko AI ke liye array mein push karna
+    currentImages.forEach(imgBase64 => {
+      imageContentArray.push({ type: "image_url", image_url: { url: imgBase64, detail: "high" } });
+    });
+
     if (dreamImage) {
       imageContentArray.push({ type: "image_url", image_url: { url: dreamImage, detail: "high" } });
     }
@@ -530,7 +535,8 @@ app.post('/api/analyze-ad', async (req, res) => {
     const adPrompt = `
 You are a BRUTALLY HONEST, professional physique assessment judge with 20 years of experience.
 Your ONLY job right now is to score the physique in these photos ACCURATELY. 
-If two photos are provided (Current vs Dream), you must evaluate the Current physique for the main scores, and analyze the Dream physique to calculate the 'dream_body_chances' and 'potential_score'.
+You are receiving up to 3 photos of the Current physique (Front, Side, Back) and 1 photo of the Dream physique.
+You must evaluate ALL angles of the Current physique for the main scores, and analyze the Dream physique to calculate the 'dream_body_chances' and 'potential_score'.
 
 === MANDATORY SCORING RUBRIC ===
 - 20-35: Severely untrained, high body fat, no visible muscle.
@@ -564,16 +570,15 @@ Return ONLY this JSON (no markdown, no text outside JSON):
   "primary_concern": "<The weakest link holding the physique back right now>"
 }`;
 
-
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       response_format: { type: "json_object" },
-      max_tokens: 300,
+      max_tokens: 350,
       temperature: 0.2, // Low temp for brutal honesty and consistency
       messages: [
         { 
           role: "system", 
-          content: "You are a brutally honest physique scoring judge. Inflated scores destroy your reputation. Score what you SEE in the photo. Do NOT adjust scores upward to be kind. Return only valid JSON." 
+          content: "You are a brutally honest physique scoring judge. Inflated scores destroy your reputation. Score what you SEE in the photos. Do NOT adjust scores upward to be kind. Return only valid JSON." 
         },
         { role: "user", content: [ { type: "text", text: adPrompt }, ...imageContentArray ] }
       ]
@@ -586,7 +591,7 @@ Return ONLY this JSON (no markdown, no text outside JSON):
     
     let parsedData = JSON.parse(cleanVision);
 
-    // 🔴 SMART SERVER-SIDE CHECKS (Same as your main endpoint)
+    // 🔴 SMART SERVER-SIDE CHECKS
     const muscleKeys = ['chest_score', 'shoulders_score', 'back_score', 'abs_score', 'legs_score', 'arms_score'];
     
     // Weighted Average Recalculation just in case AI gets too generous
@@ -617,7 +622,7 @@ Return ONLY this JSON (no markdown, no text outside JSON):
     console.error("[AD SCAN ERROR]:", error);
     res.status(500).json({ error: "Failed to scan" });
   }
-  });
+});
 app.post('/api/analyze-progress', async (req, res) => {
   try {
     const { userId, progressImageBase64, weekNumber, originalScores } = req.body;
