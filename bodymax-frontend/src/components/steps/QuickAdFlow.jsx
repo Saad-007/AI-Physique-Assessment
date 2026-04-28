@@ -21,7 +21,7 @@ const QuickAdFlow = () => {
     setFlowState('upload_dream');
   };
 
-  const handleDreamUpload = async (e) => {
+const handleDreamUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setDreamPhoto(file);
@@ -29,38 +29,49 @@ const QuickAdFlow = () => {
     setFlowState('analyzing');
 
     try {
-      // 🔴 APNA BACKEND API CALL YAHAN KAREIN (Agar backend ready nahi, toh timeout chalne dein)
-      /* const formData = new FormData();
+      // 🔴 1. FormData banayein dono images ke sath
+      const formData = new FormData();
       formData.append('currentImage', currentPhoto);
       formData.append('dreamImage', file);
-      formData.append('mode', 'video_ad_creation');
+      formData.append('mode', 'video_ad_creation'); // Backend ko batane ke liye ke user data (age/weight) nahi hai
 
-      const response = await fetch('/api/analyze-physique', { method: 'POST', body: formData });
+      // 🔴 2. APNA REAL BACKEND ENDPOINT CALL KAREIN
+      // Note: Agar aapka endpoint '/api/analyze-physique' nahi hai, toh isay sahi URL se replace kar lein
+      const response = await fetch('/api/analyze-physique', { 
+        method: 'POST', 
+        body: formData 
+      });
+
+      if (!response.ok) {
+        throw new Error("Backend API responded with an error.");
+      }
+
       const data = await response.json();
-      setAnalysis(data);
-      */
 
-      // ⚠️ MOCK DATA FOR CLIENT'S VIDEO RECORDING
-      setTimeout(() => {
-        setAnalysis({
-          overall_score: 76,
-          potential_score: 95,
-          dream_body_chances: "88%",
-          chest_score: 72,
-          shoulders_score: 76,
-          back_score: 78,
-          abs_score: 70,
-          legs_score: 75,
-          arms_score: 79,
-        });
-        setFlowState('results');
-      }, 3500);
+      // 🔴 3. Backend se aane wale REAL data ko state mein set karein
+      // (Maine '||' laga kar fallback variables isliye diye hain taake agar backend se naam thora mukhtalif aaye toh app crash na ho)
+      setAnalysis({
+        overall_score: data.overall_score || data.overall_rating || data.overall || 0,
+        potential_score: data.potential_score || data.potential_rating || 0,
+        dream_body_chances: data.dream_body_chances || data.chance_percentage || "85%",
+        chest_score: data.chest_score || data.chest || 0,
+        shoulders_score: data.shoulders_score || data.shoulders || 0,
+        back_score: data.back_score || data.back || 0,
+        abs_score: data.abs_score || data.abs || data.core || 0,
+        legs_score: data.legs_score || data.legs || 0,
+        arms_score: data.arms_score || data.arms || 0,
+      });
+
+      // 4. UI ko Results par shift karein
+      setFlowState('results');
 
     } catch (error) {
-      console.error("Analysis Failed", error);
+      console.error("Real Analysis Failed:", error);
+      alert("AI Analysis Failed! Please check your backend server or API endpoint.");
+      setFlowState('upload_current'); // Error ki soorat mein wapas shuru par bhej dein
     }
   };
-
+  
   const resetFlow = () => {
     setCurrentPhoto(null);
     setDreamPhoto(null);
