@@ -503,6 +503,67 @@ Return ONLY this JSON structure:
     res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 });
+
+// ==========================================
+// QUICK AD SCAN (FOR VIDEO CREATION ONLY)
+// ==========================================
+app.post('/api/analyze-ad', async (req, res) => {
+  try {
+    const { currentImage, dreamImage } = req.body;
+    
+    if (!currentImage) {
+      return res.status(400).json({ error: "Missing image" });
+    }
+
+    console.log("[AD SCAN] Processing instant physique analysis...");
+
+    const imageContentArray = [
+      { type: "image_url", image_url: { url: currentImage, detail: "high" } }
+    ];
+    if (dreamImage) {
+      imageContentArray.push({ type: "image_url", image_url: { url: dreamImage, detail: "high" } });
+    }
+
+    const adPrompt = `
+You are a BRUTALLY HONEST, professional physique assessment judge.
+Score the provided physique(s) accurately on a 0-100 scale.
+Return ONLY valid JSON. No markdown formatting.
+
+{
+  "overall_score": <integer>,
+  "potential_score": <integer 88-97>,
+  "dream_body_chances": "<e.g. '87%'>",
+  "chest_score": <integer>,
+  "shoulders_score": <integer>,
+  "back_score": <integer>,
+  "abs_score": <integer>,
+  "legs_score": <integer>,
+  "arms_score": <integer>
+}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      response_format: { type: "json_object" },
+      max_tokens: 300,
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: "You are a precise physique scoring judge. Return only JSON." },
+        { role: "user", content: [ { type: "text", text: adPrompt }, ...imageContentArray ] }
+      ]
+    });
+
+    let cleanVision = completion.choices[0].message.content.trim();
+    if (cleanVision.startsWith("```json")) {
+      cleanVision = cleanVision.replace(/^```json/, "").replace(/```$/, "").trim();
+    }
+
+    res.status(200).json(JSON.parse(cleanVision));
+
+  } catch (error) {
+    console.error("[AD SCAN ERROR]:", error);
+    res.status(500).json({ error: "Failed to scan" });
+  }
+});
 app.post('/api/analyze-progress', async (req, res) => {
   try {
     const { userId, progressImageBase64, weekNumber, originalScores } = req.body;

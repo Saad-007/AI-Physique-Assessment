@@ -21,7 +21,15 @@ const QuickAdFlow = () => {
     setFlowState('upload_dream');
   };
 
-const handleDreamUpload = async (e) => {
+// 🔴 Image ko AI ke parhne qabil (Base64) banane ka function
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+
+  const handleDreamUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setDreamPhoto(file);
@@ -29,55 +37,51 @@ const handleDreamUpload = async (e) => {
     setFlowState('analyzing');
 
     try {
-      const formData = new FormData();
-      formData.append('currentImage', currentPhoto);
-      formData.append('dreamImage', file);
-      
-      // 🔴 NAYA CODE: Backend ko dhoka dene ke liye dummy data bhej rahe hain taake wo fail na ho
-      formData.append('age', '25');
-      formData.append('weight', '75');
-      formData.append('height', '180');
-      formData.append('gender', 'Male');
-      formData.append('goal', 'Muscle Gain');
-      formData.append('experience', 'Intermediate');
-      formData.append('mode', 'video_ad_creation'); 
+      // 1. Dono images ko Base64 format mein convert karein
+      const currentBase64 = await fileToBase64(currentPhoto);
+      const dreamBase64 = await fileToBase64(file);
 
-      // 🔴 APNA REAL BACKEND ENDPOINT CALL KAREIN
-      const response = await fetch('/api/analyze-physique', { 
+      // 🔴 2. APNA REAL BACKEND ENDPOINT CALL KAREIN (Jo humne abhi backend mein banaya hai)
+     // Vite automatic Vercel se ye URL utha lega, aur agar local pe honge toh localhost use karega
+      const backendBaseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+      const backendURL = `${backendBaseURL}/api/analyze-ad`;
+
+      const response = await fetch(backendURL, { 
         method: 'POST', 
-        body: formData 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          currentImage: currentBase64, 
+          dreamImage: dreamBase64 
+        }) 
       });
 
       if (!response.ok) {
-        throw new Error(`Backend Error: ${response.status}`);
+        throw new Error("Backend API responded with an error.");
       }
 
-      // Raw response check karne ke liye taake pata chale backend kya bhej raha hai
-      const rawText = await response.text();
-      console.log("🔴 RAW BACKEND RESPONSE:", rawText); 
-      
-      const data = JSON.parse(rawText);
+      const data = await response.json();
 
+      // 3. Set REAL analysis data
       setAnalysis({
-        overall_score: data.overall_score || data.overall_rating || data.overall || 0,
-        potential_score: data.potential_score || data.potential_rating || 0,
-        dream_body_chances: data.dream_body_chances || data.chance_percentage || "85%",
-        chest_score: data.chest_score || data.chest || 0,
-        shoulders_score: data.shoulders_score || data.shoulders || 0,
-        back_score: data.back_score || data.back || 0,
-        abs_score: data.abs_score || data.abs || data.core || 0,
-        legs_score: data.legs_score || data.legs || 0,
-        arms_score: data.arms_score || data.arms || 0,
+        overall_score: data.overall_score || 0,
+        potential_score: data.potential_score || 0,
+        dream_body_chances: data.dream_body_chances || "85%",
+        chest_score: data.chest_score || 0,
+        shoulders_score: data.shoulders_score || 0,
+        back_score: data.back_score || 0,
+        abs_score: data.abs_score || 0,
+        legs_score: data.legs_score || 0,
+        arms_score: data.arms_score || 0,
       });
 
       setFlowState('results');
 
     } catch (error) {
       console.error("Real Analysis Failed:", error);
-      alert("AI Analysis Failed! Check console (F12) for details.");
+      alert("AI Analysis Failed! Check console logs.");
       setFlowState('upload_current'); 
     }
-  };  
+  };
   const resetFlow = () => {
     setCurrentPhoto(null);
     setDreamPhoto(null);
