@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Image as ImageIcon, Check, Target, Activity, ArrowRight, RefreshCw, Sparkles, Upload } from 'lucide-react';
 
-// Reusable MagneticButton component (Simulated for this flow)
+// Reusable Button Component for styling
 const MagneticButton = ({ text, onClick }) => (
   <motion.button 
     whileHover={{ scale: 1.02 }} 
@@ -16,10 +16,13 @@ const MagneticButton = ({ text, onClick }) => (
 
 const QuickAdFlow = () => {
   const [flowState, setFlowState] = useState('upload_current'); // upload_current, upload_dream, analyzing, results
-  const [currentPhoto, setCurrentPhoto] = useState(null);
-  const [dreamPhoto, setDreamPhoto] = useState(null);
   
-  const [currentImgUrl, setCurrentImgUrl] = useState(null);
+  // State for 3 photos
+  const [currentPhotos, setCurrentPhotos] = useState({ 1: null, 2: null, 3: null });
+  const [currentImgUrls, setCurrentImgUrls] = useState({ 1: null, 2: null, 3: null });
+  const [activeSlot, setActiveSlot] = useState(1); // 1 = Front, 2 = Side, 3 = Back
+
+  const [dreamPhoto, setDreamPhoto] = useState(null);
   const [dreamImgUrl, setDreamImgUrl] = useState(null);
   const [analysis, setAnalysis] = useState(null);
 
@@ -37,21 +40,34 @@ const QuickAdFlow = () => {
     reader.onerror = error => reject(error);
   });
 
-  // --- Current Photo Handlers ---
+  // --- 3 Photos Upload Handler ---
   const handleCurrentUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setCurrentPhoto(file);
-    setCurrentImgUrl(URL.createObjectURL(file));
+
+    setCurrentPhotos(prev => ({ ...prev, [activeSlot]: file }));
+    setCurrentImgUrls(prev => ({ ...prev, [activeSlot]: URL.createObjectURL(file) }));
+
+    // Auto-shift to next empty slot
+    if (activeSlot === 1 && !currentPhotos[2]) setActiveSlot(2);
+    else if (activeSlot === 2 && !currentPhotos[3]) setActiveSlot(3);
+    
+    // Reset inputs so same file can be selected again if needed
+    if (galleryRef.current) galleryRef.current.value = "";
+    if (cameraRef.current) cameraRef.current.value = "";
   };
 
-  const confirmCurrentPhoto = () => {
-    if (currentPhoto) setFlowState('upload_dream');
+  const confirmCurrentPhotos = () => {
+    // Aage tabhi jayenge agar kam az kam 1 photo uploaded ho (Front)
+    if (currentPhotos[1] || currentPhotos[2] || currentPhotos[3]) {
+      setFlowState('upload_dream');
+    }
   };
 
-  const resetCurrentPhoto = () => {
-    setCurrentPhoto(null);
-    setCurrentImgUrl(null);
+  const resetCurrentPhotos = () => {
+    setCurrentPhotos({ 1: null, 2: null, 3: null });
+    setCurrentImgUrls({ 1: null, 2: null, 3: null });
+    setActiveSlot(1);
   };
 
   // --- Dream Photo Handler & AI Trigger ---
@@ -63,9 +79,14 @@ const QuickAdFlow = () => {
     setFlowState('analyzing');
 
     try {
-      const currentBase64 = await fileToBase64(currentPhoto);
+      // Backend ko asani aur speed dene ke liye hum Front photo (slot 1) use karenge
+      // Agar front nahi hai, tou jo bhi pehli photo available hai wo lay lenge
+      const primaryCurrentPhoto = currentPhotos[1] || currentPhotos[2] || currentPhotos[3];
+      
+      const currentBase64 = await fileToBase64(primaryCurrentPhoto);
       const dreamBase64 = await fileToBase64(file);
 
+      // 🔴 LIVE BACKEND URL CONNECTION
       const backendBaseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
       const backendURL = `${backendBaseURL}/api/analyze-ad`; 
 
@@ -106,46 +127,68 @@ const QuickAdFlow = () => {
   };
 
   const resetFlow = () => {
-    setCurrentPhoto(null);
+    resetCurrentPhotos();
     setDreamPhoto(null);
-    setCurrentImgUrl(null);
     setDreamImgUrl(null);
     setAnalysis(null);
     setFlowState('upload_current');
   };
 
   return (
-    <div className="w-full min-h-[100dvh] flex flex-col items-center pt-4 pb-24 px-4 md:px-6 bg-[#030303] font-sans">
+    <div className="w-full min-h-[100dvh] flex flex-col items-center pt-8 pb-24 px-4 md:px-6 bg-[#030303] font-sans">
       <AnimatePresence mode="wait">
 
         {/* =========================================
-            STEP 1: UPLOAD CURRENT PHYSIQUE (MATCHING MAIN APP UI)
+            STEP 1: UPLOAD 3 CURRENT PHOTOS (MATCHING MAIN APP UI)
             ========================================= */}
         {flowState === 'upload_current' && (
-          <motion.div key="current" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex flex-col items-center w-full mt-2 max-w-md mx-auto">
+          <motion.div key="current" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex flex-col items-center w-full max-w-md mx-auto">
             
             <div className="inline-flex items-center justify-center bg-white/[0.03] border border-white/[0.05] rounded-full px-3 py-1 mb-6">
               <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-bold">Step 1 of 2</span>
             </div>
 
-            <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-3xl md:text-4xl font-bold text-white mb-6 text-center tracking-tight leading-tight max-w-sm">
-              Upload <span className="text-[#E71B25]">Front Photo</span> to get your body analyzed
+            <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-3xl md:text-4xl font-bold text-white mb-10 text-center tracking-tight leading-tight max-w-sm">
+              Upload <span className="text-[#E71B25]">3 photos</span> to get your body analyzed
             </motion.h2>
 
-            <div className="flex flex-row justify-center w-full max-w-[200px] mb-8">
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center w-full">
-                <div className={`w-full aspect-[2/3] bg-[#111] rounded-xl md:rounded-2xl relative mb-3 overflow-visible border transition-colors ${currentPhoto ? "border-[#E71B25]" : "border-white/[0.05]"}`}>
-                  <img src={currentImgUrl || "/Front.jpeg"} alt="Front" className={`w-full h-full object-cover rounded-xl md:rounded-2xl transition-opacity ${currentPhoto ? "opacity-100" : "opacity-70"}`} />
-                  <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white font-bold text-sm md:text-lg border-2 border-[#020202] transition-colors ${currentPhoto ? "bg-green-500" : "bg-[#E71B25]"}`}>
-                    {currentPhoto ? <Check className="w-5 h-5 text-black" strokeWidth={4} /> : "1"}
-                  </div>
-                </div>
-                <span className="text-white font-semibold text-sm md:text-base tracking-wide mt-2">Current Shape</span>
-              </motion.div>
+            {/* THE 3 PHOTO CARDS GRID */}
+            <div className="flex flex-row justify-center gap-3 md:gap-4 w-full mb-8">
+              {[
+                { label: "Front photo", img: "/Front.jpeg", num: 1 }, 
+                { label: "Side photo", img: "/Side.jpeg", num: 2 }, 
+                { label: "Back photo", img: "/Back.jpeg", num: 3 }
+              ].map((card, i) => {
+                const isUploaded = !!currentPhotos[card.num];
+                const displayImg = currentImgUrls[card.num] || card.img;
+                const isActive = activeSlot === card.num;
+
+                return (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ delay: i * 0.1, ease: "easeOut" }} 
+                    key={i} 
+                    onClick={() => setActiveSlot(card.num)}
+                    className="flex flex-col items-center flex-1 cursor-pointer"
+                  >
+                    <div className={`w-full aspect-[2/3] bg-[#111] rounded-xl md:rounded-2xl relative mb-3 overflow-visible border-2 transition-all duration-300 ${isActive ? "border-[#E71B25] shadow-[0_0_15px_rgba(231,27,37,0.3)] scale-105" : isUploaded ? "border-green-500/50" : "border-white/[0.05]"}`}>
+                      <img src={displayImg} alt={card.label} className={`w-full h-full object-cover rounded-xl md:rounded-2xl transition-opacity ${isUploaded || isActive ? "opacity-100" : "opacity-40"}`} />
+                      
+                      <div className={`absolute -bottom-3 md:-bottom-4 left-1/2 -translate-x-1/2 w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center text-white font-bold text-xs md:text-sm border-2 border-[#020202] transition-colors ${isUploaded ? "bg-green-500" : isActive ? "bg-[#E71B25]" : "bg-gray-800"}`}>
+                        {isUploaded ? <Check className="w-4 h-4 md:w-5 md:h-5 text-black" strokeWidth={4} /> : card.num}
+                      </div>
+                    </div>
+                    <span className={`font-semibold text-[10px] md:text-xs tracking-wide mt-2 transition-colors ${isActive ? "text-[#E71B25]" : "text-gray-400"}`}>
+                      {card.label}
+                    </span>
+                  </motion.div>
+                );
+              })}
             </div>
 
-            <div className="flex items-center gap-3 text-sm md:text-base font-medium text-white mb-8 bg-[#111] px-5 py-3 rounded-full border border-white/[0.05]">
-              <div className="bg-green-500 rounded-md p-0.5"><Check className="w-4 h-4 text-black" strokeWidth={4} /></div>
+            <div className="flex items-center gap-3 text-xs md:text-sm font-medium text-white mb-8 bg-[#111] px-5 py-3 rounded-full border border-white/[0.05]">
+              <div className="bg-green-500 rounded-md p-0.5"><Check className="w-3 h-3 text-black" strokeWidth={4} /></div>
               Safe & secure biometric scan
             </div>
 
@@ -153,17 +196,17 @@ const QuickAdFlow = () => {
             <input type="file" accept="image/*" capture="environment" ref={cameraRef} onChange={handleCurrentUpload} className="hidden" />
 
             <AnimatePresence>
-              {currentPhoto && (
+              {Object.values(currentPhotos).some((v) => v !== null) && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="w-full flex flex-col items-center mb-6">
-                  <MagneticButton text="Confirm Photo →" onClick={confirmCurrentPhoto} />
-                  <button onClick={resetCurrentPhoto} className="mt-4 text-gray-500 text-[11px] font-bold uppercase tracking-widest hover:text-white transition-colors">
-                    Reset Photo
+                  <MagneticButton text="Analyse My Body →" onClick={confirmCurrentPhotos} />
+                  <button onClick={resetCurrentPhotos} className="mt-4 text-gray-500 text-[10px] font-bold uppercase tracking-widest hover:text-white transition-colors">
+                    Reset Photos
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {!currentPhoto && (
+            {(!Object.values(currentPhotos).some((v) => v !== null)) && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="w-full flex flex-col gap-3.5 mb-6">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => galleryRef.current.click()} className="w-full flex items-center justify-center gap-3 bg-[#E71B25] text-white py-4 md:py-5 rounded-2xl font-black uppercase tracking-widest">
                   <ImageIcon className="w-5 h-5" /> Upload from Gallery
@@ -178,7 +221,7 @@ const QuickAdFlow = () => {
         )}
 
         {/* =========================================
-            STEP 2: UPLOAD DREAM PHYSIQUE (MATCHING FINAL GOAL STEP)
+            STEP 2: UPLOAD DREAM PHYSIQUE
             ========================================= */}
         {flowState === 'upload_dream' && (
           <motion.div key="dream" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex flex-col items-center w-full mt-2 max-w-md mx-auto">
@@ -224,7 +267,7 @@ const QuickAdFlow = () => {
         )}
 
         {/* =========================================
-            STEP 4: FULL UNLOCKED RESULTS UI (For Video Recording)
+            STEP 4: RESULTS UI
             ========================================= */}
         {flowState === 'results' && analysis && (
           <motion.div key="results" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center w-full max-w-2xl mx-auto mt-4">
@@ -236,10 +279,10 @@ const QuickAdFlow = () => {
               <h2 className="text-[22px] md:text-[28px] font-black text-white tracking-tight uppercase leading-none">Your BodyMax Score</h2>
             </div>
 
-            {/* Side-by-side Images */}
+            {/* Side-by-side Images (Using Front photo) */}
             <div className="flex justify-center items-center gap-3 w-full mb-10 relative">
               <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl md:rounded-[2rem] border border-white/[0.05] overflow-hidden relative shadow-lg">
-                <img src={currentImgUrl || fallbackImg} className="absolute inset-0 w-full h-full object-cover filter grayscale-[15%]" alt="Current State" />
+                <img src={currentImgUrls[1] || currentImgUrls[2] || currentImgUrls[3] || fallbackImg} className="absolute inset-0 w-full h-full object-cover filter grayscale-[15%]" alt="Current State" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
                 <div className="absolute bottom-3 left-0 w-full flex justify-center">
                   <span className="bg-black/50 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
