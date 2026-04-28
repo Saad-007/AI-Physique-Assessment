@@ -29,27 +29,35 @@ const handleDreamUpload = async (e) => {
     setFlowState('analyzing');
 
     try {
-      // 🔴 1. FormData banayein dono images ke sath
       const formData = new FormData();
       formData.append('currentImage', currentPhoto);
       formData.append('dreamImage', file);
-      formData.append('mode', 'video_ad_creation'); // Backend ko batane ke liye ke user data (age/weight) nahi hai
+      
+      // 🔴 NAYA CODE: Backend ko dhoka dene ke liye dummy data bhej rahe hain taake wo fail na ho
+      formData.append('age', '25');
+      formData.append('weight', '75');
+      formData.append('height', '180');
+      formData.append('gender', 'Male');
+      formData.append('goal', 'Muscle Gain');
+      formData.append('experience', 'Intermediate');
+      formData.append('mode', 'video_ad_creation'); 
 
-      // 🔴 2. APNA REAL BACKEND ENDPOINT CALL KAREIN
-      // Note: Agar aapka endpoint '/api/analyze-physique' nahi hai, toh isay sahi URL se replace kar lein
+      // 🔴 APNA REAL BACKEND ENDPOINT CALL KAREIN
       const response = await fetch('/api/analyze-physique', { 
         method: 'POST', 
         body: formData 
       });
 
       if (!response.ok) {
-        throw new Error("Backend API responded with an error.");
+        throw new Error(`Backend Error: ${response.status}`);
       }
 
-      const data = await response.json();
+      // Raw response check karne ke liye taake pata chale backend kya bhej raha hai
+      const rawText = await response.text();
+      console.log("🔴 RAW BACKEND RESPONSE:", rawText); 
+      
+      const data = JSON.parse(rawText);
 
-      // 🔴 3. Backend se aane wale REAL data ko state mein set karein
-      // (Maine '||' laga kar fallback variables isliye diye hain taake agar backend se naam thora mukhtalif aaye toh app crash na ho)
       setAnalysis({
         overall_score: data.overall_score || data.overall_rating || data.overall || 0,
         potential_score: data.potential_score || data.potential_rating || 0,
@@ -62,16 +70,14 @@ const handleDreamUpload = async (e) => {
         arms_score: data.arms_score || data.arms || 0,
       });
 
-      // 4. UI ko Results par shift karein
       setFlowState('results');
 
     } catch (error) {
       console.error("Real Analysis Failed:", error);
-      alert("AI Analysis Failed! Please check your backend server or API endpoint.");
-      setFlowState('upload_current'); // Error ki soorat mein wapas shuru par bhej dein
+      alert("AI Analysis Failed! Check console (F12) for details.");
+      setFlowState('upload_current'); 
     }
-  };
-  
+  };  
   const resetFlow = () => {
     setCurrentPhoto(null);
     setDreamPhoto(null);
