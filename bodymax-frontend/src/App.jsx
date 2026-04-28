@@ -29,6 +29,14 @@ const BodyMaxFunnel = () => {
   // ==========================================
   const [step, setStep] = useState(() => {
     if (typeof window !== 'undefined') {
+
+
+
+      // 🔴 1. NAYA RULE: Check for Marketing Quick Mode URL
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('mode') === 'quick') {
+         return 100; // '100' is the magic number for our ad funnel
+      }
       // Rule A: Password reset
       if (window.location.pathname === '/reset-password' || window.location.hash.includes('type=recovery')) return 11;
       
@@ -164,6 +172,22 @@ const BodyMaxFunnel = () => {
       <div className={`w-full flex-1 flex flex-col items-center relative z-10 ${step >= 5 ? 'p-0' : 'py-12 md:py-20'}`}>
         <AnimatePresence mode="wait">
 
+
+          {/* 🔴 NAYA STEP: Marketing Ad Quick Flow */}
+         {step === 100 && (
+            <motion.div key="s100" {...pageTransition} className="w-full">
+              <QuickAdFlow 
+                onUnlockFull={(quickScanScores) => {
+                  // Jab user "Unlock Full Report" dabaye
+                  // 1. Agar humein photo/scores ko form data mein save karna hai toh kar lein
+                  setFormData({ ...formData, quickScanScores: quickScanScores });
+                  
+                  // 2. User ko Step 5 (AssessmentFlow) par bhej dein jahan wo baqi Age, Weight wagara dalega
+                  setStep(5);
+                }} 
+              />
+            </motion.div>
+          )}
          {step === 1 && (
             <motion.div key="s1" {...pageTransition} className="w-full">
               <LandingStep 
