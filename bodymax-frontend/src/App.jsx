@@ -14,6 +14,7 @@ import Dashboard from './components/steps/Dashboard';
 import LoginPage from './components/ui/Login';
 import ResetPassword from './components/ui/ResetPassword';
 import { supabase } from './lib/supabase';
+import QuickAdFlow from './components/steps/QuickAdFlow';
 
 const EXPIRATION_TIME = 60 * 60 * 1000; 
 
