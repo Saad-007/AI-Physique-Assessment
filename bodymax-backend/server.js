@@ -14,7 +14,9 @@ app.use(cors({
   origin: function (origin, callback) {
     const allowedOrigins = [
       'http://localhost:5173',
-      'https://ai-physique-assessment.vercel.app' 
+      'https://ai-physique-assessment.vercel.app' ,
+      'https://join.bodymaxx.online' // 👈 Sirf yahan tak, aage koi slash (/) ya question mark (?) nahi!
+    
     ];
     
     if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
