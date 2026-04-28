@@ -558,8 +558,12 @@ Return ONLY this JSON (no markdown, no text outside JSON):
   "back_score": <integer 0-100, honest assessment>,
   "abs_score": <integer 0-100, honest assessment>,
   "legs_score": <integer 0-100, honest assessment>,
-  "arms_score": <integer 0-100, honest assessment>
+  "arms_score": <integer 0-100, honest assessment>,
+  "summary": "<honest 3-sentence assessment of the current state and the gap to the dream physique>",
+  "visible_improvements": "<The best physical feature currently visible>",
+  "primary_concern": "<The weakest link holding the physique back right now>"
 }`;
+
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
