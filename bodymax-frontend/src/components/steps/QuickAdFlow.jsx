@@ -232,14 +232,13 @@ const QuickAdFlow = () => {
             ==================================================== */}
         {flowState === 'results' && analysis && (() => {
           
-          // Logic mapping identical to your provided snippet
+         // 🔴 UPDATED: Accurate and Positive Delta Logic
           const formatStat = (score, aiDelta, defaultScore) => {
             const finalScore = score || defaultScore;
-            let rawDelta = aiDelta ? parseFloat(aiDelta) : ((finalScore % 5) + 0.8);
-            if (finalScore < 65) rawDelta = -Math.abs(rawDelta);
-            else rawDelta = Math.abs(rawDelta);
-            const isNeg = rawDelta < 0;
-            const deltaString = isNeg ? rawDelta.toFixed(1) : Math.abs(rawDelta).toFixed(1);
+            
+            // AI ka bheja hua delta use karein (aur hamesha positive rakhein)
+            let rawDelta = aiDelta ? Math.abs(parseFloat(aiDelta)) : ((finalScore % 5) + 1.2);
+            const deltaString = rawDelta.toFixed(1);
 
             let textColor = "text-[#22c55e]"; 
             let bgColor = "bg-[#22c55e]";
@@ -254,7 +253,7 @@ const QuickAdFlow = () => {
             return {
               value: finalScore,
               delta: deltaString,
-              isNegative: isNeg,
+              isNegative: false, // Hamesha growth dikhayega
               progress: finalScore,
               textColor,
               bgColor

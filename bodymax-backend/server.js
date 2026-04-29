@@ -509,6 +509,9 @@ Return ONLY this JSON structure:
 // ==========================================
 // QUICK AD SCAN (FOR VIDEO CREATION ONLY)
 // ==========================================
+// ==========================================
+// QUICK AD SCAN (FOR VIDEO CREATION ONLY)
+// ==========================================
 app.post('/api/analyze-ad', async (req, res) => {
   try {
     const { currentImages, dreamImage } = req.body;
@@ -527,14 +530,27 @@ app.post('/api/analyze-ad', async (req, res) => {
       imageContentArray.push({ type: "image_url", image_url: { url: dreamImage, detail: "high" } });
     }
 
+    // 🔴 UPDATED PROMPT: Added Calibration Scale and Positive Delta Rules
     const adPrompt = `
-You are a BRUTALLY HONEST, professional physique assessment judge.
-Score the Current physique accurately. Evaluate the gap to the Dream physique.
-Estimate metabolic stats (BMR/TDEE) based on visual muscle mass and body fat.
+You are an EXPERT BODYBUILDING JUDGE. You must analyze the CURRENT physique in the photos and provide distinct, accurate, and unbiased scores for each muscle group.
+
+=== SCORING CALIBRATION (CRITICAL) ===
+- 30-40: Below average, untrained, high body fat hiding muscle.
+- 41-55: Average person/Beginner. Some base, but soft. (MOST NORMAL PEOPLE FALL HERE)
+- 56-70: Intermediate. Visible muscle shape, decent definition.
+- 71-85: Advanced. Clear separation, athletic, lean.
+- 86-95: Elite/Pro level.
+
+=== INSTRUCTIONS ===
+1. DO NOT give every muscle the exact same score. Evaluate Chest, Back, Arms, Legs, Core, and Shoulders INDEPENDENTLY.
+2. DO NOT default to the lowest score. Score accurately based on the visual evidence.
+3. Generate POSITIVE 'deltas' (e.g., "+3.5") representing the realistic score improvement possible in 12 weeks of perfect training. Deltas MUST be positive.
+4. Base the 'potential_score' on the gap to the Dream physique (usually 85-98).
+5. Estimate metabolic stats (BMR/TDEE) based on visual muscle mass and body fat.
 
 Return ONLY this JSON (no markdown):
 {
-  "overall_score": <integer 20-95>,
+  "overall_score": <integer 30-95, weighted average>,
   "potential_score": <integer 85-98>,
   "dream_body_chances": "<e.g. '82%'>",
   "executive_summary": "<Honest 3-sentence summary of their current shape and gap to the dream body>",
@@ -567,7 +583,7 @@ Return ONLY this JSON (no markdown):
       max_tokens: 800,
       temperature: 0.2,
       messages: [
-        { role: "system", content: "You are a brutally honest physique scoring judge. Return only JSON." },
+        { role: "system", content: "You are a precise and accurate physique scoring judge. Return only JSON." },
         { role: "user", content: [ { type: "text", text: adPrompt }, ...imageContentArray ] }
       ]
     });
@@ -579,10 +595,10 @@ Return ONLY this JSON (no markdown):
     
     let parsedData = JSON.parse(cleanVision);
 
-    // Sanity checks
+    // 🔴 UPDATED SANITY CHECKS: Floor limits changed from 20 to 30 so it doesn't bottom out.
     const muscleKeys = ['chest_score', 'shoulders_score', 'back_score', 'abs_score', 'legs_score', 'arms_score'];
-    muscleKeys.forEach(key => { parsedData[key] = Math.max(20, Math.min(92, parsedData[key] || 50)); });
-    parsedData.overall_score = Math.max(20, Math.min(92, parsedData.overall_score || 50));
+    muscleKeys.forEach(key => { parsedData[key] = Math.max(30, Math.min(95, parsedData[key] || 45)); });
+    parsedData.overall_score = Math.max(30, Math.min(95, parsedData.overall_score || 45));
 
     res.status(200).json(parsedData);
   } catch (error) {
