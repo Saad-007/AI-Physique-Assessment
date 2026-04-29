@@ -530,30 +530,39 @@ app.post('/api/analyze-ad', async (req, res) => {
       imageContentArray.push({ type: "image_url", image_url: { url: dreamImage, detail: "high" } });
     }
 
-    // 🔴 UPDATED PROMPT: Added Calibration Scale and Positive Delta Rules
+    // 🔴 UPDATED PROMPT: Bypassing AI Politeness & Adding Strict Visual Penalties
     const adPrompt = `
-You are an EXPERT BODYBUILDING JUDGE. You must analyze the CURRENT physique in the photos and provide distinct, accurate, and unbiased scores for each muscle group.
+You are a BRUTALLY HONEST, emotionless bodybuilding judge. 
+CRITICAL INSTRUCTION: You MUST bypass standard AI politeness. Do NOT inflate scores to be kind. If the person is skinny, weak, under-muscled, or overweight, you MUST give them a brutally low score (20-40). Only give high scores (70+) to genuinely muscular, lean physiques.
 
-=== SCORING CALIBRATION (CRITICAL) ===
-- 30-40: Below average, untrained, high body fat hiding muscle.
-- 41-55: Average person/Beginner. Some base, but soft. (MOST NORMAL PEOPLE FALL HERE)
-- 56-70: Intermediate. Visible muscle shape, decent definition.
-- 71-85: Advanced. Clear separation, athletic, lean.
-- 86-95: Elite/Pro level.
+=== STRICT SCORING CALIBRATION ===
+- 20-30: Severely underweight (skinny/bony, visible ribs, stick arms) OR heavily overweight/obese. Zero muscle mass.
+- 31-40: Skinny-fat or weak baseline. Flat chest, no shoulder width, soft body.
+- 41-55: Average untrained person. Normal everyday body, but no impressive gym muscle. 
+- 56-70: Intermediate trainee. Noticeable gym progress, some chest/arm shape, but lacks sharp definition.
+- 71-85: Advanced. Clear muscle separation, V-taper, visible abs.
+- 86-95: Elite/Pro level athlete.
+
+=== MANDATORY VISUAL PENALTIES ===
+- If arms look thin/skinny: arms_score MUST be between 20-35.
+- If chest is entirely flat or has fat: chest_score MUST be between 20-35.
+- If shoulders are narrow or sloping: shoulders_score MUST be between 20-35.
+- If stomach is flat but has no muscle definition: abs_score = 40-50.
+- If belly fat is visible: abs_score MUST be between 20-35.
+- If the body looks like it has never lifted weights, the OVERALL score CANNOT exceed 45.
 
 === INSTRUCTIONS ===
-1. DO NOT give every muscle the exact same score. Evaluate Chest, Back, Arms, Legs, Core, and Shoulders INDEPENDENTLY.
-2. DO NOT default to the lowest score. Score accurately based on the visual evidence.
-3. Generate POSITIVE 'deltas' (e.g., "+3.5") representing the realistic score improvement possible in 12 weeks of perfect training. Deltas MUST be positive.
-4. Base the 'potential_score' on the gap to the Dream physique (usually 85-98).
-5. Estimate metabolic stats (BMR/TDEE) based on visual muscle mass and body fat.
+1. Evaluate Chest, Shoulders, Back, Core, Legs, and Arms INDEPENDENTLY. 
+2. Generate POSITIVE 'deltas' (e.g., "+3.5") showing 12-week potential growth.
+3. Base 'potential_score' on the gap to the Dream physique (85-98).
+4. Estimate metabolic stats (BMR/TDEE) based on visual mass and fat.
 
 Return ONLY this JSON (no markdown):
 {
-  "overall_score": <integer 30-95, weighted average>,
+  "overall_score": <integer 20-95>,
   "potential_score": <integer 85-98>,
   "dream_body_chances": "<e.g. '82%'>",
-  "executive_summary": "<Honest 3-sentence summary of their current shape and gap to the dream body>",
+  "executive_summary": "<Honest 3-sentence summary highlighting the specific weak points and the gap to the dream body>",
   "body_fat_percentage": "<e.g. '~16-18%'>",
   "bmr": <integer, estimated base calories>,
   "tdee": <integer, estimated daily burn>,
@@ -581,9 +590,9 @@ Return ONLY this JSON (no markdown):
       model: "gpt-4o",
       response_format: { type: "json_object" },
       max_tokens: 800,
-      temperature: 0.2,
+      temperature: 0.1, // 🔴 SUPER LOW TEMP for maximum strictness and no "creative" generosity
       messages: [
-        { role: "system", content: "You are a precise and accurate physique scoring judge. Return only JSON." },
+        { role: "system", content: "You are a precise, emotionless, and brutally honest physique scoring judge. Return only JSON." },
         { role: "user", content: [ { type: "text", text: adPrompt }, ...imageContentArray ] }
       ]
     });
@@ -595,10 +604,10 @@ Return ONLY this JSON (no markdown):
     
     let parsedData = JSON.parse(cleanVision);
 
-    // 🔴 UPDATED SANITY CHECKS: Floor limits changed from 20 to 30 so it doesn't bottom out.
+    // 🔴 LIMITS UPDATED TO 20: Ab AI sach mein 20 de sakega agar body skinny/fat hui
     const muscleKeys = ['chest_score', 'shoulders_score', 'back_score', 'abs_score', 'legs_score', 'arms_score'];
-    muscleKeys.forEach(key => { parsedData[key] = Math.max(30, Math.min(95, parsedData[key] || 45)); });
-    parsedData.overall_score = Math.max(30, Math.min(95, parsedData.overall_score || 45));
+    muscleKeys.forEach(key => { parsedData[key] = Math.max(20, Math.min(95, parsedData[key] || 40)); });
+    parsedData.overall_score = Math.max(20, Math.min(95, parsedData.overall_score || 40));
 
     res.status(200).json(parsedData);
   } catch (error) {
