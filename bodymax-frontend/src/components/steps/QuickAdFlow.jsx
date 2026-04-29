@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Image as ImageIcon, Check, Target, Activity, ArrowRight, RefreshCw, Sparkles, Upload, TrendingUp, Zap } from 'lucide-react';
+import { Camera, Image as ImageIcon, Check, Target, Activity, ArrowRight, RefreshCw, Sparkles, Upload, Zap, X } from 'lucide-react';
 
+// Reusable components
 const MagneticButton = ({ text, onClick }) => (
   <motion.button 
     whileHover={{ scale: 1.02 }} 
@@ -11,6 +12,23 @@ const MagneticButton = ({ text, onClick }) => (
   >
     {text}
   </motion.button>
+);
+
+const ScanStatBlock = ({ label, value, delta, isNegative, progress, textColor, bgColor }) => (
+  <div className="bg-[#111] rounded-xl p-3 border border-white/[0.03]">
+    <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold block mb-2">{label}</span>
+    <div className="flex items-baseline gap-2">
+      <span className={`font-black text-[16px] ${textColor}`}>{value}</span>
+      {delta && (
+        <span className={`text-[11px] font-black ${isNegative ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
+          {isNegative ? '' : '+'}{delta}
+        </span>
+      )}
+    </div>
+    <div className="w-full h-1 bg-[#222] rounded-full mt-2 overflow-hidden">
+      <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1.2, ease: "easeOut" }} className={`h-full rounded-full ${bgColor}`} />
+    </div>
+  </div>
 );
 
 const QuickAdFlow = () => {
@@ -28,7 +46,7 @@ const QuickAdFlow = () => {
   const cameraRef = useRef(null);
   const goalUploadRef = useRef(null);
 
-  const fallbackImg = "https://ui-avatars.com/api/?name=Scan+Missing&background=0a0a0a&color=fff&size=512";
+  const fallbackImg = "[https://ui-avatars.com/api/?name=Scan+Missing&background=0a0a0a&color=fff&size=512](https://ui-avatars.com/api/?name=Scan+Missing&background=0a0a0a&color=fff&size=512)";
 
   const fileToBase64 = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -52,9 +70,7 @@ const QuickAdFlow = () => {
   };
 
   const confirmCurrentPhotos = () => {
-    if (currentPhotos[1] || currentPhotos[2] || currentPhotos[3]) {
-      setFlowState('upload_dream');
-    }
+    if (currentPhotos[1] || currentPhotos[2] || currentPhotos[3]) setFlowState('upload_dream');
   };
 
   const resetCurrentPhotos = () => {
@@ -79,7 +95,7 @@ const QuickAdFlow = () => {
         }
       }
 
-      if (currentImagesBase64.length === 0) throw new Error("No current photos uploaded");
+      if (currentImagesBase64.length === 0) throw new Error("No photos uploaded");
       const dreamBase64 = await fileToBase64(file);
 
       const backendBaseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -94,11 +110,11 @@ const QuickAdFlow = () => {
       if (!response.ok) throw new Error("Backend API error.");
 
       const data = await response.json();
-      setAnalysis(data); // Saving full data object
+      setAnalysis(data); 
       setFlowState('results');
 
     } catch (error) {
-      console.error("Real Analysis Failed:", error);
+      console.error("Analysis Failed:", error);
       alert("AI Analysis Failed! Check console logs.");
       setFlowState('upload_current'); 
     }
@@ -113,10 +129,12 @@ const QuickAdFlow = () => {
   };
 
   return (
-    <div className="w-full min-h-[100dvh] flex flex-col items-center pt-8 pb-24 px-4 md:px-6 bg-[#030303] font-sans">
+    <div className="w-full min-h-[100dvh] flex flex-col items-center pt-8 pb-24 px-4 md:px-6 bg-[#030303] font-sans selection:bg-[#E71B25] selection:text-white">
       <AnimatePresence mode="wait">
 
-        {/* STEP 1: UPLOAD 3 CURRENT PHOTOS */}
+        {/* ====================================================
+            STEP 1: UPLOAD 3 CURRENT PHOTOS
+            ==================================================== */}
         {flowState === 'upload_current' && (
           <motion.div key="current" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex flex-col items-center w-full max-w-md mx-auto">
             <div className="inline-flex items-center justify-center bg-white/[0.03] border border-white/[0.05] rounded-full px-3 py-1 mb-6">
@@ -168,7 +186,9 @@ const QuickAdFlow = () => {
           </motion.div>
         )}
 
-        {/* STEP 2: UPLOAD DREAM PHYSIQUE */}
+        {/* ====================================================
+            STEP 2: UPLOAD DREAM PHYSIQUE
+            ==================================================== */}
         {flowState === 'upload_dream' && (
           <motion.div key="dream" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex flex-col items-center w-full mt-2 max-w-md mx-auto">
             <div className="inline-flex items-center justify-center bg-[#E71B25]/10 border border-[#E71B25]/20 rounded-full px-3 py-1 mb-6">
@@ -192,7 +212,9 @@ const QuickAdFlow = () => {
           </motion.div>
         )}
 
-        {/* STEP 3: ANALYZING STATE */}
+        {/* ====================================================
+            STEP 3: ANALYZING
+            ==================================================== */}
         {flowState === 'analyzing' && (
           <motion.div key="analyzing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center text-center w-full max-w-md mx-auto min-h-[50vh]">
               <div className="relative w-24 h-24 mb-8">
@@ -205,23 +227,55 @@ const QuickAdFlow = () => {
           </motion.div>
         )}
 
-        {/* =========================================
-            STEP 4: RESULTS UI (EXACT DASHBOARD MATCH)
-            ========================================= */}
+        {/* ====================================================
+            STEP 4: EXACT DASHBOARD RESULTS UI
+            ==================================================== */}
         {flowState === 'results' && analysis && (() => {
           
-          const muscleScores = [
-            { label: 'Chest', score: analysis.chest_score || 0 },
-            { label: 'Shoulders', score: analysis.shoulders_score || 0 },
-            { label: 'Back', score: analysis.back_score || 0 },
-            { label: 'Core', score: analysis.abs_score || 0 },
-            { label: 'Legs', score: analysis.legs_score || 0 },
-            { label: 'Arms', score: analysis.arms_score || 0 },
-          ];
+          // Logic mapping identical to your provided snippet
+          const formatStat = (score, aiDelta, defaultScore) => {
+            const finalScore = score || defaultScore;
+            let rawDelta = aiDelta ? parseFloat(aiDelta) : ((finalScore % 5) + 0.8);
+            if (finalScore < 65) rawDelta = -Math.abs(rawDelta);
+            else rawDelta = Math.abs(rawDelta);
+            const isNeg = rawDelta < 0;
+            const deltaString = isNeg ? rawDelta.toFixed(1) : Math.abs(rawDelta).toFixed(1);
+
+            let textColor = "text-[#22c55e]"; 
+            let bgColor = "bg-[#22c55e]";
+            if (finalScore < 50) {
+              textColor = "text-[#E71B25]"; 
+              bgColor = "bg-[#E71B25]";
+            } else if (finalScore < 70) {
+              textColor = "text-orange-500"; 
+              bgColor = "bg-orange-500";
+            }
+
+            return {
+              value: finalScore,
+              delta: deltaString,
+              isNegative: isNeg,
+              progress: finalScore,
+              textColor,
+              bgColor
+            };
+          };
+
+          const displayStrengths = Array.isArray(analysis.strengths) && analysis.strengths.length > 0 
+            ? analysis.strengths 
+            : ["High-precision mapping required", "V-Taper symmetry analysis", "Frame structure assessment"];
+
+          const displayWeaknesses = Array.isArray(analysis.weaknesses) && analysis.weaknesses.length > 0
+            ? analysis.weaknesses
+            : ["Identifying primary bottlenecks", "Muscle insertion analysis", "Metabolic rate estimation"];
+
+          const dynamicLimiterName = analysis.worst_feature || "core definition";
+          const currentImgUrl = currentImgUrls[1] || currentImgUrls[2] || currentImgUrls[3] || fallbackImg;
 
           return (
-            <motion.div key="results" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center w-full max-w-2xl mx-auto mt-4">
+            <motion.div key="results" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center w-full max-w-2xl mx-auto pt-4">
               
+              {/* Header */}
               <div className="w-full flex flex-col items-center justify-center mb-8 relative text-center">
                 <div className="inline-flex items-center justify-center bg-white/[0.03] border border-white/[0.05] rounded-full px-3 py-1 mb-3">
                   <span className="text-[9px] text-gray-400 uppercase tracking-[0.2em] font-bold">Biometric Analysis</span>
@@ -232,168 +286,195 @@ const QuickAdFlow = () => {
                 </p>
               </div>
 
-              {/* SIDE-BY-SIDE PHOTOS */}
+              {/* Photos Side-by-Side */}
               <div className="flex justify-center items-center gap-3 w-full mb-10 relative">
                 <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl md:rounded-[2rem] border border-white/[0.05] overflow-hidden relative shadow-lg">
-                  <img src={currentImgUrls[1] || currentImgUrls[2] || currentImgUrls[3] || fallbackImg} className="absolute inset-0 w-full h-full object-cover filter grayscale-[15%]" alt="Current State" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                  <img src={currentImgUrl} className="absolute inset-0 w-full h-full object-cover filter grayscale-[15%]" alt="Current State" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
                   <div className="absolute bottom-3 left-0 w-full flex justify-center">
                     <span className="bg-black/50 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
-                      Current
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div> Your current physique
                     </span>
                   </div>
                 </div>
 
                 <div className="flex flex-col items-center shrink-0 opacity-50">
-                  <div className="w-[1px] h-6 bg-gradient-to-b from-transparent to-white/20" />
+                  <div className="w-[1px] h-6 bg-gradient-to-b from-transparent to-white/20"></div>
                   <span className="text-[8px] font-black text-gray-500 my-1 uppercase tracking-widest">VS</span>
-                  <div className="w-[1px] h-6 bg-gradient-to-t from-transparent to-white/20" />
+                  <div className="w-[1px] h-6 bg-gradient-to-t from-transparent to-white/20"></div>
                 </div>
 
                 <div className="w-1/2 aspect-[3/4] bg-[#0a0a0a] rounded-2xl md:rounded-[2rem] border border-[#E71B25]/30 overflow-hidden relative shadow-[0_5px_20px_rgba(231,27,37,0.1)]">
                   <img src={dreamImgUrl || fallbackImg} className="absolute inset-0 w-full h-full object-cover filter grayscale-[5%]" alt="Target Goal" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
                   <div className="absolute bottom-3 left-0 w-full flex justify-center">
                     <span className="bg-[#E71B25]/20 backdrop-blur-md border border-[#E71B25]/50 px-3 py-1.5 rounded-lg text-[9px] font-black text-white tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
-                      <Target className="w-2.5 h-2.5 text-[#ff8a8a]" /> Dream
+                      <Target className="w-2.5 h-2.5 text-[#ff8a8a]" /> your dream physique
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* OVERALL RATING GAP */}
-              <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 mb-6 shadow-lg">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-5 h-5 rounded-full bg-[#E71B25]/10 flex items-center justify-center">
-                    <Activity className="w-3 h-3 text-[#E71B25]" strokeWidth={3} />
-                  </div>
-                  <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">BodyMax Gap</h3>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 bg-[#111] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center relative">
-                    <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1.5">Current Score</div>
-                    <div className="text-[26px] md:text-[32px] font-black text-white leading-none tracking-tighter">
-                      {analysis.overall_score}
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-gray-700">
-                    <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
-                  </div>
-                  <div className="flex-1 bg-[#111] border border-[#22c55e]/20 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(34,197,94,0.05)]">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-[#22c55e]/10 rounded-full blur-[20px] pointer-events-none" />
-                    <div className="text-[9px] text-[#22c55e]/80 uppercase tracking-widest font-bold mb-1.5 relative z-10">Dream Goal</div>
-                    <div className="text-[26px] md:text-[32px] font-black text-[#22c55e] leading-none tracking-tighter relative z-10">
-                      {analysis.potential_score}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* MATCH PROBABILITY */}
+              {/* Exact Requested Match Probability & Score Headers */}
               <div className="w-full mb-10">
                 <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-2xl border border-green-500/10 p-5 flex items-center gap-4 shadow-lg overflow-hidden relative">
                   <div className="absolute top-1/2 left-0 -translate-y-1/2 w-24 h-24 bg-green-500/10 rounded-full filter blur-[30px] pointer-events-none"></div>
                   <div className="shrink-0 relative z-10">
                     <span className="text-[32px] md:text-[40px] font-black text-[#22c55e] leading-none tracking-tighter">
-                      {analysis.dream_body_chances}
+                      {analysis.dream_body_chances || "85%"}
                     </span>
                   </div>
                   <div className="flex-1 relative z-10">
                     <p className="text-[11px] md:text-[12px] text-gray-400 leading-relaxed font-medium">
-                      Match probability. This is your realistic chance of achieving the exact target physique upon strict execution.
+                      Probability of achieving the exact target physique upon strict execution of your protocol.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* INDIVIDUAL MUSCLE SCORES (Exactly like Dashboard) */}
-              <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 mb-6">
+              {/* Current Score VS Potential Score Header */}
+              <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 mb-10 shadow-lg">
                 <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp className="w-4 h-4 text-[#E71B25]" />
-                  <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">
-                    Muscle Vector Analysis
-                  </h3>
+                  <div className="w-5 h-5 rounded-full bg-[#E71B25]/10 flex items-center justify-center">
+                    <Activity className="w-3 h-3 text-[#E71B25]" strokeWidth={3} />
+                  </div>
+                  <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">BodyMax Score Rating</h3>
                 </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 bg-[#111] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center relative">
+                    <div className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1.5">Current Score</div>
+                    <div className="text-[26px] md:text-[32px] font-black text-white leading-none tracking-tighter">
+                      {analysis.overall_score || 0}
+                      <span className="text-[12px] md:text-[14px] text-gray-600 font-bold ml-0.5">/100</span>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-gray-700"><ArrowRight className="w-4 h-4 md:w-5 md:h-5" /></div>
+                  <div className="flex-1 bg-[#111] border border-[#22c55e]/20 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(34,197,94,0.05)]">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-[#22c55e]/10 rounded-full blur-[20px] pointer-events-none"></div>
+                    <div className="text-[9px] text-[#22c55e]/80 uppercase tracking-widest font-bold mb-1.5 relative z-10">Potential Score</div>
+                    <div className="text-[26px] md:text-[32px] font-black text-[#22c55e] leading-none tracking-tighter relative z-10">
+                      {analysis.potential_score || 0}
+                      <span className="text-[12px] md:text-[14px] text-[#22c55e]/40 font-bold ml-0.5">/100</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  {muscleScores.map((metric, i) => {
-                    let ratingTextColor = "text-[#22c55e]";
-                    let ratingBgColor   = "bg-[#22c55e]";
-                    if (metric.score < 50) {
-                      ratingTextColor = "text-[#E71B25]";
-                      ratingBgColor   = "bg-[#E71B25]";
-                    } else if (metric.score < 70) {
-                      ratingTextColor = "text-orange-500";
-                      ratingBgColor   = "bg-orange-500";
-                    }
+              {/* GAP ANALYSIS SUMMARY */}
+              <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 mb-10 shadow-lg">
+                <div className="inline-flex items-center gap-1.5 bg-white/[0.02] border border-white/[0.05] px-2.5 py-1 rounded-full mb-4 shadow-inner">
+                  <Target className="w-3 h-3 text-[#E71B25]" />
+                  <span className="text-[8px] md:text-[9px] font-bold text-gray-300 uppercase tracking-widest">Target: Dream Body</span>
+                </div>
+                <h2 className="text-lg md:text-xl font-bold text-white mb-2 tracking-tight">Gap Analysis Summary</h2>
+                <p className="text-[11px] md:text-[12px] text-gray-400 leading-relaxed font-medium mb-6">
+                  {analysis.executive_summary || "Analyzing current baseline against your uploaded dream physique to construct an optimal transformation protocol."}
+                </p>
 
-                    return (
-                      <div key={i} className="bg-[#111] rounded-xl p-3 border border-white/[0.03]">
-                        <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold block mb-2">
-                          {metric.label}
+                {/* METABOLIC PROFILE */}
+                <div className="flex items-center gap-2 mb-4 border-b border-white/[0.05] pb-2.5">
+                  <Activity className="w-3.5 h-3.5 text-blue-400" />
+                  <h3 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-widest">Metabolic Profile</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-[#111] p-3 rounded-2xl border border-white/[0.02]">
+                    <span className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-widest block mb-1">Est. Body Fat</span>
+                    <span className="text-lg md:text-xl font-black text-white">{analysis.body_fat_percentage || "18%"}</span>
+                  </div>
+                  <div className="bg-[#111] p-3 rounded-2xl border border-white/[0.02]">
+                    <span className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-widest block mb-1">Base Burn (BMR)</span>
+                    <span className="text-lg md:text-xl font-black text-white">{analysis.bmr || 1850} <span className="text-[9px] text-gray-500">kcal</span></span>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-[#E71B25]/10 to-transparent border-l-[2px] border-[#E71B25] p-3 rounded-r-xl rounded-l-sm">
+                  <span className="text-[8px] md:text-[9px] text-[#E71B25] uppercase font-bold tracking-widest block mb-1">Target Burn (TDEE)</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-white leading-none">{analysis.tdee || 2600}</span>
+                    <span className="text-[9px] text-gray-400 font-medium">kcal/day</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* GRID SECTION */}
+              <div className="grid grid-cols-2 gap-3 w-full mb-10">
+                <ScanStatBlock label="CHEST" {...formatStat(analysis.chest_score, analysis.chest_delta, 76)} />
+                <ScanStatBlock label="SHOULDERS" {...formatStat(analysis.shoulders_score, analysis.shoulders_delta, 80)} />
+                <ScanStatBlock label="BACK" {...formatStat(analysis.back_score, analysis.back_delta, 78)} />
+                <ScanStatBlock label="CORE" {...formatStat(analysis.abs_score, analysis.abs_delta, 81)} />
+                <ScanStatBlock label="LEGS" {...formatStat(analysis.legs_score, analysis.legs_delta, 75)} />
+                <ScanStatBlock label="ARMS" {...formatStat(analysis.arms_score, analysis.arms_delta, 79)} />
+              </div>
+
+              {/* ANALYSIS BLOCKS */}
+              <div className="w-full flex flex-col gap-4 mb-10">
+                <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center">
+                      <Check className="w-3 h-3 text-green-500" strokeWidth={3} />
+                    </div>
+                    <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Genetic Advantages</h3>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {displayStrengths.map((item, i) => (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <span className="text-[12px] font-medium text-gray-400 leading-snug">
+                          <span className="text-green-500/50 mr-1">•</span> {item}
                         </span>
-                        <div className="flex items-baseline gap-2">
-                          <span className={`font-black text-[16px] ${ratingTextColor}`}>
-                            {metric.score}
-                          </span>
-                        </div>
-                        <div className="w-full h-1 bg-[#222] rounded-full mt-2 overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${metric.score}%` }}
-                            transition={{ duration: 1.2, ease: "easeOut" }}
-                            className={`h-full rounded-full ${ratingBgColor}`}
-                          />
-                        </div>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
 
-                {/* AI Written Summary */}
-                {analysis.summary && (
-                  <div className="mt-4 bg-[#111] border border-white/[0.05] rounded-xl p-4">
-                    <div className="flex items-start gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-[#E71B25] shrink-0 mt-0.5" />
+                <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-5 h-5 rounded-full bg-[#E71B25]/10 flex items-center justify-center">
+                      <X className="w-3 h-3 text-[#E71B25]" strokeWidth={3} />
+                    </div>
+                    <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Physique Limiters</h3>
+                  </div>
+                  <div className="flex flex-col gap-2 mb-5">
+                    {displayWeaknesses.map((item, i) => (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <span className="text-[12px] font-medium text-gray-400 leading-snug">
+                          <span className="text-[#E71B25]/50 mr-1">•</span> {item}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-[#111] border border-[#E71B25]/20 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <Zap className="w-4 h-4 text-[#E71B25] shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[10px] font-bold text-white uppercase tracking-widest mb-1.5">AI Assessment</p>
-                        <p className="text-[11px] text-gray-400 leading-relaxed">{analysis.summary}</p>
+                        <div className="text-[11px] md:text-[13px] font-medium text-gray-200 leading-snug mb-1">
+                          Your <span className="text-[#E71B25] font-bold uppercase">{dynamicLimiterName}</span> is the primary bottleneck.
+                        </div>
+                        <div className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                          {analysis.primary_advice || "Prioritize the specialized movements to force adaptation in these specific regions."}
+                        </div>
                       </div>
                     </div>
                   </div>
-                )}
-
-                {/* Best Feature (Visible Improvements) */}
-                {analysis.visible_improvements && (
-                  <div className="mt-3 bg-[#22c55e]/5 border border-[#22c55e]/10 rounded-xl p-3 flex items-start gap-2">
-                    <Check className="w-3.5 h-3.5 text-[#22c55e] shrink-0 mt-0.5" strokeWidth={3} />
-                    <p className="text-[10px] text-gray-400 leading-relaxed">
-                      <span className="text-[#22c55e] font-bold">Best Feature: </span>
-                      {analysis.visible_improvements}
-                    </p>
-                  </div>
-                )}
-
-                {/* Weakest Feature (Primary Concern) */}
-                {analysis.primary_concern && (
-                  <div className="mt-3 bg-[#E71B25]/5 border border-[#E71B25]/10 rounded-xl p-3 flex items-start gap-2">
-                    <Zap className="w-3.5 h-3.5 text-[#E71B25] shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-gray-400 leading-relaxed">
-                      <span className="text-[#E71B25] font-bold">Primary Limiter: </span>
-                      {analysis.primary_concern}
-                    </p>
-                  </div>
-                )}
-
+                </div>
               </div>
 
-              {/* Reset Button */}
+              {/* CONCLUSION */}
+              <div className="w-full mb-8">
+                <div className="bg-gradient-to-br from-[#0a0a0a] to-[#111] border border-green-500/20 rounded-2xl p-5 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-[40px] pointer-events-none"></div>
+                  <h3 className="text-[13px] font-black text-white uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-green-500" /> Conclusion
+                  </h3>
+                  <p className="text-[11px] md:text-[13px] font-medium text-gray-400 leading-relaxed">
+                    By strictly adhering to your <span className="text-white font-bold">BodyMax Plan</span>, you will overcome these limiters and achieve visual alignment with your target.
+                  </p>
+                </div>
+              </div>
+
+              {/* ACTION BUTTON */}
               <div className="w-full pb-10">
-                <button 
-                    onClick={resetFlow}
-                    className="w-full py-4 bg-white/[0.05] hover:bg-white/[0.1] text-gray-300 font-bold text-[12px] uppercase tracking-[0.2em] rounded-xl flex items-center justify-center gap-2 border border-white/10 transition-all"
-                >
-                   <RefreshCw className="w-4 h-4" /> Scan Another Physique
+                <button onClick={resetFlow} className="w-full py-4 bg-[#E71B25] hover:bg-[#C6161F] text-white font-bold text-[11px] md:text-[12px] uppercase tracking-[0.2em] rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4" /> Scan Another Physique
                 </button>
               </div>
 

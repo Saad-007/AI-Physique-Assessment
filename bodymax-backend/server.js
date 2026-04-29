@@ -511,75 +511,63 @@ Return ONLY this JSON structure:
 // ==========================================
 app.post('/api/analyze-ad', async (req, res) => {
   try {
-    // 🔴 FIX: Yahan 'currentImage' ki jagah 'currentImages' (array) wapas laga diya hai
     const { currentImages, dreamImage } = req.body;
     
     if (!currentImages || !Array.isArray(currentImages) || currentImages.length === 0) {
       return res.status(400).json({ error: "Missing current images" });
     }
 
-    console.log(`[AD SCAN] Processing instant, brutally honest analysis using ${currentImages.length} photos...`);
+    console.log(`[AD SCAN] Processing FULL dashboard analysis using ${currentImages.length} photos...`);
 
     const imageContentArray = [];
-
-    // 🔴 Teeno images (Front, Side, Back) ko AI ke liye array mein push karna
     currentImages.forEach(imgBase64 => {
       imageContentArray.push({ type: "image_url", image_url: { url: imgBase64, detail: "high" } });
     });
-
     if (dreamImage) {
       imageContentArray.push({ type: "image_url", image_url: { url: dreamImage, detail: "high" } });
     }
 
-    // 🔴 SMART, BRUTALLY HONEST PROMPT INJECTED HERE
     const adPrompt = `
-You are a BRUTALLY HONEST, professional physique assessment judge with 20 years of experience.
-Your ONLY job right now is to score the physique in these photos ACCURATELY. 
-You are receiving up to 3 photos of the Current physique (Front, Side, Back) and 1 photo of the Dream physique.
-You must evaluate ALL angles of the Current physique for the main scores, and analyze the Dream physique to calculate the 'dream_body_chances' and 'potential_score'.
+You are a BRUTALLY HONEST, professional physique assessment judge.
+Score the Current physique accurately. Evaluate the gap to the Dream physique.
+Estimate metabolic stats (BMR/TDEE) based on visual muscle mass and body fat.
 
-=== MANDATORY SCORING RUBRIC ===
-- 20-35: Severely untrained, high body fat, no visible muscle.
-- 36-45: Sedentary/average. Muscle hidden under fat. No definition.
-- 46-55: Beginner trainee. Slightly above average. 18-25% BF.
-- 56-65: Intermediate (1-3 years). Decent mass, some definition. 14-18% BF.
-- 66-75: Advanced. Clear muscle definition, visible separation. 11-14% BF.
-- 76-85: Elite/competitive. Sharp definition. 7-11% BF.
-- 86-100: ONLY for world-class pro athletes.
-
-=== NON-NEGOTIABLE RULES ===
-1. If you CANNOT see clear muscle separation → score CANNOT exceed 63
-2. If visible excess body fat is present → score MUST be below 60
-3. A "normal" untrained person scores 35-48. Do NOT give 65+ unless they look athletic.
-4. If someone has a good upper body but bad legs, score each accurately — do NOT average up.
-5. You are NOT trying to motivate anyone. You are scoring what you SEE.
-
-Return ONLY this JSON (no markdown, no text outside JSON):
+Return ONLY this JSON (no markdown):
 {
-  "overall_score": <integer, honest weighted assessment of entire current physique>,
-  "potential_score": <integer 85-98, based on the gap to the dream physique>,
-  "dream_body_chances": "<e.g. '82%' — calculate realistically based on current genetics vs dream goal>",
-  "chest_score": <integer 0-100, honest assessment>,
-  "shoulders_score": <integer 0-100, honest assessment>,
-  "back_score": <integer 0-100, honest assessment>,
-  "abs_score": <integer 0-100, honest assessment>,
-  "legs_score": <integer 0-100, honest assessment>,
-  "arms_score": <integer 0-100, honest assessment>,
-  "summary": "<honest 3-sentence assessment of the current state and the gap to the dream physique>",
-  "visible_improvements": "<The best physical feature currently visible>",
-  "primary_concern": "<The weakest link holding the physique back right now>"
+  "overall_score": <integer 20-95>,
+  "potential_score": <integer 85-98>,
+  "dream_body_chances": "<e.g. '82%'>",
+  "executive_summary": "<Honest 3-sentence summary of their current shape and gap to the dream body>",
+  "body_fat_percentage": "<e.g. '~16-18%'>",
+  "bmr": <integer, estimated base calories>,
+  "tdee": <integer, estimated daily burn>,
+  "chest_score": <integer>, "chest_delta": "<e.g. '+2.1'>",
+  "shoulders_score": <integer>, "shoulders_delta": "<e.g. '+1.8'>",
+  "back_score": <integer>, "back_delta": "<e.g. '+2.5'>",
+  "abs_score": <integer>, "abs_delta": "<e.g. '+3.2'>",
+  "legs_score": <integer>, "legs_delta": "<e.g. '+1.9'>",
+  "arms_score": <integer>, "arms_delta": "<e.g. '+2.0'>",
+  "strengths": [
+    "<Specific genetic or visual advantage 1>",
+    "<Specific genetic or visual advantage 2>",
+    "<Specific genetic or visual advantage 3>"
+  ],
+  "weaknesses": [
+    "<Specific visual bottleneck 1>",
+    "<Specific visual bottleneck 2>",
+    "<Specific visual bottleneck 3>"
+  ],
+  "worst_feature": "<lowercase name of weakest muscle, e.g. 'core definition'>",
+  "primary_advice": "<1 sentence actionable advice to fix the worst feature>"
 }`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       response_format: { type: "json_object" },
-      max_tokens: 350,
-      temperature: 0.2, // Low temp for brutal honesty and consistency
+      max_tokens: 800,
+      temperature: 0.2,
       messages: [
-        { 
-          role: "system", 
-          content: "You are a brutally honest physique scoring judge. Inflated scores destroy your reputation. Score what you SEE in the photos. Do NOT adjust scores upward to be kind. Return only valid JSON." 
-        },
+        { role: "system", content: "You are a brutally honest physique scoring judge. Return only JSON." },
         { role: "user", content: [ { type: "text", text: adPrompt }, ...imageContentArray ] }
       ]
     });
@@ -591,33 +579,12 @@ Return ONLY this JSON (no markdown, no text outside JSON):
     
     let parsedData = JSON.parse(cleanVision);
 
-    // 🔴 SMART SERVER-SIDE CHECKS
+    // Sanity checks
     const muscleKeys = ['chest_score', 'shoulders_score', 'back_score', 'abs_score', 'legs_score', 'arms_score'];
-    
-    // Weighted Average Recalculation just in case AI gets too generous
-    const weightedAvg = Math.round(
-      (parsedData.chest_score * 0.18) +
-      (parsedData.shoulders_score * 0.18) +
-      (parsedData.back_score * 0.18) +
-      (parsedData.abs_score * 0.16) +
-      (parsedData.legs_score * 0.15) +
-      (parsedData.arms_score * 0.15)
-    );
-
-    if (parsedData.overall_score > weightedAvg + 5) {
-      console.log(`[AD SCAN SANITY] AI overall (${parsedData.overall_score}) too high vs weighted avg (${weightedAvg}). Correcting.`);
-      parsedData.overall_score = weightedAvg + 3; 
-    }
-
-    // Keep it within bounds
-    muscleKeys.forEach(key => {
-      parsedData[key] = Math.max(20, Math.min(92, parsedData[key]));
-    });
-    parsedData.overall_score = Math.max(20, Math.min(92, parsedData.overall_score));
-
+    muscleKeys.forEach(key => { parsedData[key] = Math.max(20, Math.min(92, parsedData[key] || 50)); });
+    parsedData.overall_score = Math.max(20, Math.min(92, parsedData.overall_score || 50));
 
     res.status(200).json(parsedData);
-
   } catch (error) {
     console.error("[AD SCAN ERROR]:", error);
     res.status(500).json({ error: "Failed to scan" });
