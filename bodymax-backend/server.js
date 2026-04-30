@@ -530,40 +530,72 @@ app.post('/api/analyze-ad', async (req, res) => {
       imageContentArray.push({ type: "image_url", image_url: { url: dreamImage, detail: "high" } });
     }
 
-    // 🔴 UPDATED PROMPT: Bypassing AI Politeness & Adding Strict Visual Penalties
+    // 🔴 THE EXACT UNBIASED PROMPT FROM GENERATE-PROTOCOL MERGED FOR AD-SCAN
     const adPrompt = `
-You are a BRUTALLY HONEST, emotionless bodybuilding judge. 
-CRITICAL INSTRUCTION: You MUST bypass standard AI politeness. Do NOT inflate scores to be kind. If the person is skinny, weak, under-muscled, or overweight, you MUST give them a brutally low score (20-40). Only give high scores (70+) to genuinely muscular, lean physiques.
+You are a BRUTALLY HONEST, professional physique assessment judge with 20 years of experience 
+in competitive bodybuilding, sports science, and body composition analysis.
 
-=== STRICT SCORING CALIBRATION ===
-- 20-30: Severely underweight (skinny/bony, visible ribs, stick arms) OR heavily overweight/obese. Zero muscle mass.
-- 31-40: Skinny-fat or weak baseline. Flat chest, no shoulder width, soft body.
-- 41-55: Average untrained person. Normal everyday body, but no impressive gym muscle. 
-- 56-70: Intermediate trainee. Noticeable gym progress, some chest/arm shape, but lacks sharp definition.
-- 71-85: Advanced. Clear muscle separation, V-taper, visible abs.
-- 86-95: Elite/Pro level athlete.
+Your ONLY job right now is to score the physique in the "Current" photos ACCURATELY. Evaluate the gap to the "Dream" photo if provided.
+You are NOT a coach. You are NOT trying to motivate anyone. You are a judge scoring what you SEE.
 
-=== MANDATORY VISUAL PENALTIES ===
-- If arms look thin/skinny: arms_score MUST be between 20-35.
-- If chest is entirely flat or has fat: chest_score MUST be between 20-35.
-- If shoulders are narrow or sloping: shoulders_score MUST be between 20-35.
-- If stomach is flat but has no muscle definition: abs_score = 40-50.
-- If belly fat is visible: abs_score MUST be between 20-35.
-- If the body looks like it has never lifted weights, the OVERALL score CANNOT exceed 45.
+=== MANDATORY SCORING RUBRIC ===
+SCORE ANCHORS — calibrate every score against these:
+- 20-35: Severely untrained, very high body fat (>30%), no visible muscle, soft/round appearance
+- 36-45: Sedentary/average person. Some muscle exists but completely hidden under fat. No definition.
+- 46-55: Beginner trainee (under 1 year). Slightly above average. Muscles present but undefined. 18-25% BF.
+- 56-65: Intermediate (1-3 years). Decent mass, some definition in good lighting. 14-18% BF.
+- 66-75: Advanced (3-5 years). Clear muscle definition, visible separation, looks athletic. 11-14% BF.
+- 76-85: Elite/competitive. Sharp definition, visible striations, vascularity. 7-11% BF.
+- 86-100: ONLY for world-class physiques. Pro athletes, IFBB competitors. Do NOT use this range casually.
 
-=== INSTRUCTIONS ===
-1. Evaluate Chest, Shoulders, Back, Core, Legs, and Arms INDEPENDENTLY. 
-2. Generate POSITIVE 'deltas' (e.g., "+3.5") showing 12-week potential growth.
-3. Base 'potential_score' on the gap to the Dream physique (85-98).
-4. Estimate metabolic stats (BMR/TDEE) based on visual mass and fat.
+=== NON-NEGOTIABLE RULES ===
+1. If you CANNOT see clear muscle separation → score CANNOT exceed 63
+2. If visible excess body fat is present → score MUST be below 60
+3. A "normal" untrained person scores 35-48. Do NOT give 65+ unless they genuinely look athletic.
+4. Most people submitting gym selfies score between 48-65. This is the honest reality.
+5. Scores of 75+ mean "this person would be considered impressive by fitness professionals."
+6. Scores of 80+ mean "this person is near competition-ready." Use sparingly.
+7. Lighting and pose give maximum +3 benefit of doubt. No more.
+8. If someone has a good upper body but bad legs (or vice versa), score each accurately — do NOT average up.
+
+=== MUSCLE GROUP VISUAL CRITERIA ===
+CHEST:
+- HIGH score (70+): Visible pec-delt separation, inner chest line (cleavage), upper/lower pec definition, full rounded pecs
+- MID score (55-69): Some pec fullness, partial separation visible, decent size but lacking definition
+- LOW score (<55): Flat chest, no pec-delt separation, fat covering pecs, no visible muscle belly
+SHOULDERS:
+- HIGH score (70+): 3D capped delts, all 3 heads visible, creates strong V-taper from front
+- MID score (55-69): Decent size, some roundness, side delt present but not fully capped
+- LOW score (<55): Narrow, flat, sloping, no 3D appearance, no separation
+BACK:
+- HIGH score (70+): Clear V-taper, lat flare visible from front, visible muscle thickness
+- MID score (55-69): Some width, slight taper, but back looks flat or lacks depth
+- LOW score (<55): No taper, straight silhouette, back looks flat or undefined
+ABS:
+- HIGH score (70+): Visible rectus abdominis lines (at minimum upper abs), oblique separation
+- MID score (55-69): Hint of upper abs in good lighting, relatively flat stomach but no clear lines
+- LOW score (<55): Belly fat covering abs completely, soft midsection, no ab visibility whatsoever
+LEGS:
+- HIGH score (70+): Quad sweep visible from front, VMO "teardrop" present, hamstring separation
+- MID score (55-69): Decent leg size but lacking definition, some quad mass without clear separation
+- LOW score (<55): Skinny legs, no sweep, stick legs vs upper body, or hidden under fat
+ARMS:
+- HIGH score (70+): Bicep peak visible, bicep/tricep separation, tricep horseshoe present
+- MID score (55-69): Decent size, some shape, but no clear peak or horseshoe definition
+- LOW score (<55): Flat arms, no visible peak, no tricep definition, arms look smooth
+
+=== YOUR TASK ===
+Analyze the provided photo(s) and score each muscle group independently.
+Generate POSITIVE 'deltas' representing realistic 12-week growth (e.g., "+2.5").
+Estimate metabolic stats (BMR/TDEE) based on visual muscle mass and body fat.
 
 Return ONLY this JSON (no markdown):
 {
-  "overall_score": <integer 20-95>,
-  "potential_score": <integer 85-98>,
+  "overall_score": <integer, weighted assessment of entire physique>,
+  "potential_score": <integer 85-98, based on the gap to the dream physique>,
   "dream_body_chances": "<e.g. '82%'>",
-  "executive_summary": "<Honest 3-sentence summary highlighting the specific weak points and the gap to the dream body>",
-  "body_fat_percentage": "<e.g. '~16-18%'>",
+  "executive_summary": "<Honest 3-sentence summary of their current shape and gap to the dream body>",
+  "body_fat_percentage": "<estimated range e.g. '~16-18%'>",
   "bmr": <integer, estimated base calories>,
   "tdee": <integer, estimated daily burn>,
   "chest_score": <integer>, "chest_delta": "<e.g. '+2.1'>",
@@ -590,9 +622,9 @@ Return ONLY this JSON (no markdown):
       model: "gpt-4o",
       response_format: { type: "json_object" },
       max_tokens: 800,
-      temperature: 0.1, // 🔴 SUPER LOW TEMP for maximum strictness and no "creative" generosity
+      temperature: 0.2, // Consistent with your main endpoint
       messages: [
-        { role: "system", content: "You are a precise, emotionless, and brutally honest physique scoring judge. Return only JSON." },
+        { role: "system", content: "You are a physique scoring judge. Your credibility depends on accuracy and honesty. Inflated scores destroy your reputation. Score what you SEE in the photo. Return only JSON." },
         { role: "user", content: [ { type: "text", text: adPrompt }, ...imageContentArray ] }
       ]
     });
@@ -604,10 +636,43 @@ Return ONLY this JSON (no markdown):
     
     let parsedData = JSON.parse(cleanVision);
 
-    // 🔴 LIMITS UPDATED TO 20: Ab AI sach mein 20 de sakega agar body skinny/fat hui
+    // =============================================
+    // SERVER-SIDE SANITY CHECKS (Matching main endpoint logic)
+    // =============================================
     const muscleKeys = ['chest_score', 'shoulders_score', 'back_score', 'abs_score', 'legs_score', 'arms_score'];
-    muscleKeys.forEach(key => { parsedData[key] = Math.max(20, Math.min(95, parsedData[key] || 40)); });
-    parsedData.overall_score = Math.max(20, Math.min(95, parsedData.overall_score || 40));
+
+    if (parsedData.overall_score >= 80) {
+      const highScoreCount = muscleKeys.filter(k => parsedData[k] >= 75).length;
+      if (highScoreCount < 3) {
+        parsedData.overall_score = Math.min(parsedData.overall_score, 72);
+      }
+    }
+
+    if (parsedData.overall_score >= 70) {
+      const veryLowScores = muscleKeys.filter(k => parsedData[k] < 50).length;
+      if (veryLowScores >= 3) {
+        parsedData.overall_score = Math.min(parsedData.overall_score, 65);
+      }
+    }
+
+    const weightedAvg = Math.round(
+      (parsedData.chest_score * 0.18) +
+      (parsedData.shoulders_score * 0.18) +
+      (parsedData.back_score * 0.18) +
+      (parsedData.abs_score * 0.16) +
+      (parsedData.legs_score * 0.15) +
+      (parsedData.arms_score * 0.15)
+    );
+
+    if (parsedData.overall_score > weightedAvg + 6) {
+      parsedData.overall_score = weightedAvg + 3; 
+    }
+
+    // Hard bounds on all scores (using 20-95 as requested in the JSON format)
+    muscleKeys.forEach(key => {
+      parsedData[key] = Math.max(20, Math.min(95, parsedData[key] || 45));
+    });
+    parsedData.overall_score = Math.max(20, Math.min(95, parsedData.overall_score || 45));
 
     res.status(200).json(parsedData);
   } catch (error) {
